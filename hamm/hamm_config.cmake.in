@@ -1,0 +1,19 @@
+include(CMakeFindDependencyMacro)
+
+if (NOT HAMM_DIR)
+  if (@HAMM_BUILD@)
+    set(HAMM_DIR "@CMAKE_BINARY_DIR@")
+  else()
+    set(HAMM_DIR "@CMAKE_INSTALL_PREFIX@")
+  endif()
+endif()
+list(APPEND CMAKE_MODULE_PATH "${HAMM_DIR}")
+
+set(HAMM_LIB_TYPE STATIC)
+if (@BUILD_SHARED_LIBS@)
+  set(HAMM_LIB_TYPE SHARED)
+endif()
+
+set(HAMM_ENABLE_CUDA @HAMM_ENABLE_CUDA@)
+
+include(hamm)
