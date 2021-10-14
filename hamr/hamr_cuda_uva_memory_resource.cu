@@ -1,21 +1,24 @@
-#include "hamm_cuda_mm_memory_resource.h"
+#include "hamr_cuda_uva_memory_resource.h"
 
 #include <iostream>
 
-// --------------------------------------------------------------------------
-p_hamm_cuda_mm_memory_resource hamm_cuda_mm_memory_resource::New()
+namespace hamr
 {
-    return std::shared_ptr<hamm_cuda_mm_memory_resource>(new hamm_cuda_mm_memory_resource);
+
+// --------------------------------------------------------------------------
+p_cuda_uva_memory_resource cuda_uva_memory_resource::New()
+{
+    return std::shared_ptr<cuda_uva_memory_resource>(new cuda_uva_memory_resource);
 }
 
 // --------------------------------------------------------------------------
-p_hamm_memory_resource hamm_cuda_mm_memory_resource::new_instance() const
+p_memory_resource cuda_uva_memory_resource::new_instance() const
 {
-    return std::shared_ptr<hamm_cuda_mm_memory_resource>(new hamm_cuda_mm_memory_resource);
+    return std::shared_ptr<cuda_uva_memory_resource>(new cuda_uva_memory_resource);
 }
 
 // --------------------------------------------------------------------------
-void *hamm_cuda_mm_memory_resource::do_allocate(std::size_t n_bytes, std::size_t align)
+void *cuda_uva_memory_resource::do_allocate(std::size_t n_bytes, std::size_t align)
 {
     (void) align;
 
@@ -33,7 +36,7 @@ void *hamm_cuda_mm_memory_resource::do_allocate(std::size_t n_bytes, std::size_t
 
     if (this->verbose > 1)
     {
-        std::cerr << "hamm_cuda_mm_memory_resource(" << this << ") allocated " << n_bytes
+        std::cerr << "cuda_uva_memory_resource(" << this << ") allocated " << n_bytes
             << " alligned to " << align << " byte boundary at " << ptr << std::endl;
     }
 
@@ -41,7 +44,7 @@ void *hamm_cuda_mm_memory_resource::do_allocate(std::size_t n_bytes, std::size_t
 }
 
 // --------------------------------------------------------------------------
-void hamm_cuda_mm_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
+void cuda_uva_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
     std::size_t align)
 {
     (void) n_bytes;
@@ -58,13 +61,15 @@ void hamm_cuda_mm_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
 
     if (this->verbose > 1)
     {
-        std::cerr << "hamm_cuda_mm_memory_resource(" << this << ") deallocated " << n_bytes
+        std::cerr << "cuda_uva_memory_resource(" << this << ") deallocated " << n_bytes
             << " alligned to " << align << " byte boundary  at " << ptr << std::endl;
     }
 }
 
 // --------------------------------------------------------------------------
-bool hamm_cuda_mm_memory_resource::do_is_equal(const hamm_pmr_memory_resource& other) const noexcept
+bool cuda_uva_memory_resource::do_is_equal(const pmr_memory_resource& other) const noexcept
 {
-    return dynamic_cast<const hamm_cuda_mm_memory_resource*>(&other) != nullptr;
+    return dynamic_cast<const cuda_uva_memory_resource*>(&other) != nullptr;
+}
+
 }

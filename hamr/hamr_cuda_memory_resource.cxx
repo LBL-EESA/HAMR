@@ -1,9 +1,13 @@
-#include "hamm_cuda_mm_memory_resource.h"
+#include "hamr_cuda_memory_resource.h"
+
 #include <iostream>
 
-#if !defined(HAMM_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_CUDA)
+namespace hamr
+{
+
 // --------------------------------------------------------------------------
-p_hamm_cuda_mm_memory_resource hamm_cuda_mm_memory_resource::New()
+p_cuda_memory_resource cuda_memory_resource::New()
 {
     std::cerr << "[" << __FILE__ << ":" << __LINE__
         << "] Error:" << "Failed to allocate memory because CUDA is not available"
@@ -13,7 +17,7 @@ p_hamm_cuda_mm_memory_resource hamm_cuda_mm_memory_resource::New()
 }
 
 // --------------------------------------------------------------------------
-p_hamm_memory_resource hamm_cuda_mm_memory_resource::new_instance() const
+p_memory_resource cuda_memory_resource::new_instance() const
 {
     std::cerr << "[" << __FILE__ << ":" << __LINE__
         << "] Error:" << "Failed to allocate memory because CUDA is not available"
@@ -23,7 +27,7 @@ p_hamm_memory_resource hamm_cuda_mm_memory_resource::new_instance() const
 }
 
 // --------------------------------------------------------------------------
-void *hamm_cuda_mm_memory_resource::do_allocate(std::size_t n_bytes, std::size_t align)
+void *cuda_memory_resource::do_allocate(std::size_t n_bytes, std::size_t align)
 {
     (void) n_bytes;
     (void) align;
@@ -36,7 +40,7 @@ void *hamm_cuda_mm_memory_resource::do_allocate(std::size_t n_bytes, std::size_t
 }
 
 // --------------------------------------------------------------------------
-void hamm_cuda_mm_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
+void cuda_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
     std::size_t align)
 {
     (void) ptr;
@@ -49,7 +53,7 @@ void hamm_cuda_mm_memory_resource::do_deallocate(void *ptr, std::size_t n_bytes,
 }
 
 // --------------------------------------------------------------------------
-bool hamm_cuda_mm_memory_resource::do_is_equal(const hamm_pmr_memory_resource& other) const noexcept
+bool cuda_memory_resource::do_is_equal(const pmr_memory_resource& other) const noexcept
 {
     (void) other;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] Error: "
@@ -57,5 +61,7 @@ bool hamm_cuda_mm_memory_resource::do_is_equal(const hamm_pmr_memory_resource& o
         << std::endl;
 
     return false;
+}
+
 }
 #endif

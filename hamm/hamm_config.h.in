@@ -1,6 +1,0 @@
-#ifndef hamm_config_h
-#define hamm_config_h
-
-#cmakedefine HAMM_ENABLE_CUDA
-
-#endif

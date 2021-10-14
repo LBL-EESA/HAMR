@@ -1,0 +1,6 @@
+#ifndef config_h
+#define config_h
+
+#cmakedefine HAMR_ENABLE_CUDA
+
+#endif

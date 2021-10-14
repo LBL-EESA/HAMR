@@ -1,0 +1,19 @@
+include(CMakeFindDependencyMacro)
+
+if (NOT HAMR_DIR)
+  if (@HAMR_BUILD@)
+    set(HAMR_DIR "@CMAKE_BINARY_DIR@")
+  else()
+    set(HAMR_DIR "@CMAKE_INSTALL_PREFIX@")
+  endif()
+endif()
+list(APPEND CMAKE_MODULE_PATH "${HAMR_DIR}")
+
+set(HAMR_LIB_TYPE STATIC)
+if (@BUILD_SHARED_LIBS@)
+  set(HAMR_LIB_TYPE SHARED)
+endif()
+
+set(HAMR_ENABLE_CUDA @HAMR_ENABLE_CUDA@)
+
+include(hamr)

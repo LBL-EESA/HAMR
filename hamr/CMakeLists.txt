@@ -1,4 +1,4 @@
-project(hamm)
+project(hamr)
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -13,10 +13,10 @@ endif()
 message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # enable CUDA
-if (NOT DEFINED HAMM_ENABLE_CUDA)
-set(HAMM_ENABLE_CUDA ON CACHE BOOL "Enable features supporting the CUDA memory model")
+if (NOT DEFINED HAMR_ENABLE_CUDA)
+set(HAMR_ENABLE_CUDA ON CACHE BOOL "Enable features supporting the CUDA memory model")
 endif()
-if (HAMM_ENABLE_CUDA)
+if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
@@ -26,13 +26,13 @@ if (HAMM_ENABLE_CUDA)
     check_language(CUDA)
     if (CMAKE_CUDA_COMPILER)
         enable_language(CUDA)
-        message(STATUS "hamm CUDA features -- enabled")
+        message(STATUS "hamr CUDA features -- enabled")
         set(tmp ON)
     else()
-        message(FATAL_ERROR "CUDA is required for hamm but was not found")
+        message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
 else()
-    message(STATUS "hamm CUDA features -- disabled")
+    message(STATUS "hamr CUDA features -- disabled")
 endif()
 
 # set build/install sub dirs for various components
@@ -50,42 +50,44 @@ if (NOT INCLUDE_PREFIX)
 endif()
 
 # C++ sources
-set(hamm_sources
-    hamm_cpu_memory_resource.cxx
-    hamm_cuda_mm_memory_resource.cxx
+set(hamr_sources
+    hamr_cpu_memory_resource.cxx
+    hamr_cuda_uva_memory_resource.cxx
+    hamr_env.cxx
     )
 
 # CUDA sources
-if (HAMM_ENABLE_CUDA)
-    list(APPEND hamm_sources
-        hamm_cuda_mm_memory_resource.cu
+if (HAMR_ENABLE_CUDA)
+    list(APPEND hamr_sources
+        hamr_cuda_uva_memory_resource.cu
+        hamr_cuda_launch.cu
         )
 endif()
 
 # add the libaraary
-add_library(hamm ${hamm_sources})
-target_link_libraries(hamm PUBLIC ${hamm_libs})
+add_library(hamr ${hamr_sources})
+target_link_libraries(hamr PUBLIC ${hamr_libs})
 
-target_compile_features(hamm PUBLIC cxx_std_17)
-set_target_properties(hamm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(hamr PUBLIC cxx_std_17)
+set_target_properties(hamr PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-if (HAMM_ENABLE_CUDA)
-  set_target_properties(hamm PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+if (HAMR_ENABLE_CUDA)
+  set_target_properties(hamr PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif ()
 
-# hamm_config.h
-configure_file(hamm_config.h.in hamm_config.h)
+# hamr_config.h
+configure_file(hamr_config.h.in hamr_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-install(FILES ${CMAKE_BINARY_DIR}/hamm_config.h DESTINATION include)
+install(FILES ${CMAKE_BINARY_DIR}/hamr_config.h DESTINATION include)
 
-# hamm_config.cmake
-configure_file(hamm_config.cmake.in
-    ${LIB_PREFIX}/cmake/hamm_config.cmake @ONLY)
+# hamr_config.cmake
+configure_file(hamr_config.cmake.in
+    ${LIB_PREFIX}/cmake/hamr_config.cmake @ONLY)
 
-install(FILES ${CMAKE_BINARY_DIR}/${LIB_PREFIX}/cmake/hamm_config.cmake
+install(FILES ${CMAKE_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
   DESTINATION ${LIB_PREFIX}/cmake)
 
-target_include_directories(hamm
+target_include_directories(hamr
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
@@ -96,16 +98,16 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DESTINATION ${INCLUDE_PREFIX}
     FILES_MATCHING PATTERN "*.h")
 
-install(TARGETS hamm
-    EXPORT hamm
+install(TARGETS hamr
+    EXPORT hamr
     INCLUDES DESTINATION ${INCLUDE_PREFIX}
     ARCHIVE DESTINATION ${LIB_PREFIX}
     LIBRARY DESTINATION ${LIB_PREFIX}
     )
 
-install(EXPORT hamm
+install(EXPORT hamr
     DESTINATION ${LIB_PREFIX}
-    FILE hamm.cmake
+    FILE hamr.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
 
