@@ -7,10 +7,12 @@
 #include <typeinfo>
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "hamr_config.h"
 #include "hamr_cuda_kernels.h"
 #include "hamr_env.h"
 
@@ -61,6 +63,12 @@ void
 cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::operator()(T *ptr)
 {
+#if !defined(HAMR_CUDA_OBJECTS)
+    (void) ptr;
+     std::cerr << "ERROR: cuda_malloc_uva_deleter dealllocate objects failed."
+        " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
+     abort();
+#else
     assert(ptr == m_ptr);
 
     if (hamr::get_verbose())
@@ -74,7 +82,7 @@ cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(-1, m_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, m_elem, 8, block_grid, n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return;
@@ -89,7 +97,7 @@ cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value
             << cudaGetErrorString(ierr) << std::endl;
         return;
     }
-
+#endif
     // free the array
     cudaFree(ptr);
 }
@@ -193,6 +201,13 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem)
 {
+#if !defined(HAMR_CUDA_OBJECTS)
+    (void) n_elem;
+     std::cerr << "ERROR: cuda_malloc_uva_allocator allocate objects failed."
+        " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
+     abort();
+     return nullptr;
+#else
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
@@ -217,7 +232,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(-1, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -235,6 +250,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -243,6 +259,13 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const T &val)
 {
+#if !defined(HAMR_CUDA_OBJECTS)
+    (void) n_elem;
+     std::cerr << "ERROR: cuda_malloc_uva_allocator allocate objects failed."
+        " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
+     abort();
+     return nullptr;
+#else
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
@@ -268,7 +291,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(-1, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -286,6 +309,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -295,6 +319,13 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const U *vals, bool cudaVals)
 {
+#if !defined(HAMR_CUDA_OBJECTS)
+    (void) n_elem;
+     std::cerr << "ERROR: cuda_malloc_uva_allocator allocate objects failed."
+        " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
+     abort();
+     return nullptr;
+#else
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
@@ -368,6 +399,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
+#endif
 }
 
 

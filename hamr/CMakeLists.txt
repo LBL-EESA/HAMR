@@ -64,6 +64,8 @@ if (HAMR_ENABLE_CUDA)
         )
 endif()
 
+set(HAMR_CUDA_OBJECTS ON CACHE BOOL "Disable use of classes in CUDA allocators etc")
+
 # add the libaraary
 add_library(hamr ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
