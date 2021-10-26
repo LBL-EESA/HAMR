@@ -172,6 +172,11 @@ public:
     /// returns the allocator type enum
     int get_allocator() const { return m_alloc; }
 
+    /// returns true if the data is accessible from CUDA codes
+    int cuda_accessible() const;
+
+    /// returns true if the data is accessible from codes running on the CPU
+    int cpu_accessible() const;
 
     /// prints the contents to the stderr stream
     int print();
@@ -241,6 +246,20 @@ const char *buffer<T>::get_allocator_name(int alloc)
     return "the allocator name is not known";
 }
 
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::cuda_accessible() const
+{
+    return (m_alloc == buffer<T>::cpp) ||
+        (m_alloc == buffer<T>::malloc) || (m_alloc == buffer<T>::cuda_uva);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::cpu_accessible() const
+{
+    return (m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva);
+}
 
 // --------------------------------------------------------------------------
 template <typename T>
