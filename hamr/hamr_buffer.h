@@ -141,12 +141,12 @@ public:
     /** gets n_vals elements starting at src_start into the passed array
      * elements starting at dest_start (dest is always on the CPU)*/
     template <typename U>
-    int get(size_t src_start, const U *dest, size_t dest_start, size_t n_vals);
+    int get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) const;
 
     /** gets n_vals elements starting at src_start into the passed buffer's
      * elements starting at dest_start */
     template <typename U>
-    int get(size_t src_start, const const_p_buffer<U> &dest, size_t dest_start, size_t n_vals);
+    int get(size_t src_start, const p_buffer<U> &dest, size_t dest_start, size_t n_vals) const;
 
     /** returns a pointer to the contents of the buffer accessible on the CPU
      * if the buffer is currently accessible by codes running on the CPU then
@@ -829,7 +829,7 @@ int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_s
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::get(size_t src_start, const U *dest, size_t dest_start, size_t n_vals)
+int buffer<T>::get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) const
 {
     // bounds check
     assert(m_size >= (dest_start + n_vals));
@@ -862,7 +862,8 @@ int buffer<T>::get(size_t src_start, const U *dest, size_t dest_start, size_t n_
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::get(size_t src_start, const const_p_buffer<U> &dest, size_t dest_start, size_t n_vals)
+int buffer<T>::get(size_t src_start,
+    const p_buffer<U> &dest, size_t dest_start, size_t n_vals) const
 {
     // bounds check
     assert((m_size >= (src_start + n_vals)) && (dest->size() >= (src_start + n_vals)));
