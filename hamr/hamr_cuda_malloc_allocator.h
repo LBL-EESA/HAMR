@@ -166,16 +166,25 @@ struct cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
+
+    /** allocate an array of n elements.
+     * @param[in] n the number of elements to allocate
+     * @param[in] vals an array of values to initialize the elements with
+     * @param[in] cudaVals a flag set to true if vals are accessible by codes running in CUDA
+     * @returns a shared pointer to the array that holds a deleter for the memory
+     */
+    template <typename U>
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
 };
 
 // --------------------------------------------------------------------------
@@ -279,6 +288,88 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 }
 
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T>
+cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
+{
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << " initialized"
+            << std::endl;
+    }
+
+    size_t n_bytes = n_elem*sizeof(T);
+
+    // allocate
+    T *ptr = nullptr;
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+            << typeid(T).name() << " total " << n_bytes  << "bytes. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // move the existing array to the GPU
+    U *tmp = nullptr;
+    if (!cudaVals)
+    {
+        size_t n_bytes_vals = n_elem*sizeof(U);
+        if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
+        {
+            std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+
+        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals, cudaMemcpyHostToDevice)) != cudaSuccess)
+        {
+            std::cerr << "ERROR: Failed to cudaMemcpy array of " << n_elem
+                << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+
+        vals = tmp;
+    }
+
+    // get launch parameters
+    int device_id = -1;
+    dim3 block_grid;
+    int n_blocks = 0;
+    dim3 thread_grid = 0;
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    {
+        std::cerr << "ERROR: Failed to determine launch properties. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // construct
+    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to launch the construct kernel. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // free up temporary buffers
+    if (!cudaVals)
+    {
+        cudaFree(tmp);
+    }
+
+    // package
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+}
+
 
 
 
@@ -288,16 +379,25 @@ struct cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::v
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
+
+    /** allocate an array of n elements.
+     * @param[in] n the number of elements to allocate
+     * @param[in] vals an array of values to initialize the elements with
+     * @param[in] cudaVals a flag set to true if vals are accessible by codes running in CUDA
+     * @returns a shared pointer to the array that holds a deleter for the memory
+     */
+    template <typename U>
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
 };
 
 // --------------------------------------------------------------------------
@@ -380,6 +480,89 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
         std::cerr << "ERROR: Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    // package
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T>
+cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
+{
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << " initialized"
+            << std::endl;
+    }
+
+    size_t n_bytes = n_elem*sizeof(T);
+
+    // allocate
+    T *ptr = nullptr;
+    cudaError_t ierr = cudaSuccess;
+    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+            << typeid(T).name() << " total " << n_bytes  << "bytes. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // move the existing array to the GPU
+    U *tmp = nullptr;
+    if (!cudaVals)
+    {
+        size_t n_bytes_vals = n_elem*sizeof(U);
+
+        if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
+        {
+            std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+
+        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals, cudaMemcpyHostToDevice)) != cudaSuccess)
+        {
+            std::cerr << "ERROR: Failed to cudaMemcpy array of " << n_elem
+                << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+
+        vals = tmp;
+    }
+
+    // get launch parameters
+    int device_id = -1;
+    dim3 block_grid;
+    int n_blocks = 0;
+    dim3 thread_grid = 0;
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    {
+        std::cerr << "ERROR: Failed to determine launch properties. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // construct
+    cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to launch the construct kernel. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return nullptr;
+    }
+
+    // free up temporary buffers
+    if (!cudaVals)
+    {
+        cudaFree(tmp);
     }
 
     // package

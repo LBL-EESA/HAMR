@@ -142,16 +142,25 @@ struct malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
+
     static std::shared_ptr<T> allocate(size_t n, const T &val);
+
+    /** allocate an array of n elements.
+     * @param[in] n the number of elements to allocate
+     * @param[in] vals an array of n elements to initialize the elements with
+     * @returns a shared pointer to the array that holds a deleter for the memory
+     */
+    template <typename U>
+    static std::shared_ptr<T> allocate(size_t n, const U *vals);
 };
 
 // --------------------------------------------------------------------------
@@ -201,6 +210,31 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
 }
 
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T>
+malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n, const U *vals)
+{
+    if (hamr::get_verbose())
+    {
+        std::cerr << "malloc_allocator allocating array of " << n
+            << " objects of type " << typeid(T).name() << " initialized"
+            << std::endl;
+    }
+
+    // allocate
+    T *ptr = (T*)malloc(n*sizeof(T));
+
+    // construct
+    for (size_t i = 0; i < n; ++i)
+        new (&ptr[i]) T(vals[i]);
+
+    // package
+    return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
+}
+
 
 
 
@@ -210,16 +244,24 @@ struct malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
+
+    /** allocate an array of n elements.
+     * @param[in] n the number of elements to allocate
+     * @param[in] vals an array of n elements to initialize the elements with
+     * @returns a shared pointer to the array that holds a deleter for the memory
+     */
+    template <typename U>
+    static std::shared_ptr<T> allocate(size_t n, const U *vals);
 };
 
 // --------------------------------------------------------------------------
@@ -275,8 +317,32 @@ malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
 }
 
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T>
+malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n, const U *vals)
+{
+    if (hamr::get_verbose())
+    {
+        std::cerr << "malloc_allocator allocating array of " << n
+            << " objects of type " << typeid(T).name() << " initialized"
+            << std::endl;
+    }
 
+    size_t n_bytes = n*sizeof(T);
 
+    // allocate
+    T *ptr = (T*)malloc(n_bytes);
+
+    // construct
+    for (size_t i = 0; i < n; ++i)
+        ptr[i] = vals[i];
+
+    // package
+    return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
+}
 
 };
 

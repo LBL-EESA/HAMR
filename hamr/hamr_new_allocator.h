@@ -69,16 +69,24 @@ struct new_allocator
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared point to the array that holds a deleter for the memory
+     * @returns a shared pointer to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
+
+    /** allocate an array of n elements.
+     * @param[in] n the number of elements to allocate
+     * @param[in] vals an array of n values to initialize the elements with
+     * @returns a shared pointer to the array that holds a deleter for the memory
+     */
+    template <typename U>
+    static std::shared_ptr<T> allocate(size_t n, const U *vals);
 };
 
 // --------------------------------------------------------------------------
@@ -115,6 +123,29 @@ std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const T &val)
     // construct
     for (size_t i = 0; i < n; ++i)
         new (&ptr[i]) T(val);
+
+    // package
+    return std::shared_ptr<T>(ptr, new_deleter<T>(ptr, n));
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const U *vals)
+{
+    if (hamr::get_verbose())
+    {
+        std::cerr << "new_allocator allocating array of " << n
+            << " objects of type " << typeid(T).name() << " initialized"
+            << std::endl;
+    }
+
+    // allocate
+    T *ptr = (T*)new unsigned char[n*sizeof(T)];
+
+    // construct
+    for (size_t i = 0; i < n; ++i)
+        new (&ptr[i]) T(vals[i]);
 
     // package
     return std::shared_ptr<T>(ptr, new_deleter<T>(ptr, n));
