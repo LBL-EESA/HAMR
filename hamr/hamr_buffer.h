@@ -48,6 +48,12 @@ public:
     ///@{
     static p_buffer<T> New(int alloc, size_t n_elem = 0);
     static p_buffer<T> New(int alloc, size_t n_elem, const T &val);
+
+    template <typename U>
+    static p_buffer<T> New(int alloc, size_t n_elem, const U *vals);
+
+    template <typename U>
+    static p_buffer<T> New(int alloc, const const_p_buffer<U> &vals);
     ///@}
 
     /** @name reserve
@@ -184,6 +190,13 @@ protected:
     /// allocate space for n_elem initialized to val
     std::shared_ptr<T> allocate(size_t n_elem, const T &val);
 
+    /// allocate space for n_elem initialized with an array of values
+    template <typename U>
+    std::shared_ptr<T> allocate(size_t n_elem, const U *vals);
+
+    /// allocate space for n_elem initialized with an array of values
+    template <typename U>
+    std::shared_ptr<T> allocate(const const_p_buffer<U> &vals);
 
 
     buffer(int alloc) : m_alloc(alloc), m_data(nullptr), m_size(0), m_capacity(0) {}
@@ -251,6 +264,65 @@ p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const T &val)
 
 // --------------------------------------------------------------------------
 template <typename T>
+template <typename U>
+p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const U *vals)
+{
+    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
+    {
+        std::cerr << "ERROR: Invalid allocator ("
+            << get_allocator_name(alloc) << ")" << std::endl;
+        return nullptr;
+    }
+
+    p_buffer<T> buf(new buffer(alloc));
+
+    if (n_elem)
+    {
+        // allocate space
+        if (!(buf->m_data = buf->allocate(n_elem, vals)))
+            return nullptr;
+
+        // update the size
+        buf->m_capacity = n_elem;
+        buf->m_size = n_elem;
+    }
+
+    return buf;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+p_buffer<T> buffer<T>::New(int alloc, const const_p_buffer<U> &vals)
+{
+    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
+    {
+        std::cerr << "ERROR: Invalid allocator ("
+            << get_allocator_name(alloc) << ")" << std::endl;
+        return nullptr;
+    }
+
+    p_buffer<T> buf(new buffer(alloc));
+
+    size_t n_elem = vals->size();
+    if (n_elem)
+    {
+        // allocate space
+        if (!(buf->m_data = buf->allocate(vals)))
+            return nullptr;
+
+        // update the size
+        buf->m_capacity = n_elem;
+        buf->m_size = n_elem;
+    }
+
+    return buf;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
 p_buffer<T> buffer<T>::New(int alloc, size_t n_elem)
 {
     if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
@@ -298,6 +370,71 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
     return nullptr;
 }
 
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
+{
+    if (m_alloc == buffer<T>::cpp)
+    {
+        return hamr::new_allocator<T>::allocate(n_elem, vals);
+    }
+    else if (m_alloc == buffer<T>::malloc)
+    {
+        return hamr::malloc_allocator<T>::allocate(n_elem, vals);
+    }
+#if defined(HAMR_ENABLE_CUDA)
+    else if (m_alloc == buffer<T>::cuda)
+    {
+        return hamr::cuda_malloc_allocator<T>::allocate(n_elem, vals);
+    }
+    else if (m_alloc == buffer<T>::cuda_uva)
+    {
+        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
+    }
+#endif
+
+    std::cerr << "ERROR: Invalid allocator type "
+        << get_allocator_name(m_alloc) << std::endl;
+
+    return nullptr;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
+std::shared_ptr<T> buffer<T>::allocate(const const_p_buffer<U> &vals)
+{
+    size_t n_elem = vals->size();
+
+    if (m_alloc == buffer<T>::cpp)
+    {
+        std::shared_ptr<const U> pvals = vals->get_cpu_accessible();
+        return hamr::new_allocator<T>::allocate(n_elem, pvals.get());
+    }
+    else if (m_alloc == buffer<T>::malloc)
+    {
+        std::shared_ptr<const U> pvals = vals->get_cpu_accessible();
+        return hamr::malloc_allocator<T>::allocate(n_elem, pvals.get());
+    }
+#if defined(HAMR_ENABLE_CUDA)
+    else if (m_alloc == buffer<T>::cuda)
+    {
+        std::shared_ptr<const U> pvals = vals->get_cuda_accessible();
+        return hamr::cuda_malloc_allocator<T>::allocate(n_elem, pvals.get(), true);
+    }
+    else if (m_alloc == buffer<T>::cuda_uva)
+    {
+        std::shared_ptr<const U> pvals = vals->get_cuda_accessible();
+        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
+    }
+#endif
+
+    std::cerr << "ERROR: Invalid allocator type "
+        << get_allocator_name(m_alloc) << std::endl;
+
+    return nullptr;
+}
 
 // --------------------------------------------------------------------------
 template <typename T>

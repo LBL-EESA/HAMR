@@ -93,9 +93,9 @@ void construct(T *dest, size_t n_elem)
 }
 
 /// copy construct on the GPU
-template <typename T>
+template <typename T, typename U>
 __global__
-void construct(T *dest, size_t n_elem, T val)
+void construct(T *dest, size_t n_elem, U val)
 {
     unsigned long i = hamr::thread_id_to_array_index();
 
@@ -103,6 +103,19 @@ void construct(T *dest, size_t n_elem, T val)
         return;
 
     new (&dest[i]) T(val);
+}
+
+/// copy construct on the GPU
+template <typename T, typename U>
+__global__
+void construct(T *dest, size_t n_elem, const U *vals)
+{
+    unsigned long i = hamr::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    new (&dest[i]) T(vals[i]);
 }
 
 /// destruct on the GPU
@@ -119,9 +132,9 @@ void destruct(T *dest, size_t n_elem)
 }
 
 /// initialize an array on the GPU
-template <typename T>
+template <typename T, typename U>
 __global__
-void fill(T *dest, size_t n_elem, T val)
+void fill(T *dest, size_t n_elem, U val)
 {
     unsigned long i = hamr::thread_id_to_array_index();
 
@@ -129,6 +142,19 @@ void fill(T *dest, size_t n_elem, T val)
         return;
 
     dest[i] = val;
+}
+
+/// initialize an array on the GPU
+template <typename T, typename U>
+__global__
+void fill(T *dest, size_t n_elem, const U *vals)
+{
+    unsigned long i = hamr::thread_id_to_array_index();
+
+    if (i >= n_elem)
+        return;
+
+    dest[i] = vals[i];
 }
 
 }
