@@ -724,7 +724,7 @@ int buffer<T>::append(const const_p_buffer<U> &src, size_t src_start, size_t n_v
     m_size += n_vals;
 
     // copy the value to the back.
-    if (this->set(back, src.get(), src_start, n_vals))
+    if (this->set(back, src, src_start, n_vals))
         return -1;
 
     return 0;
