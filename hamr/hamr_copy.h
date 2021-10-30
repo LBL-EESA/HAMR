@@ -335,7 +335,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     // copy the buffer to the cpu
 
     // allocate a temporary buffer on the GPU
-    std::shared_ptr<U> pTmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
+    std::shared_ptr<T> pTmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
 
     // get launch parameters
     int device_id = -1;
