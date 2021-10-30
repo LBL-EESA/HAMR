@@ -220,6 +220,8 @@ private:
     std::shared_ptr<T> m_data;
     size_t m_size;
     size_t m_capacity;
+
+    template<typename U> friend class buffer;
 };
 
 
