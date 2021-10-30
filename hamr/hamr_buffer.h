@@ -793,7 +793,8 @@ template <typename U>
 int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
 {
     // bounds check
-    assert((m_size >= (dest_start + n_vals)) && (src->size() >= (src_start + n_vals)));
+    assert(m_size >= (dest_start + n_vals));
+    assert(src->size() >= (src_start + n_vals));
 
     // copy the value to the back. buffers can either be on the CPU or GPU
     // and use different technolofies so all permutations must be realized.
@@ -859,7 +860,7 @@ template <typename U>
 int buffer<T>::get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) const
 {
     // bounds check
-    assert(m_size >= (dest_start + n_vals));
+    assert(m_size >= (src_start + n_vals));
 
     // copy the values (dest is always on the CPU)
     int ierr = 0;
@@ -893,7 +894,8 @@ int buffer<T>::get(size_t src_start,
     const p_buffer<U> &dest, size_t dest_start, size_t n_vals) const
 {
     // bounds check
-    assert((m_size >= (src_start + n_vals)) && (dest->size() >= (src_start + n_vals)));
+    assert(m_size >= (src_start + n_vals));
+    assert(dest->size() >= (dest_start + n_vals));
 
     // copy the value to the back. buffers can either be on the CPU or GPU
     // and use different technolofies so all permutations must be realized.
