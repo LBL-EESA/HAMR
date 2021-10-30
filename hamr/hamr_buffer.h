@@ -78,19 +78,21 @@ public:
     /// returns the number of elelemts of storage allocated to the buffer
     size_t size() const { return m_size; }
 
-    /** @name copy */
+    /** @name assign
+     * Copies data into the buffer resizing the buffer.
+     */
     ///@{
-    /// copy the range from the passed array (src is always on the CPU)
+    /// assign the range from the passed array (src is always on the CPU)
     template<typename U>
-    int copy(const U *src, size_t src_start, size_t n_vals);
+    int assign(const U *src, size_t src_start, size_t n_vals);
 
-    /// copy the range from the passed buffer
+    /// assign the range from the passed buffer
     template<typename U>
-    int copy(const const_p_buffer<U> &src, size_t src_start, size_t n_vals);
+    int assign(const const_p_buffer<U> &src, size_t src_start, size_t n_vals);
 
-    /// copy the passed buffer
+    /// assign the passed buffer
     template<typename U>
-    int copy(const const_p_buffer<U> &src);
+    int assign(const const_p_buffer<U> &src);
     ///@}
 
 
@@ -611,7 +613,7 @@ int buffer<T>::free()
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::copy(const const_p_buffer<U> &src)
+int buffer<T>::assign(const const_p_buffer<U> &src)
 {
     size_t n_vals = src->size();
 
@@ -629,7 +631,7 @@ int buffer<T>::copy(const const_p_buffer<U> &src)
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::copy(const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
+int buffer<T>::assign(const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
 {
     // allocate space if needed
     if (this->resize(n_vals))
@@ -645,7 +647,7 @@ int buffer<T>::copy(const const_p_buffer<U> &src, size_t src_start, size_t n_val
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::copy(const U *src, size_t src_start, size_t n_vals)
+int buffer<T>::assign(const U *src, size_t src_start, size_t n_vals)
 {
     // allocate space if needed
     if (this->resize(n_vals))
