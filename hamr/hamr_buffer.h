@@ -667,16 +667,20 @@ template <typename T>
 int buffer<T>::reserve_for_append(size_t n_vals)
 {
     size_t new_size = m_size + n_vals;
-    if (new_size > m_capacity)
+    size_t new_capacity = m_capacity;
+    if (new_size > new_capacity)
     {
-        if (m_capacity == 0)
-            m_capacity = 8;
 
-        while (new_size > m_capacity)
-            m_capacity *= 2;
+        if (new_capacity == 0)
+            new_capacity = 8;
 
-        if (this->reserve(m_capacity))
+        while (new_size > new_capacity)
+            new_capacity *= 2;
+
+        if (this->reserve(new_capacity))
             return -1;
+
+        m_capacity = new_capacity;
     }
 
     return 0;
