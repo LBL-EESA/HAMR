@@ -1,6 +1,7 @@
 project(hamr)
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # if we forgot to set the build type default to release
 if (NOT CMAKE_BUILD_TYPE)
