@@ -134,6 +134,14 @@ public:
     template <typename U>
     int set(size_t dest_start, const const_p_buffer<U> &src,
         size_t src_start, size_t n_vals);
+
+    /** sets n_vals elements starting at dest_start from the passed buffer's
+     * elements starting at src_start */
+    template <typename U>
+    int set(const const_p_buffer<U> &src)
+    {
+        return this->set(0, src, 0, src->size());
+    }
     ///@}
 
 
@@ -152,6 +160,19 @@ public:
     int get(size_t src_start, const p_buffer<U> &dest,
         size_t dest_start, size_t n_vals) const;
 
+    /** gets n_vals elements starting at src_start into the passed buffer's
+     * elements starting at dest_start */
+    template <typename U>
+    int get(const p_buffer<U> &dest) const
+    {
+        return this->get(0, dest, 0, this->size());
+    }
+    ///@}
+
+    /** @name get_accessible
+     * get a pointer to the data that is accessible in the given technology
+     */
+    ///@{
     /** returns a pointer to the contents of the buffer accessible on the CPU
      * if the buffer is currently accessible by codes running on the CPU then
      * this call is a NOOP.  If the buffer is not currently accessible by codes
@@ -183,7 +204,7 @@ public:
     int cpu_accessible() const;
 
     /// prints the contents to the stderr stream
-    int print();
+    int print() const;
 
 protected:
     /// return the human readable name of the allocator
@@ -1067,7 +1088,7 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 
 // --------------------------------------------------------------------------
 template <typename T>
-int buffer<T>::print()
+int buffer<T>::print() const
 {
     std::cerr << "m_alloc = " << get_allocator_name(m_alloc)
         << ", m_size = " << m_size << ", m_capacity = " << m_capacity
