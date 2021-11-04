@@ -14,9 +14,13 @@ namespace cuda_kernels
 /// helpers to get the printf code given a POD type
 template <typename T> struct printf_tt {};
 
-#define declare_printf_tt(cpp_t, code, len)     \
+#define declare_printf_tt(cpp_t, print_t, code, len)     \
 template <> struct printf_tt<cpp_t>             \
 {                                               \
+    __device__                                  \
+    static print_t get_value(cpp_t v)           \
+    { return v; }                               \
+                                                \
     __device__                                  \
     static const char *get_code()               \
     { return code; }                            \
@@ -33,18 +37,18 @@ template <> struct printf_tt<cpp_t>             \
     { return len; }                             \
 };
 
-declare_printf_tt(char, "%hhd", 4)
-declare_printf_tt(unsigned char, "%hhu", 4)
-declare_printf_tt(short, "%hd", 3)
-declare_printf_tt(unsigned short, "%hu", 3)
-declare_printf_tt(int, "%d", 2)
-declare_printf_tt(unsigned int, "%u", 2)
-declare_printf_tt(long, "%ld", 3)
-declare_printf_tt(unsigned long, "%lu", 3)
-declare_printf_tt(long long, "%lld", 4)
-declare_printf_tt(unsigned long long, "%llu", 4)
-declare_printf_tt(float, "%g", 2)
-declare_printf_tt(double, "%g", 2)
+declare_printf_tt(char, int, "%d", 2)
+declare_printf_tt(unsigned char, unsigned int, "%u", 2)
+declare_printf_tt(short, short, "%hd", 3)
+declare_printf_tt(unsigned short, unsigned short, "%hu", 3)
+declare_printf_tt(int, int, "%d", 2)
+declare_printf_tt(unsigned int, unsigned int, "%u", 2)
+declare_printf_tt(long, long, "%ld", 3)
+declare_printf_tt(unsigned long, unsigned long, "%lu", 3)
+declare_printf_tt(long long, long long, "%lld", 4)
+declare_printf_tt(unsigned long long, unsigned long long, "%llu", 4)
+declare_printf_tt(float, float, "%g", 2)
+declare_printf_tt(double, double, "%g", 2)
 
 
 /// send an array to the stderr stream on the GPU using CUDA
@@ -57,13 +61,13 @@ void print(T *vals, size_t n_elem)
     if (i >= n_elem)
         return;
 
-    int cl = printf_tt<double>::get_code_len();
-    char fmt[] = "vals[%d] = XXXXXXXXX"; // <-- 20
-    printf_tt<double>::copy_code(fmt + 12);
+    int cl = printf_tt<T>::get_code_len();
+    char fmt[] = "vals[%lu] = XXXXXXXXX"; // <-- 20
+    printf_tt<T>::copy_code(fmt + 12);
     fmt[12 + cl] = '\n';
     fmt[13 + cl] = '\0';
 
-    printf(fmt, i, vals[i]);
+    printf(fmt, i, printf_tt<T>::get_value(vals[i]));
 }
 
 /// copy an array on the GPU using CUDA
