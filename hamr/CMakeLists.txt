@@ -114,3 +114,9 @@ install(EXPORT hamr
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
 
+# enable regression tests
+set(BUILD_TESTING OFF CACHE BOOL "Enable regression tests")
+if (BUILD_TESTING)
+    include(CTest)
+    add_subdirectory(test)
+endif()
