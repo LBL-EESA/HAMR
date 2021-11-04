@@ -35,7 +35,8 @@ static int cuda_print(T *vals, size_t n_elem)
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return -1;

@@ -74,7 +74,8 @@ cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_uva_deleter deleting array of " << m_elem
-            << " objects of type " << typeid(T).name() << std::endl;
+            << " objects of type " << typeid(T).name() << sizeof(t)
+            << " at " << m_ptr  << std::endl;
     }
 
     // get launch parameters
@@ -82,7 +83,8 @@ cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, m_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, m_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return;
@@ -93,13 +95,14 @@ cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value
     cuda_kernels::destruct<T><<<block_grid, thread_grid>>>(ptr, m_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "ERROR: Failed to launch the destruct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return;
     }
-#endif
+
     // free the array
     cudaFree(ptr);
+#endif
 }
 
 
@@ -208,12 +211,6 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
      abort();
      return nullptr;
 #else
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " objects of type " << typeid(T).name() << std::endl;
-    }
-
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
@@ -222,7 +219,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     if ((ierr = cudaMallocManaged(&ptr, n_bytes)) != cudaSuccess)
     {
         std::cerr << "ERROR: Failed to cudaMallocManaged " << n_elem << " of "
-            << typeid(T).name() << " total " << n_bytes  << "bytes. "
+            << typeid(T).name() << sizeof(T) << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -232,7 +229,8 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -248,6 +246,12 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
         return nullptr;
     }
 
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T) <<
+            << " at " << ptr << std::endl;
+    }
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
 #endif
@@ -266,13 +270,6 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
      abort();
      return nullptr;
 #else
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
-
     // allocate
     T *ptr = nullptr;
     size_t n_bytes = n_elem*sizeof(T);
@@ -291,7 +288,8 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -305,6 +303,14 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
         std::cerr << "ERROR: Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " ptr << " initialized to " << val
+            << std::endl;
     }
 
     // package
@@ -326,13 +332,6 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
      abort();
      return nullptr;
 #else
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
-
     // allocate
     T *ptr = nullptr;
     size_t n_bytes = n_elem*sizeof(T);
@@ -354,8 +353,8 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
         if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
         {
             std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
-                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
-                << cudaGetErrorString(ierr) << std::endl;
+                << typeid(U).name() << sizeof(U) << " total " << n_bytes_vals
+                << " bytes. " << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
@@ -363,7 +362,7 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
         {
             std::cerr << "ERROR: Failed to cudaMemcpy array of " << n_elem
                 << " of " << typeid(T).name() << " total " << n_bytes_vals
-                << "bytes. " << cudaGetErrorString(ierr) << std::endl;
+                << " bytes. " << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
@@ -375,7 +374,8 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -395,6 +395,15 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
     if (!cudaVals)
     {
         cudaFree(tmp);
+    }
+
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " ptr  << " initialized from " << (cudaVals ? "CUDA" : "CPU")
+            << " array of objects of type " << typeid(U).name() << sizeof(U)
+            << " at " << vals << std::endl;
     }
 
     // package
@@ -438,13 +447,6 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem)
 {
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " numbers of type " << typeid(T).name() << sizeof(T)
-            << std::endl;
-    }
-
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
@@ -463,6 +465,13 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
     cudaMemset(ptr, 0, n_bytes);
 #endif
 
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " numbers of type " << typeid(T).name() << sizeof(T)
+            << " at " << ptr << std::endl;
+    }
+
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
 }
@@ -473,13 +482,6 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const T &val)
 {
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
-
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
@@ -498,7 +500,8 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
@@ -514,6 +517,13 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
         return nullptr;
     }
 
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " << ptr << " initialized to " << val << std::endl;
+    }
+
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
 }
@@ -525,13 +535,6 @@ std::shared_ptr<T>
 cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const U *vals, bool cudaVals)
 {
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
-
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
@@ -595,6 +598,16 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
     {
         cudaFree(tmp);
     }
+
+    if (hamr::get_verbose())
+    {
+        std::cerr << "cuda_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " << ptr  << " initialized from " << (cudaVals ? "CUDA" : "CPU")
+            << " array " << vals << " objects of type " << typeid(U).name() << sizeof(T)
+            << std::endl;
+    }
+
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, n_elem));
