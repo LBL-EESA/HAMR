@@ -29,12 +29,13 @@ static int cuda_print(T *vals, size_t n_elem)
     std::cerr << "ERROR: print_cuda failed because CUDA is not enabled." << std::endl;
     return -1;
 #else
+
     // get launch parameters
     int device_id = -1;
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(-1, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return -1;
@@ -49,6 +50,7 @@ static int cuda_print(T *vals, size_t n_elem)
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
+
     return 0;
 #endif
 }
