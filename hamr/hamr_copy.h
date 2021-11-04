@@ -68,7 +68,9 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu(f) " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cuda_from_cpu same " << n_elem
+            << " " << typeid(T).name() << sizeof(T) << std::endl;
+            << std::endl;
     }
 
     return 0;
@@ -116,7 +118,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return -1;
@@ -133,7 +136,9 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cuda_from_cpu " << n_elem
+            << " from " << typeid(U).name() << sizeof(U) << " to "
+            << typeid(T).name() << sizeof(T) << std::endl;
     }
     return 0;
 #endif
@@ -192,7 +197,8 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda(f) " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cuda_from_cuda same " << n_elem
+            << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
@@ -225,7 +231,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return -1;
@@ -243,7 +250,9 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem
+            << " from " << typeid(U).name() << sizeof(U) << " to "
+            << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
@@ -304,7 +313,8 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda(f) " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cpu_from_cuda same " << n_elem
+            << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
@@ -342,7 +352,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
         return -1;
@@ -369,7 +380,9 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cpu_from_cuda " << n_elem
+            << " from " << typeid(U).name() << sizeof(U) << " to "
+            << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
@@ -392,7 +405,9 @@ static int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cpu " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cpu_from_cpu " << n_elem
+            << " from " << typeid(U).name() << sizeof(U) << " to "
+            << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
@@ -414,7 +429,8 @@ static int copy_to_cpu_from_cpu(T *dest, const T *src, size_t n_elem,
 
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cpu(f) " << n_elem << std::endl;
+        std::cerr << "hamr::copy_to_cpu_from_cpu same " << n_elem
+            << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 
     return 0;
