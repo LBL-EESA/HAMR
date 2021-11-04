@@ -14,27 +14,27 @@ namespace cuda_kernels
 /// helpers to get the printf code given a POD type
 template <typename T> struct printf_tt {};
 
-#define declare_printf_tt(cpp_t, print_t, code, len)     \
-template <> struct printf_tt<cpp_t>             \
-{                                               \
-    __device__                                  \
-    static print_t get_value(cpp_t v)           \
-    { return v; }                               \
-                                                \
-    __device__                                  \
-    static const char *get_code()               \
-    { return code; }                            \
-                                                \
-    __device__                                  \
-    static void copy_code(char *dest)           \
-    {                                           \
-        for (int i = 0; i < len; ++i)           \
-            dest[i] = get_code()[i];            \
-    }                                           \
-                                                \
-    __device__                                  \
-    static int get_code_len()                   \
-    { return len; }                             \
+#define declare_printf_tt(cpp_t, print_t, code, len)\
+template <> struct printf_tt<cpp_t>                 \
+{                                                   \
+    __device__                                      \
+    static print_t get_value(cpp_t v)               \
+    { return v; }                                   \
+                                                    \
+    __device__                                      \
+    static const char *get_code()                   \
+    { return code; }                                \
+                                                    \
+    __device__                                      \
+    static void copy_code(char *dest)               \
+    {                                               \
+        for (int i = 0; i < len; ++i)               \
+            dest[i] = get_code()[i];                \
+    }                                               \
+                                                    \
+    __device__                                      \
+    static int get_code_len()                       \
+    { return len; }                                 \
 };
 
 declare_printf_tt(char, int, "%d", 2)
