@@ -132,7 +132,8 @@ public:
     /** sets n_vals elements starting at dest_start from the passed buffer's
      * elements starting at src_start */
     template <typename U>
-    int set(size_t dest_start, const const_p_buffer<U> &src, size_t src_start, size_t n_vals);
+    int set(size_t dest_start, const const_p_buffer<U> &src,
+        size_t src_start, size_t n_vals);
     ///@}
 
 
@@ -148,7 +149,8 @@ public:
     /** gets n_vals elements starting at src_start into the passed buffer's
      * elements starting at dest_start */
     template <typename U>
-    int get(size_t src_start, const p_buffer<U> &dest, size_t dest_start, size_t n_vals) const;
+    int get(size_t src_start, const p_buffer<U> &dest,
+        size_t dest_start, size_t n_vals) const;
 
     /** returns a pointer to the contents of the buffer accessible on the CPU
      * if the buffer is currently accessible by codes running on the CPU then
@@ -206,14 +208,13 @@ protected:
     std::shared_ptr<T> allocate(const const_p_buffer<U> &vals);
 
 
-    buffer(int alloc) : m_alloc(alloc), m_data(nullptr), m_size(0), m_capacity(0) {}
+    buffer(int alloc) : m_alloc(alloc),
+        m_data(nullptr), m_size(0), m_capacity(0) {}
 
-    // these could be implemented if useful
     buffer() = delete;
     buffer(const buffer&) = delete;
     buffer(buffer&&) = delete;
     void operator=(const buffer&) = delete;
-
 
 private:
     int m_alloc;
@@ -370,20 +371,20 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
 {
     if (m_alloc == buffer<T>::cpp)
     {
-        return hamr::new_allocator<T>::allocate(n_elem, val);
+        return new_allocator<T>::allocate(n_elem, val);
     }
     else if (m_alloc == buffer<T>::malloc)
     {
-        return hamr::malloc_allocator<T>::allocate(n_elem, val);
+        return malloc_allocator<T>::allocate(n_elem, val);
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == buffer<T>::cuda)
     {
-        return hamr::cuda_malloc_allocator<T>::allocate(n_elem, val);
+        return cuda_malloc_allocator<T>::allocate(n_elem, val);
     }
     else if (m_alloc == buffer<T>::cuda_uva)
     {
-        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem, val);
+        return cuda_malloc_uva_allocator<T>::allocate(n_elem, val);
     }
 #endif
 
@@ -400,20 +401,20 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
 {
     if (m_alloc == buffer<T>::cpp)
     {
-        return hamr::new_allocator<T>::allocate(n_elem, vals);
+        return new_allocator<T>::allocate(n_elem, vals);
     }
     else if (m_alloc == buffer<T>::malloc)
     {
-        return hamr::malloc_allocator<T>::allocate(n_elem, vals);
+        return malloc_allocator<T>::allocate(n_elem, vals);
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == buffer<T>::cuda)
     {
-        return hamr::cuda_malloc_allocator<T>::allocate(n_elem, vals);
+        return cuda_malloc_allocator<T>::allocate(n_elem, vals);
     }
     else if (m_alloc == buffer<T>::cuda_uva)
     {
-        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
+        return cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
     }
 #endif
 
@@ -433,23 +434,23 @@ std::shared_ptr<T> buffer<T>::allocate(const const_p_buffer<U> &vals)
     if (m_alloc == buffer<T>::cpp)
     {
         std::shared_ptr<const U> pvals = vals->get_cpu_accessible();
-        return hamr::new_allocator<T>::allocate(n_elem, pvals.get());
+        return new_allocator<T>::allocate(n_elem, pvals.get());
     }
     else if (m_alloc == buffer<T>::malloc)
     {
         std::shared_ptr<const U> pvals = vals->get_cpu_accessible();
-        return hamr::malloc_allocator<T>::allocate(n_elem, pvals.get());
+        return malloc_allocator<T>::allocate(n_elem, pvals.get());
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == buffer<T>::cuda)
     {
         std::shared_ptr<const U> pvals = vals->get_cuda_accessible();
-        return hamr::cuda_malloc_allocator<T>::allocate(n_elem, pvals.get(), true);
+        return cuda_malloc_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
     else if (m_alloc == buffer<T>::cuda_uva)
     {
         std::shared_ptr<const U> pvals = vals->get_cuda_accessible();
-        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
+        return cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
 #endif
 
@@ -465,20 +466,20 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
 {
     if (m_alloc == buffer<T>::cpp)
     {
-        return hamr::new_allocator<T>::allocate(n_elem);
+        return new_allocator<T>::allocate(n_elem);
     }
     else if (m_alloc == buffer<T>::malloc)
     {
-        return hamr::malloc_allocator<T>::allocate(n_elem);
+        return malloc_allocator<T>::allocate(n_elem);
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == buffer<T>::cuda)
     {
-        return hamr::cuda_malloc_allocator<T>::allocate(n_elem);
+        return cuda_malloc_allocator<T>::allocate(n_elem);
     }
     else if (m_alloc == buffer<T>::cuda_uva)
     {
-        return hamr::cuda_malloc_uva_allocator<T>::allocate(n_elem);
+        return cuda_malloc_uva_allocator<T>::allocate(n_elem);
     }
 #endif
 
@@ -503,26 +504,29 @@ int buffer<T>::reserve(size_t n_elem)
         return -1;
 
     // copy existing elements
-    int ierr = 0;
-    if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
+    if (m_size)
     {
-        ierr = hamr::copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
-    }
+        int ierr = 0;
+        if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
+        {
+            ierr = copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
+        }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
-    {
-        ierr = hamr::copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
-    }
+        else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
+        {
+            ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
+        }
 #endif
-    else
-    {
-        std::cerr << "ERROR: Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
-    }
+        else
+        {
+            std::cerr << "ERROR: Invalid allocator type "
+                << get_allocator_name(m_alloc) << std::endl;
+        }
 
-    // check for errors
-    if (ierr)
-        return -1;
+        // check for errors
+        if (ierr)
+            return -1;
+    }
 
     // update state
     m_capacity = n_elem;
@@ -546,26 +550,29 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
         return -1;
 
     // copy existing elements
-    int ierr = 0;
-    if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
+    if (m_size)
     {
-        ierr = hamr::copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
-    }
+        int ierr = 0;
+        if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
+        {
+            ierr = copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
+        }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
-    {
-        ierr = hamr::copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
-    }
+        else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
+        {
+            ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
+        }
 #endif
-    else
-    {
-        std::cerr << "ERROR: Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
-    }
+        else
+        {
+            std::cerr << "ERROR: Invalid allocator type "
+                << get_allocator_name(m_alloc) << std::endl;
+        }
 
-    // check for errors
-    if (ierr)
-        return -1;
+        // check for errors
+        if (ierr)
+            return -1;
+    }
 
     // update state
     m_capacity = n_elem;
@@ -757,7 +764,8 @@ int buffer<T>::append(const const_p_buffer<U> &src)
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::set(size_t dest_start, const U *src, size_t src_start, size_t n_vals)
+int buffer<T>::set(size_t dest_start, const U *src,
+    size_t src_start, size_t n_vals)
 {
     // bounds check
     assert(m_size >= (dest_start + n_vals));
@@ -766,12 +774,14 @@ int buffer<T>::set(size_t dest_start, const U *src, size_t src_start, size_t n_v
     int ierr = 0;
     if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
     {
-        ierr = hamr::copy_to_cpu_from_cpu(m_data.get() + dest_start, src + src_start, n_vals);
+        ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+            src + src_start, n_vals);
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
     {
-        ierr = hamr::copy_to_cuda_from_cpu(m_data.get() + dest_start, src + src_start, n_vals);
+        ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
+            src + src_start, n_vals);
     }
 #endif
     else
@@ -787,10 +797,11 @@ int buffer<T>::set(size_t dest_start, const U *src, size_t src_start, size_t n_v
     return 0;
 }
 
-// --------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
+int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src,
+    size_t src_start, size_t n_vals)
 {
     // bounds check
     assert(m_size >= (dest_start + n_vals));
@@ -803,15 +814,19 @@ int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_s
     {
         // destination is on the CPU
 
-        if ((src->m_alloc == buffer<T>::cpp) || (src->m_alloc == buffer<T>::malloc))
+        if ((src->m_alloc == buffer<T>::cpp) ||
+            (src->m_alloc == buffer<T>::malloc))
         {
             // source is on the CPU
-            ierr = hamr::copy_to_cpu_from_cpu(m_data.get() + dest_start, src->m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+                src->m_data.get() + src_start, n_vals);
         }
-        else if ((src->m_alloc == buffer<T>::cuda) || (src->m_alloc == buffer<T>::cuda_uva))
+        else if ((src->m_alloc == buffer<T>::cuda) ||
+            (src->m_alloc == buffer<T>::cuda_uva))
         {
             // source is on the GPU
-            ierr = hamr::copy_to_cpu_from_cuda(m_data.get() + dest_start, src->m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cuda(m_data.get() + dest_start,
+                src->m_data.get() + src_start, n_vals);
         }
         else
         {
@@ -824,15 +839,19 @@ int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_s
     {
         // destination is on the GPU
 
-        if ((src->m_alloc == buffer<T>::cpp) || (src->m_alloc == buffer<T>::malloc))
+        if ((src->m_alloc == buffer<T>::cpp) ||
+            (src->m_alloc == buffer<T>::malloc))
         {
             // source is on the CPU
-            ierr = hamr::copy_to_cuda_from_cpu(m_data.get() + dest_start, src->m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
+                src->m_data.get() + src_start, n_vals);
         }
-        else if ((src->m_alloc == buffer<T>::cuda) || (src->m_alloc == buffer<T>::cuda_uva))
+        else if ((src->m_alloc == buffer<T>::cuda) ||
+            (src->m_alloc == buffer<T>::cuda_uva))
         {
             // source is on the GPU
-            ierr = hamr::copy_to_cuda_from_cuda(m_data.get() + dest_start, src->m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
+                src->m_data.get() + src_start, n_vals);
         }
         else
         {
@@ -854,10 +873,11 @@ int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src, size_t src_s
     return 0;
 }
 
-// --------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) const
+int buffer<T>::get(size_t src_start, U *dest,
+    size_t dest_start, size_t n_vals) const
 {
     // bounds check
     assert(m_size >= (src_start + n_vals));
@@ -866,12 +886,14 @@ int buffer<T>::get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) 
     int ierr = 0;
     if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
     {
-        ierr = hamr::copy_to_cpu_from_cpu(dest + dest_start, m_data.get() + src_start, n_vals);
+        ierr = copy_to_cpu_from_cpu(dest + dest_start,
+            m_data.get() + src_start, n_vals);
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
     {
-        ierr = hamr::copy_to_cuda_from_cpu(dest + dest_start, m_data.get() + src_start, n_vals);
+        ierr = copy_to_cpu_from_cuda(dest + dest_start,
+            m_data.get() + src_start, n_vals);
     }
 #endif
     else
@@ -904,15 +926,19 @@ int buffer<T>::get(size_t src_start,
     {
         // destination is on the CPU
 
-        if ((dest->m_alloc == buffer<T>::cpp) || (dest->m_alloc == buffer<T>::malloc))
+        if ((dest->m_alloc == buffer<T>::cpp) ||
+            (dest->m_alloc == buffer<T>::malloc))
         {
             // source is on the CPU
-            ierr = hamr::copy_to_cpu_from_cpu(dest->m_data.get() + dest_start, m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cpu(dest->m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
         }
-        else if ((dest->m_alloc == buffer<T>::cuda) || (dest->m_alloc == buffer<T>::cuda_uva))
+        else if ((dest->m_alloc == buffer<T>::cuda) ||
+            (dest->m_alloc == buffer<T>::cuda_uva))
         {
             // source is on the GPU
-            ierr = hamr::copy_to_cpu_from_cuda(dest->m_data.get() + dest_start, m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cuda(dest->m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
         }
         else
         {
@@ -921,19 +947,24 @@ int buffer<T>::get(size_t src_start,
         }
     }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
+    else if ((m_alloc == buffer<T>::cuda) ||
+        (m_alloc == buffer<T>::cuda_uva))
     {
         // destination is on the GPU
 
-        if ((dest->m_alloc == buffer<T>::cpp) || (dest->m_alloc == buffer<T>::malloc))
+        if ((dest->m_alloc == buffer<T>::cpp) ||
+            (dest->m_alloc == buffer<T>::malloc))
         {
             // source is on the CPU
-            ierr = hamr::copy_to_cuda_from_cpu(dest->m_data.get() + dest_start, m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cpu(dest->m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
         }
-        else if ((dest->m_alloc == buffer<T>::cuda) || (dest->m_alloc == buffer<T>::cuda_uva))
+        else if ((dest->m_alloc == buffer<T>::cuda) ||
+            (dest->m_alloc == buffer<T>::cuda_uva))
         {
             // source is on the GPU
-            ierr = hamr::copy_to_cuda_from_cuda(dest->m_data.get() + dest_start, m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cuda(dest->m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
         }
         else
         {
@@ -962,7 +993,7 @@ std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
     return const_cast<buffer<T>*>(this)->get_cpu_accessible();
 }
 
-// --------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 {
@@ -972,12 +1003,13 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
         return m_data;
     }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
+    else if ((m_alloc == buffer<T>::cuda) ||
+        (m_alloc == buffer<T>::cuda_uva))
     {
         // make a copy on the CPU
-        std::shared_ptr<T> tmp = hamr::malloc_allocator<T>::allocate(m_size);
+        std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
 
-        if (hamr::copy_to_cpu_from_cuda(tmp.get(), m_data.get(), m_size))
+        if (copy_to_cpu_from_cuda(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         return tmp;
@@ -992,27 +1024,28 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
     return nullptr;
 }
 
-// --------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_cuda_accessible() const
 {
     return const_cast<buffer<T>*>(this)->get_cuda_accessible();
 }
 
-// --------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 {
 #if !defined(HAMR_ENABLE_CUDA)
-    std::cerr << "ERROR: get_cuda_accessible failed, CUDA is not available." << std::endl;
+    std::cerr << "ERROR: get_cuda_accessible failed, CUDA is not available."
+        << std::endl;
     return nullptr;
 #else
     if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
     {
         // make a copy on the CPU
-        std::shared_ptr<T> tmp = hamr::cuda_malloc_allocator<T>::allocate(m_size);
+        std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_size);
 
-        if (hamr::copy_to_cuda_from_cpu(tmp.get(), m_data.get(), m_size))
+        if (copy_to_cuda_from_cpu(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         return tmp;
@@ -1044,15 +1077,15 @@ int buffer<T>::print()
     {
         if ((m_alloc == buffer<T>::cpp) || (m_alloc == buffer<T>::malloc))
         {
-            std::cerr << m_data[0];
+            std::cerr << m_data.get()[0];
             for (size_t i = 1; i < m_size; ++i)
-                std::cerr << ", " << m_data[i];
+                std::cerr << ", " << m_data.get()[i];
             std::cerr << std::endl;
         }
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva))
         {
-            hamr::cuda_print(m_data, m_size);
+            cuda_print(m_data.get(), m_size);
         }
 #endif
         else
