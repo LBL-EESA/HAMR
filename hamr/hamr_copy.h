@@ -301,7 +301,7 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
     std::cerr << "ERROR: copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
-    // copy src to gpu
+    // copy src to cpu
     size_t n_bytes = n_elem*sizeof(T);
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
@@ -341,11 +341,13 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     std::cerr << "ERROR: copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
+
     // apply the copy on the gpu in a temporary buffer
     // copy the buffer to the cpu
 
     // allocate a temporary buffer on the GPU
-    std::shared_ptr<T> pTmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
+    auto sptmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
+    T *ptmp = sptmp.get();
 
     // get launch parameters
     int device_id = -1;
@@ -361,7 +363,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 
     // invoke the casting copy kernel on the GPU
     cudaError_t ierr = cudaSuccess;
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(pTmp.get(), src, n_elem);
+    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(ptmp, src, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "ERROR: Failed to launch the copy kernel. "
@@ -371,7 +373,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 
     // copy the data to the CPU
     size_t n_bytes = n_elem*sizeof(T);
-    if ((ierr = cudaMemcpy(dest, pTmp.get(), n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
+    if ((ierr = cudaMemcpy(dest, ptmp, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
     {
         std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
