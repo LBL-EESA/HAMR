@@ -54,7 +54,7 @@ declare_printf_tt(double, double, "%g", 2)
 /// send an array to the stderr stream on the GPU using CUDA
 template <typename T>
 __global__
-void print(T *vals, size_t n_elem)
+void print(const T *vals, size_t n_elem)
 {
     unsigned long i = hamr::thread_id_to_array_index();
 
