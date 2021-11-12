@@ -3,6 +3,8 @@
 
 /// @file
 
+#include "hamr_config.h"
+
 #include <deque>
 
 #include <cuda.h>
@@ -15,6 +17,7 @@ namespace hamr
 
 
 /// querry properties for the named CUDA device. retruns non-zero on error
+HAMR_EXPORT
 int get_launch_props(int device_id,
     int *block_grid_max, int &warp_size,
     int &max_warps_per_block);
@@ -79,6 +82,7 @@ int index_is_valid(unsigned long index, unsigned long max_index)
  * returns:
  *      non zero on error
  */
+HAMR_EXPORT
 int partition_thread_blocks(int device_id, size_t array_size,
     int warps_per_block, dim3 &block_grid, int &n_blocks,
     dim3 &thread_grid);
@@ -99,6 +103,7 @@ int partition_thread_blocks(int device_id, size_t array_size,
  * returns:
  *      non zero on error
  */
+HAMR_EXPORT
 int partition_thread_blocks(size_t array_size,
     int warps_per_block, int warp_size, int *block_grid_max,
     dim3 &block_grid, int &n_blocks, dim3 &thread_grid);

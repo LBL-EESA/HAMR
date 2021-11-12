@@ -1,7 +1,19 @@
-project(hamr)
 cmake_minimum_required(VERSION 3.0)
+cmake_policy(SET CMP0063 NEW)
+project(hamr)
+
+
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 # if we forgot to set the build type default to release
 if (NOT CMAKE_BUILD_TYPE)
@@ -21,9 +33,9 @@ if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 75)
-    endif()
+    set(CMAKE_CUDA_ARCHITECTURES 75)
+    set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
     check_language(CUDA)
     if (CMAKE_CUDA_COMPILER)
         enable_language(CUDA)
@@ -52,15 +64,15 @@ endif()
 
 # C++ sources
 set(hamr_sources
-    hamr_cpu_memory_resource.cxx
-    hamr_cuda_uva_memory_resource.cxx
+    #hamr_cpu_memory_resource.cxx
+    #hamr_cuda_uva_memory_resource.cxx
     hamr_env.cxx
     )
 
 # CUDA sources
 if (HAMR_ENABLE_CUDA)
     list(APPEND hamr_sources
-        hamr_cuda_uva_memory_resource.cu
+        #hamr_cuda_uva_memory_resource.cu
         hamr_cuda_launch.cu
         )
 endif()
@@ -71,12 +83,12 @@ set(HAMR_CUDA_OBJECTS ON CACHE BOOL "Disable use of classes in CUDA allocators e
 add_library(hamr ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
 
-target_compile_features(hamr PUBLIC cxx_std_17)
-set_target_properties(hamr PROPERTIES POSITION_INDEPENDENT_CODE ON)
+#target_compile_features(hamr PUBLIC cxx_std_17)
+#set_target_properties(hamr PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-if (HAMR_ENABLE_CUDA)
-  set_target_properties(hamr PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-endif ()
+#if (HAMR_ENABLE_CUDA)
+#  set_target_properties(hamr PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+#endif ()
 
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)

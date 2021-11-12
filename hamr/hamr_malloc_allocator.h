@@ -16,7 +16,7 @@ class malloc_deleter {};
 
 /// a deleter for arrays allocated with malloc, specialized for objects
 template <typename T>
-class malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+class HAMR_EXPORT malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
@@ -78,7 +78,7 @@ malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 
 /// a deleter for arrays allocated with malloc, specialized for numbers
 template <typename T>
-class malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+class HAMR_EXPORT malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
@@ -140,7 +140,7 @@ struct malloc_allocator {};
 
 /// a class for allocating arrays with malloc, specialized for objects
 template <typename T>
-struct malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
@@ -245,7 +245,7 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
 
 /// a class for allocating arrays with malloc, specialized for numbers
 template <typename T>
-struct malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate

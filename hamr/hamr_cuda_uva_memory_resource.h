@@ -21,7 +21,7 @@ using p_cuda_uva_memory_resource =
  * accessible from code running on the CPU and in CUDA. Implements
  * std::pmr::memory_resource.
  */
-class cuda_uva_memory_resource : public hamr::memory_resource
+class HAMR_EXPORT cuda_uva_memory_resource : public hamr::memory_resource
 {
 public:
     /// return a new CUDA managed memory resource object

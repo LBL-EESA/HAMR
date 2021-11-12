@@ -22,7 +22,7 @@ using p_memory_resource = std::shared_ptr<hamr::memory_resource>;
  * list of supported technologies are: CUDA, CPU. Derived classes must implement
  * std::pmr::memory_resource.
  */
-class memory_resource : public
+class HAMR_EXPORT memory_resource : public
     hamr::pmr_memory_resource,
     std::enable_shared_from_this<memory_resource>
 {

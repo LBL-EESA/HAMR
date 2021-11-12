@@ -20,7 +20,7 @@ using p_cuda_memory_resource =
 /** This resource uses CUDA device memory. The memory is accessible from code
  * running in CUDA. Implements std::pmr::memory_resource.
  */
-class cuda_memory_resource : public hamr::memory_resource
+class HAMR_EXPORT cuda_memory_resource : public hamr::memory_resource
 {
 public:
     /// return a new CUDA managed memory resource object

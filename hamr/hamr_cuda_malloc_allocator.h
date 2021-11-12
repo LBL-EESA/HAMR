@@ -25,7 +25,7 @@ class cuda_malloc_deleter {};
 
 /// a deleter for arrays allocated with cuda_malloc, specialized for objects
 template <typename T>
-class cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
@@ -113,7 +113,7 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 
 /// a deleter for arrays allocated with cuda_malloc, specialized for numbers
 template <typename T>
-class cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
@@ -175,7 +175,7 @@ struct cuda_malloc_allocator {};
 
 /// a class for allocating arrays with cuda_malloc, specialized for objects
 template <typename T>
-struct cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
@@ -423,7 +423,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 
 /// a class for allocating arrays with cuda_malloc, specialized for numbers
 template <typename T>
-struct cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate

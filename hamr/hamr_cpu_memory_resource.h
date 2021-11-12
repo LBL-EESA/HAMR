@@ -20,7 +20,7 @@ using p_cpu_memory_resource = std::shared_ptr<cpu_memory_resource>;
  * accessible from code running on the CPU. Implements
  * std::pmr::memory_resource.
  */
-class cpu_memory_resource : public hamr::memory_resource
+class HAMR_EXPORT cpu_memory_resource : public hamr::memory_resource
 {
 public:
     /// returns a pointer to new instance of cpu_memory_resource

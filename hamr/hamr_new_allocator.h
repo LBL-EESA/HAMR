@@ -13,7 +13,7 @@ namespace hamr
 
 /// a deleter for arrays allocated with new
 template <typename T>
-class new_deleter
+class HAMR_EXPORT new_deleter
 {
 public:
     /** constructs the deleter
@@ -65,7 +65,7 @@ void new_deleter<T>::operator()(T *ptr)
 
 /// a class for allocating arrays with new
 template <typename T>
-struct new_allocator
+struct HAMR_EXPORT new_allocator
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate

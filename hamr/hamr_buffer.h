@@ -29,7 +29,7 @@ using const_p_buffer = std::shared_ptr<const buffer<T>>;
 
 ///  a buffer that manages data on the CPU or GPU using any technology
 template <typename T>
-class buffer : std::enable_shared_from_this<buffer<T>>
+class HAMR_EXPORT buffer : std::enable_shared_from_this<buffer<T>>
 {
 public:
 
