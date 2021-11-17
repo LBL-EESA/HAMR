@@ -291,13 +291,8 @@ int buffer<T>::cpu_accessible() const
 template <typename T>
 p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const T &val)
 {
-    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
-    {
-        std::cerr << "ERROR: Invalid allocator ("
-            << get_allocator_name(alloc) << ")" << std::endl;
-        return nullptr;
-    }
+    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
     p_buffer<T> buf(new buffer(alloc));
 
@@ -312,13 +307,8 @@ template <typename T>
 template <typename U>
 p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const U *vals)
 {
-    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
-    {
-        std::cerr << "ERROR: Invalid allocator ("
-            << get_allocator_name(alloc) << ")" << std::endl;
-        return nullptr;
-    }
+    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
     p_buffer<T> buf(new buffer(alloc));
 
@@ -341,13 +331,8 @@ template <typename T>
 template <typename U>
 p_buffer<T> buffer<T>::New(int alloc, const const_p_buffer<U> &vals)
 {
-    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
-    {
-        std::cerr << "ERROR: Invalid allocator ("
-            << get_allocator_name(alloc) << ")" << std::endl;
-        return nullptr;
-    }
+    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
     p_buffer<T> buf(new buffer(alloc));
 
@@ -370,13 +355,8 @@ p_buffer<T> buffer<T>::New(int alloc, const const_p_buffer<U> &vals)
 template <typename T>
 p_buffer<T> buffer<T>::New(int alloc, size_t n_elem)
 {
-    if (!((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva)))
-    {
-        std::cerr << "ERROR: Invalid allocator ("
-            << get_allocator_name(alloc) << ")" << std::endl;
-        return nullptr;
-    }
+    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
+        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
     p_buffer<T> buf(new buffer<T>(alloc));
 
