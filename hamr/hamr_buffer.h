@@ -18,7 +18,6 @@
 /// heterogeneous accelerator memory resource
 namespace hamr
 {
-
 template <typename T> class buffer;
 
 template <typename T>
@@ -26,6 +25,18 @@ using p_buffer = std::shared_ptr<buffer<T>>;
 
 template <typename T>
 using const_p_buffer = std::shared_ptr<const buffer<T>>;
+
+
+/** helper for explicitly casting to a const pointer. this is used because
+ * template deduction occurs before implicit conversions, so an explicit one is
+ * required.
+ */
+template <typename T>
+hamr::const_p_buffer<T> const_ptr(const hamr::p_buffer<T> &v)
+{
+    return hamr::const_p_buffer<T>(v);
+}
+
 
 ///  a buffer that manages data on the CPU or GPU using any technology
 template <typename T>

@@ -6,13 +6,6 @@
 
 #include <iostream>
 
-template <typename T>
-hamr::const_p_buffer<T> p_const(const hamr::p_buffer<T> &v)
-{
-    return hamr::const_p_buffer<T>(v);
-}
-
-
 
 // **************************************************************************
 template<typename T>
@@ -254,35 +247,35 @@ int main(int, char **)
 {
     size_t n_vals = 100000;
 
-    hamr::p_buffer<float>  ao0 = hamr::buffer<float>::New(hamr::buffer<float>::cuda, n_vals, 1.0f);   // = 1 (CUDA)
-    hamr::p_buffer<float>  ao1 = multiply_scalar_cuda(p_const(ao0), 2.0f);                            // = 2 (CUDA)
+    hamr::p_buffer<float>  ao0 = hamr::buffer<float>::New(hamr::buffer<float>::cuda, n_vals, 1.0f);     // = 1 (CUDA)
+    hamr::p_buffer<float>  ao1 = multiply_scalar_cuda(const_ptr(ao0), 2.0f);                            // = 2 (CUDA)
     ao0 = nullptr;
 
-    hamr::p_buffer<double> ao2 = initialize_cuda(n_vals, 2.0);                                        // = 2 (CUDA)
-    hamr::p_buffer<double> ao3 = add_cuda(p_const(ao2), p_const(ao1));                                // = 4 (CUDA)
+    hamr::p_buffer<double> ao2 = initialize_cuda(n_vals, 2.0);                                          // = 2 (CUDA)
+    hamr::p_buffer<double> ao3 = add_cuda(const_ptr(ao2), const_ptr(ao1));                              // = 4 (CUDA)
     ao1 = nullptr;
     ao2 = nullptr;
 
-    hamr::p_buffer<double> ao4 = multiply_scalar_cuda(p_const(ao3), 1000.0);                          // = 4000 (CUDA)
+    hamr::p_buffer<double> ao4 = multiply_scalar_cuda(const_ptr(ao3), 1000.0);                          // = 4000 (CUDA)
     ao3 = nullptr;
 
-    hamr::p_buffer<float>  ao5 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals, 3.0f); // = 1 (CPU)
-    hamr::p_buffer<float>  ao6 = multiply_scalar_cuda(p_const(ao5), 100.0f);                          // = 300 (CUDA)
+    hamr::p_buffer<float>  ao5 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals, 3.0f);   // = 1 (CPU)
+    hamr::p_buffer<float>  ao6 = multiply_scalar_cuda(const_ptr(ao5), 100.0f);                          // = 300 (CUDA)
     ao5 = nullptr;
 
-    hamr::p_buffer<float> ao7 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals);        // = uninit (CPU)
-    ao7->set(p_const(ao6));                                                                           // = 300 (CPU)
+    hamr::p_buffer<float> ao7 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals);          // = uninit (CPU)
+    ao7->set(const_ptr(ao6));                                                                           // = 300 (CPU)
     ao6 = nullptr;
 
-    hamr::p_buffer<double> ao8 = add_cuda(p_const(ao4), p_const(ao7));                                // = 4300 (CUDA)
+    hamr::p_buffer<double> ao8 = add_cuda(const_ptr(ao4), const_ptr(ao7));                              // = 4300 (CUDA)
     ao4 = nullptr;
     ao7 = nullptr;
 
-    return compare_int(p_const(ao8), 4300);
+    return compare_int(const_ptr(ao8), 4300);
 
     /*
-    hamr::p_buffer<double> ao9 = hamr::buffer<double>::New(hamr::buffer<float>::malloc);              // = empty (CPU)
-    ao9->assign(p_const(ao8));                                                                        // = 4300 (CPU)
+    hamr::p_buffer<double> ao9 = hamr::buffer<double>::New(hamr::buffer<float>::malloc);                // = empty (CPU)
+    ao9->assign(const_ptr(ao8));                                                                        // = 4300 (CPU)
     ao8 = nullptr;
 
     ao9->print();
