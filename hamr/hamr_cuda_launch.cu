@@ -124,6 +124,7 @@ int partition_thread_blocks(size_t array_size,
         block_grid.z = 1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "partition_thread_blocks arrays_size = " << array_size
@@ -134,6 +135,7 @@ int partition_thread_blocks(size_t array_size,
             << " thread_grid = (" << thread_grid.x << ", " << thread_grid.y << ", "
             << thread_grid.z << ")" << std::endl;
     }
+#endif
 
     return 0;
 }

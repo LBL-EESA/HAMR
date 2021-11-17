@@ -66,12 +66,14 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cuda_from_cpu same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
             << std::endl;
     }
+#endif
 
     return 0;
 #endif
@@ -134,12 +136,15 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cuda_from_cpu " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
+
     return 0;
 #endif
 }
@@ -195,11 +200,13 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cuda_from_cuda same " << n_elem
             << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 #endif
@@ -248,12 +255,14 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 #endif
@@ -311,11 +320,13 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cpu_from_cuda same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 #endif
@@ -380,12 +391,14 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
         return -1;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cpu_from_cuda " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 #endif
@@ -405,12 +418,14 @@ static int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
         dest[i] = static_cast<T>(src[i]);
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cpu_from_cpu " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 
@@ -429,11 +444,13 @@ static int copy_to_cpu_from_cpu(T *dest, const T *src, size_t n_elem,
     size_t n_bytes = n_elem*sizeof(T);
     memcpy(dest, src, n_bytes);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "hamr::copy_to_cpu_from_cpu same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
+#endif
 
     return 0;
 }

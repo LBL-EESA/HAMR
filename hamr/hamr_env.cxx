@@ -1,5 +1,7 @@
 #include "hamr_env.h"
 
+#if defined(HAMR_VERBOSE)
+
 #include <cstdlib>
 #include <iostream>
 
@@ -29,3 +31,5 @@ int get_verbose()
 }
 
 }
+
+#endif

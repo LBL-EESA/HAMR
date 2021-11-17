@@ -79,6 +79,9 @@ endif()
 set(HAMR_CUDA_OBJECTS ON CACHE BOOL
     "Disable use of classes in CUDA allocators etc")
 
+set(HAMR_VERBOSE OFF CACHE BOOL
+    "Enable debug messages when HAMR_VERBOSE is found in the environment")
+
 # add the libaraary
 add_library(hamr ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})

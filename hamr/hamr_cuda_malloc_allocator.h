@@ -50,12 +50,14 @@ template <typename T>
 cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "created cuda_malloc_deleter for array of " << n
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -97,12 +99,14 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
     // free the array
     cudaFree(ptr);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_deleter deleting array of " << m_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 
 #endif
 }
@@ -138,12 +142,14 @@ template <typename T>
 cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "created cuda_malloc_deleter for array of " << n
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -154,12 +160,14 @@ cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::ty
 {
     assert(ptr == m_ptr);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_deleter deleting array of " << m_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 
     // free the array
     cudaFree(ptr);
@@ -252,12 +260,14 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
         return nullptr;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
@@ -312,12 +322,14 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
         return nullptr;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized to " << val << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
@@ -403,6 +415,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
         cudaFree(tmp);
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
@@ -412,6 +425,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
             << typeid(U).name() << sizeof(U) << " at " << vals
             << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
@@ -476,12 +490,14 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cudaMemset(ptr, 0, n_bytes);
 #endif
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
@@ -528,12 +544,14 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
         return nullptr;
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized to " << val << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
@@ -613,6 +631,7 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
         cudaFree(tmp);
     }
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
@@ -620,6 +639,7 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
             << " at " << ptr << " initialized from " << (cudaVals ? "CUDA" : "CPU")
             <<  " array at " << vals << std::endl;
     }
+#endif
 
 
     // package

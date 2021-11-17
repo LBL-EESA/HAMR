@@ -1,6 +1,8 @@
 #ifndef hamr_malloc_allocator_h
 #define hamr_malloc_allocator_h
 
+#include "hamr_config.h"
+
 #include <iostream>
 #include <type_traits>
 #include <memory>
@@ -41,12 +43,14 @@ template <typename T>
 malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "created malloc_deleter for array of " << n
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -57,12 +61,14 @@ malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
     assert(ptr == m_ptr);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_deleter deleting array of " << m_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 
     // invoke the destructor
     for (size_t i = 0; i < m_elem; ++i)
@@ -103,12 +109,14 @@ template <typename T>
 malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "created malloc_deleter for array of " << n
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -119,12 +127,14 @@ malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
     assert(ptr == m_ptr);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_deleter deleting array of " << m_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << m_ptr << std::endl;
     }
+#endif
 
     // free the array
     free(ptr);
@@ -178,12 +188,14 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
     for (size_t i = 0; i < n; ++i)
         new (&ptr[i]) T();
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
@@ -202,12 +214,14 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
     for (size_t i = 0; i < n; ++i)
         new (&ptr[i]) T(val);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized to " << val << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
@@ -227,6 +241,7 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
     for (size_t i = 0; i < n; ++i)
         new (&ptr[i]) T(vals[i]);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
@@ -235,6 +250,7 @@ malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type
             << typeid(U).name() << sizeof(U) << " at " << vals
             << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
@@ -285,12 +301,14 @@ malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     memset(ptr, 0, n_bytes);
 #endif
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
@@ -311,12 +329,14 @@ malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     for (size_t i = 0; i < n; ++i)
         ptr[i] = val;
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized to " << val << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));
@@ -338,6 +358,7 @@ malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     for (size_t i = 0; i < n; ++i)
         ptr[i] = vals[i];
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "malloc_allocator allocating array of " << n
@@ -345,6 +366,7 @@ malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
             << " at " << ptr << " initialized from an array of numbers of type "
             << typeid(U).name() << sizeof(U) << " at " << vals << std::endl;
     }
+#endif
 
     // package
     return std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, n));

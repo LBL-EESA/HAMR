@@ -37,11 +37,13 @@ private:
 template <typename T>
 new_deleter<T>::new_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "created new_deleter for array of " << n
             << " objects of type " << typeid(T).name() << std::endl;
     }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -50,11 +52,13 @@ void new_deleter<T>::operator()(T *ptr)
 {
     assert(ptr == m_ptr);
 
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "new_deleter deleting array of " << m_elem
             << " objects of type " << typeid(T).name() << std::endl;
     }
+#endif
 
     delete [] ptr;
 }
@@ -93,11 +97,13 @@ struct HAMR_EXPORT new_allocator
 template <typename T>
 std::shared_ptr<T> new_allocator<T>::allocate(size_t n)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "new_allocator allocating array of " << n
             << " objects of type " << typeid(T).name() << std::endl;
     }
+#endif
 
     // allocate
     T *ptr = new T[n];
@@ -110,12 +116,14 @@ std::shared_ptr<T> new_allocator<T>::allocate(size_t n)
 template <typename T>
 std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const T &val)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "new_allocator allocating array of " << n
             << " objects of type " << typeid(T).name() << " initialized"
             << std::endl;
     }
+#endif
 
     // allocate
     T *ptr = (T*)new unsigned char[n*sizeof(T)];
@@ -133,12 +141,14 @@ template <typename T>
 template <typename U>
 std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const U *vals)
 {
+#if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
         std::cerr << "new_allocator allocating array of " << n
             << " objects of type " << typeid(T).name() << " initialized"
             << std::endl;
     }
+#endif
 
     // allocate
     T *ptr = (T*)new unsigned char[n*sizeof(T)];

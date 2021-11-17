@@ -6,5 +6,6 @@
 
 #cmakedefine HAMR_ENABLE_CUDA
 #cmakedefine HAMR_CUDA_OBJECTS
+#cmakedefine HAMR_VERBOSE
 
 #endif
