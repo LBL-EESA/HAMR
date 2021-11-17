@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0063 NEW)
 project(hamr)
 
-
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,7 +25,8 @@ message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # enable CUDA
 if (NOT DEFINED HAMR_ENABLE_CUDA)
-set(HAMR_ENABLE_CUDA ON CACHE BOOL "Enable features supporting the CUDA memory model")
+    set(HAMR_ENABLE_CUDA ON CACHE BOOL
+        "Enable features supporting the CUDA memory model")
 endif()
 if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
@@ -77,18 +76,12 @@ if (HAMR_ENABLE_CUDA)
         )
 endif()
 
-set(HAMR_CUDA_OBJECTS ON CACHE BOOL "Disable use of classes in CUDA allocators etc")
+set(HAMR_CUDA_OBJECTS ON CACHE BOOL
+    "Disable use of classes in CUDA allocators etc")
 
 # add the libaraary
 add_library(hamr ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
-
-#target_compile_features(hamr PUBLIC cxx_std_17)
-#set_target_properties(hamr PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-#if (HAMR_ENABLE_CUDA)
-#  set_target_properties(hamr PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-#endif ()
 
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)
