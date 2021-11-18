@@ -239,14 +239,17 @@ protected:
     template <typename U>
     std::shared_ptr<T> allocate(const const_p_buffer<U> &vals);
 
-
-    buffer(int alloc) : m_alloc(alloc),
-        m_data(nullptr), m_size(0), m_capacity(0) {}
-
     buffer() = delete;
     buffer(const buffer&) = delete;
     buffer(buffer&&) = delete;
     void operator=(const buffer&) = delete;
+
+public:
+    // NOTE: constructors are public to enable use of std::make_shared. DO NOT USE
+
+    /// construct an empty buffer
+    buffer(int alloc) : m_alloc(alloc),
+        m_data(nullptr), m_size(0), m_capacity(0) {}
 
 private:
     int m_alloc;
@@ -305,7 +308,7 @@ p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const T &val)
     assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
         (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
-    p_buffer<T> buf(new buffer(alloc));
+    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
 
     if (n_elem && buf->resize(n_elem, val))
         return nullptr;
@@ -321,7 +324,7 @@ p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const U *vals)
     assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
         (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
-    p_buffer<T> buf(new buffer(alloc));
+    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
 
     if (n_elem)
     {
@@ -345,7 +348,7 @@ p_buffer<T> buffer<T>::New(int alloc, const const_p_buffer<U> &vals)
     assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
         (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
-    p_buffer<T> buf(new buffer(alloc));
+    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
 
     size_t n_elem = vals->size();
     if (n_elem)
@@ -369,7 +372,7 @@ p_buffer<T> buffer<T>::New(int alloc, size_t n_elem)
     assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
         (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
 
-    p_buffer<T> buf(new buffer<T>(alloc));
+    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
 
     if (n_elem && buf->resize(n_elem))
         return nullptr;
