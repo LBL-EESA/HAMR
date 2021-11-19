@@ -1,0 +1,7 @@
+*.sw[a-z]
+*.patch
+_build
+*.pt
+*.vscode*
+.DS_Store
+generated_rtd*
