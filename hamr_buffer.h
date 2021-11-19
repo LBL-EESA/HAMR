@@ -20,16 +20,18 @@ namespace hamr
 {
 template <typename T> class buffer;
 
+///  a shared pointer to an instance of a buffer<T>
 template <typename T>
 using p_buffer = std::shared_ptr<buffer<T>>;
 
+///  a shared pointer to an instance of a const buffer<T>
 template <typename T>
 using const_p_buffer = std::shared_ptr<const buffer<T>>;
 
-
-/** helper for explicitly casting to a const pointer. this is used because
- * template deduction occurs before implicit conversions, so an explicit one is
- * required.
+/** a helper for explicitly casting to a const buffer pointer. this is
+ * sometimes useful because template deduction occurs before implicit
+ * conversions, so an explicit conversion may be required when API's
+ * take a const buffer pointer.
  */
 template <typename T>
 hamr::const_p_buffer<T> const_ptr(const hamr::p_buffer<T> &v)
@@ -38,7 +40,19 @@ hamr::const_p_buffer<T> const_ptr(const hamr::p_buffer<T> &v)
 }
 
 
-///  a buffer that manages data on the CPU or GPU using any technology
+/** @breif A technology agnostic  a buffer that manages data on CPUs, GPUs, and
+ * accelerators.
+ * @details The buffer mediates between different accelerator and platform
+ * protability technologies' memory models. Examples of platform portability
+ * technologies are HIP, OpenMP, OpenCL, SYCL, and Kokos, Examples of
+ * acccelerator technologies are CUDA and ROCm. Other accelerator and platform
+ * portability technologies exist and can be supported. Data can be left in
+ * place until it is consumed. The consumer of the data can get a pointer that
+ * is accessible in the technology that will be used to process the data. If
+ * the data is already accessible in that technology access is a NOOP,
+ * otherwise the data will be moved such that it is accessible. Smart pointers
+ * take care of destruction of temporary buffers if needed.
+ */
 template <typename T>
 class HAMR_EXPORT buffer : std::enable_shared_from_this<buffer<T>>
 {
