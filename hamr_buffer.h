@@ -28,15 +28,25 @@ using p_buffer = std::shared_ptr<buffer<T>>;
 template <typename T>
 using const_p_buffer = std::shared_ptr<const buffer<T>>;
 
-/** a helper for explicitly casting to a const buffer pointer. this is
- * sometimes useful because template deduction occurs before implicit
- * conversions, so an explicit conversion may be required when API's
- * take a const buffer pointer.
- */
+/// a helper for explicitly casting to a const buffer pointer.
 template <typename T>
 hamr::const_p_buffer<T> const_ptr(const hamr::p_buffer<T> &v)
 {
     return hamr::const_p_buffer<T>(v);
+}
+
+/// a helper for getting a reference to pointed to hamr::buffer
+template <typename T>
+const hamr::buffer<T> &ref_to(const hamr::const_p_buffer<T> &ptr)
+{
+    return *(ptr.get());
+}
+
+/// a helper for getting a reference to pointed to hamr::buffer
+template <typename T>
+hamr::buffer<T> &ref_to(const hamr::p_buffer<T> &ptr)
+{
+    return *(ptr.get());
 }
 
 
@@ -67,20 +77,6 @@ public:
         cuda_uva = 3 /// allocates memory with cudaMallocManaged
     };
 
-    /** @name New
-     * allocates an empty and uninitialized buffer that will use the declared
-     * allocator. An allocator type must be declared to construct the buffer.
-     */
-    ///@{
-    static p_buffer<T> New(int alloc, size_t n_elem = 0);
-    static p_buffer<T> New(int alloc, size_t n_elem, const T &val);
-
-    template <typename U>
-    static p_buffer<T> New(int alloc, size_t n_elem, const U *vals);
-
-    template <typename U>
-    static p_buffer<T> New(int alloc, const const_p_buffer<U> &vals);
-    ///@}
 
     /// construct an empty buffer that will use the passed allocator type
     buffer(int alloc);
@@ -159,14 +155,6 @@ public:
 
     /// assign the range from the passed buffer
     template<typename U>
-    int assign(const const_p_buffer<U> &src, size_t src_start, size_t n_vals);
-
-    /// assign the passed buffer
-    template<typename U>
-    int assign(const const_p_buffer<U> &src);
-
-    /// assign the range from the passed buffer
-    template<typename U>
     int assign(const buffer<U> &src, size_t src_start, size_t n_vals);
 
     /// assign the passed buffer
@@ -184,17 +172,6 @@ public:
      */
     template <typename U>
     int append(const U *src, size_t src_start, size_t n_vals);
-
-    /** appends n_vals from src starting at src_start to the end of the buffer,
-     * extending the buffer as needed.
-     */
-    template <typename U>
-    int append(const const_p_buffer<U> &src, size_t src_start, size_t n_vals);
-
-    /** appends to the end of the buffer, extending the buffer as needed.
-     */
-    template <typename U>
-    int append(const const_p_buffer<U> &src);
 
     /** appends n_vals from src starting at src_start to the end of the buffer,
      * extending the buffer as needed.
@@ -221,20 +198,6 @@ public:
     /** sets n_vals elements starting at dest_start from the passed buffer's
      * elements starting at src_start */
     template <typename U>
-    int set(size_t dest_start, const const_p_buffer<U> &src,
-        size_t src_start, size_t n_vals);
-
-    /** sets n_vals elements starting at dest_start from the passed buffer's
-     * elements starting at src_start */
-    template <typename U>
-    int set(const const_p_buffer<U> &src)
-    {
-        return this->set(0, src, 0, src->size());
-    }
-
-    /** sets n_vals elements starting at dest_start from the passed buffer's
-     * elements starting at src_start */
-    template <typename U>
     int set(const buffer<U> &src)
     {
         return this->set(0, src, 0, src.size());
@@ -256,20 +219,6 @@ public:
      * elements starting at dest_start (dest is always on the CPU)*/
     template <typename U>
     int get(size_t src_start, U *dest, size_t dest_start, size_t n_vals) const;
-
-    /** gets n_vals elements starting at src_start into the passed buffer's
-     * elements starting at dest_start */
-    template <typename U>
-    int get(size_t src_start, const p_buffer<U> &dest,
-        size_t dest_start, size_t n_vals) const;
-
-    /** gets n_vals elements starting at src_start into the passed buffer's
-     * elements starting at dest_start */
-    template <typename U>
-    int get(const p_buffer<U> &dest) const
-    {
-        return this->get(0, dest, 0, this->size());
-    }
 
     /** gets n_vals elements starting at src_start into the passed buffer's
      * elements starting at dest_start */
@@ -474,85 +423,6 @@ template <typename T>
 int buffer<T>::cpu_accessible() const
 {
     return (m_alloc == buffer<T>::cuda) || (m_alloc == buffer<T>::cuda_uva);
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const T &val)
-{
-    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
-
-    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
-
-    if (n_elem && buf->resize(n_elem, val))
-        return nullptr;
-
-    return buf;
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-p_buffer<T> buffer<T>::New(int alloc, size_t n_elem, const U *vals)
-{
-    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
-
-    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
-
-    if (n_elem)
-    {
-        // allocate space
-        if (!(buf->m_data = buf->allocate(n_elem, vals)))
-            return nullptr;
-
-        // update the size
-        buf->m_capacity = n_elem;
-        buf->m_size = n_elem;
-    }
-
-    return buf;
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-p_buffer<T> buffer<T>::New(int alloc, const const_p_buffer<U> &vals)
-{
-    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
-
-    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
-
-    size_t n_elem = vals->size();
-    if (n_elem)
-    {
-        // allocate space
-        if (!(buf->m_data = buf->allocate(vals)))
-            return nullptr;
-
-        // update the size
-        buf->m_capacity = n_elem;
-        buf->m_size = n_elem;
-    }
-
-    return buf;
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-p_buffer<T> buffer<T>::New(int alloc, size_t n_elem)
-{
-    assert((alloc == buffer<T>::cpp) || (alloc == buffer<T>::malloc) ||
-        (alloc == buffer<T>::cuda) || (alloc == buffer<T>::cuda_uva));
-
-    p_buffer<T> buf = std::make_shared<buffer<T>>(alloc);
-
-    if (n_elem && buf->resize(n_elem))
-        return nullptr;
-
-    return buf;
 }
 
 // --------------------------------------------------------------------------
@@ -812,22 +682,6 @@ int buffer<T>::free()
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::assign(const const_p_buffer<U> &src)
-{
-    return this->assign(*(src.get()));
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-int buffer<T>::assign(const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
-{
-    return this->assign(*(src.get()), src_start, n_vals);
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
 int buffer<T>::assign(const buffer<U> &src)
 {
     size_t n_vals = src.size();
@@ -924,22 +778,6 @@ int buffer<T>::append(const U *src, size_t src_start, size_t n_vals)
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
-int buffer<T>::append(const const_p_buffer<U> &src, size_t src_start, size_t n_vals)
-{
-    return this->append(*(src.get()), src_start, n_vals);
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-int buffer<T>::append(const const_p_buffer<U> &src)
-{
-    return this->append(*(src.get()));
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
 int buffer<T>::append(const buffer<U> &src, size_t src_start, size_t n_vals)
 {
     // allocate space if needed
@@ -1001,15 +839,6 @@ int buffer<T>::set(size_t dest_start, const U *src,
         return -1;
 
     return 0;
-}
-
-// ---------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-int buffer<T>::set(size_t dest_start, const const_p_buffer<U> &src,
-    size_t src_start, size_t n_vals)
-{
-    return this->set(dest_start, *(src.get()), src_start, n_vals);
 }
 
 // ---------------------------------------------------------------------------
@@ -1122,15 +951,6 @@ int buffer<T>::get(size_t src_start, U *dest,
         return -1;
 
     return 0;
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-int buffer<T>::get(size_t src_start,
-    const p_buffer<U> &dest, size_t dest_start, size_t n_vals) const
-{
-    return this->get(src_start, *(dest.get()), dest_start, n_vals);
 }
 
 // --------------------------------------------------------------------------
