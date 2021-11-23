@@ -40,12 +40,12 @@ hamr::const_p_buffer<T> const_ptr(const hamr::p_buffer<T> &v)
 }
 
 
-/** @breif A technology agnostic  a buffer that manages data on CPUs, GPUs, and
+/** @brief A technology agnostic  a buffer that manages data on CPUs, GPUs, and
  * accelerators.
  * @details The buffer mediates between different accelerator and platform
- * protability technologies' memory models. Examples of platform portability
+ * portability technologies' memory models. Examples of platform portability
  * technologies are HIP, OpenMP, OpenCL, SYCL, and Kokos, Examples of
- * acccelerator technologies are CUDA and ROCm. Other accelerator and platform
+ * accelerator technologies are CUDA and ROCm. Other accelerator and platform
  * portability technologies exist and can be supported. Data can be left in
  * place until it is consumed. The consumer of the data can get a pointer that
  * is accessible in the technology that will be used to process the data. If
@@ -68,7 +68,7 @@ public:
     };
 
     /** @name New
-     * allocates an empty and unitialized buffer that will use the declared
+     * allocates an empty and uninitialized buffer that will use the declared
      * allocator. An allocator type must be declared to construct the buffer.
      */
     ///@{
@@ -88,12 +88,12 @@ public:
     /// construct a buffer with n_elem size using the passed allocator type
     buffer(int alloc, size_t n_elem);
 
-    /** construct a buffer with n_elem size intialized to the passed value
+    /** construct a buffer with n_elem size initialized to the passed value
      * using the passed allocator type
      */
     buffer(int alloc, size_t n_elem, const T &val);
 
-    /** construct a buffer with n_elem size intialized to the passed value
+    /** construct a buffer with n_elem size initialized to the passed value
      * using the passed allocator type
      */
     buffer(int alloc, size_t n_elem, const T *vals);
@@ -143,10 +143,10 @@ public:
     int resize(size_t n_elem, const T &val);
     ///@}
 
-    /// free all internall storage
+    /// free all internal storage
     int free();
 
-    /// returns the number of elelemts of storage allocated to the buffer
+    /// returns the number of elements of storage allocated to the buffer
     size_t size() const { return m_size; }
 
     /** @name assign
@@ -175,7 +175,7 @@ public:
     ///@}
 
 
-    /** @anme append
+    /** @name append
      * insert values at the back of the buffer, growing as needed
      */
     ///@{
@@ -300,7 +300,7 @@ public:
     std::shared_ptr<T> get_cpu_accessible();
     std::shared_ptr<const T> get_cpu_accessible() const;
 
-    /** retruns a pointer to the contents of the buffer accessible on the CUDA
+    /** returns a pointer to the contents of the buffer accessible on the CUDA
      * if the buffer is currently accessible by codes running on the CUDA then
      * this call is a NOOP.  If the buffer is not currently accessible by codes
      * running on the CUDA then a temporary buffer is allocated and the data is
