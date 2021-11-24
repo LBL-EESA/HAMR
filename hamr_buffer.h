@@ -11,6 +11,7 @@
 #include "hamr_cuda_print.h"
 #endif
 #include "hamr_copy.h"
+#include "hamr_buffer_allocator.h"
 
 #include <memory>
 #include <iostream>
@@ -48,16 +49,6 @@ hamr::buffer<T> &ref_to(const hamr::p_buffer<T> &ptr)
 {
     return *(ptr.get());
 }
-
-/// allocator types that may be used with hamr::buffer
-enum class buffer_allocator
-{
-    none = -1,
-    cpp = 0,     /// allocates memory with new
-    malloc = 1,  /// allocates memory with malloc
-    cuda = 2,    /// allocates memory with cudaMalloc
-    cuda_uva = 3 /// allocates memory with cudaMallocManaged
-};
 
 
 /** @brief A technology agnostic buffer that manages memory on CPUs, GPUs, and
