@@ -6,6 +6,11 @@
 
 #include <iostream>
 
+using std::make_shared;
+using hamr::buffer;
+using hamr::p_buffer;
+using allocator = hamr::buffer_allocator;
+
 
 // **************************************************************************
 template<typename T>
@@ -22,10 +27,10 @@ void initialize_cuda(T *data, double val, size_t n_vals)
 
 // **************************************************************************
 template <typename T>
-hamr::p_buffer<T> initialize_cuda(size_t n_vals, const T &val)
+p_buffer<T> initialize_cuda(size_t n_vals, const T &val)
 {
     // allocate the memory
-    hamr::p_buffer<T> ao = hamr::buffer<T>::New(hamr::buffer<T>::cuda);
+    p_buffer<T> ao = make_shared<buffer<T>>(allocator::cuda);
     ao->resize(n_vals);
 
     auto spao = ao->get_cuda_accessible();
@@ -47,7 +52,7 @@ hamr::p_buffer<T> initialize_cuda(size_t n_vals, const T &val)
     initialize_cuda<<<block_grid, thread_grid>>>(pao, val, n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the print kernel. "
+        std::cerr << "ERROR: Failed to launch the initialize_cuda kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -85,8 +90,8 @@ void add_cuda(T *result, const T *array_1, const U *array_2, size_t n_vals)
 
 // **************************************************************************
 template <typename T, typename U>
-hamr::p_buffer<T> add_cuda(const hamr::const_p_buffer<T> &a1,
-    const hamr::const_p_buffer<U> &a2)
+p_buffer<T> add_cuda(const p_buffer<T> &a1,
+    const p_buffer<U> &a2)
 {
     // get the inputs
     auto spa1 = a1->get_cuda_accessible();
@@ -97,7 +102,7 @@ hamr::p_buffer<T> add_cuda(const hamr::const_p_buffer<T> &a1,
 
     // allocate the memory
     size_t n_vals = a1->size();
-    hamr::p_buffer<T> ao = hamr::buffer<T>::New(hamr::buffer<T>::cuda);
+    p_buffer<T> ao = make_shared<buffer<T>>(allocator::cuda);
     ao->resize(n_vals, T(0));
 
     auto spao = ao->get_cuda_accessible();
@@ -119,7 +124,7 @@ hamr::p_buffer<T> add_cuda(const hamr::const_p_buffer<T> &a1,
     add_cuda<<<block_grid, thread_grid>>>(pao, pa1, pa2, n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the print kernel. "
+        std::cerr << "ERROR: Failed to launch the add_cuda kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -157,7 +162,7 @@ void multiply_scalar_cuda(T *result, const T *array_in, U scalar, size_t n_vals)
 
 // **************************************************************************
 template <typename T, typename U>
-hamr::p_buffer<T> multiply_scalar_cuda(const hamr::const_p_buffer<T> &ain, const U &val)
+p_buffer<T> multiply_scalar_cuda(const p_buffer<T> &ain, const U &val)
 {
     // get the inputs
     auto spain = ain->get_cuda_accessible();
@@ -165,7 +170,7 @@ hamr::p_buffer<T> multiply_scalar_cuda(const hamr::const_p_buffer<T> &ain, const
 
     // allocate the memory
     size_t n_vals = ain->size();
-    hamr::p_buffer<T> ao = hamr::buffer<T>::New(hamr::buffer<T>::cuda);
+    p_buffer<T> ao = make_shared<buffer<T>>(allocator::cuda);
     ao->resize(n_vals, T(0));
 
     auto spao = ao->get_cuda_accessible();
@@ -187,7 +192,7 @@ hamr::p_buffer<T> multiply_scalar_cuda(const hamr::const_p_buffer<T> &ain, const
     multiply_scalar_cuda<<<block_grid, thread_grid>>>(pao, pain, val, n_vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the print kernel. "
+        std::cerr << "ERROR: Failed to launch the multiply_scalar_cuda kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -210,14 +215,14 @@ hamr::p_buffer<T> multiply_scalar_cuda(const hamr::const_p_buffer<T> &ain, const
 
 // **************************************************************************
 template <typename T>
-int compare_int(const hamr::const_p_buffer<T> &ain, int val)
+int compare_int(const p_buffer<T> &ain, int val)
 {
     size_t n_vals = ain->size();
     std::cerr << "comparing array with " << n_vals << " elements to " << val << std::endl;
 
-    hamr::p_buffer<int> ai = hamr::buffer<int>::New(ain->get_allocator());
+    p_buffer<int> ai = make_shared<buffer<int>>(ain->get_allocator());
     ai->resize(n_vals);
-    ain->get(ai);
+    ain->get(ref_to(ai));
 
     if (n_vals < 33)
     {
@@ -231,7 +236,8 @@ int compare_int(const hamr::const_p_buffer<T> &ain, int val)
     {
         if (pai[i] != val)
         {
-            std::cerr << "ERROR: pai[" << i << "] = " << pai[i] << " != " << val << std::endl;
+            std::cerr << "ERROR: pai[" << i << "] = "
+                << pai[i] << " != " << val << std::endl;
             return -1;
         }
     }
@@ -247,35 +253,35 @@ int main(int, char **)
 {
     size_t n_vals = 100000;
 
-    hamr::p_buffer<float>  ao0 = hamr::buffer<float>::New(hamr::buffer<float>::cuda, n_vals, 1.0f);     // = 1 (CUDA)
-    hamr::p_buffer<float>  ao1 = multiply_scalar_cuda(const_ptr(ao0), 2.0f);                            // = 2 (CUDA)
+    p_buffer<float>  ao0 = make_shared<buffer<float>>(allocator::cuda, n_vals, 1.0f);   // = 1 (CUDA)
+    p_buffer<float>  ao1 = multiply_scalar_cuda(ao0, 2.0f);                             // = 2 (CUDA)
     ao0 = nullptr;
 
-    hamr::p_buffer<double> ao2 = initialize_cuda(n_vals, 2.0);                                          // = 2 (CUDA)
-    hamr::p_buffer<double> ao3 = add_cuda(const_ptr(ao2), const_ptr(ao1));                              // = 4 (CUDA)
+    p_buffer<double> ao2 = initialize_cuda(n_vals, 2.0);                                // = 2 (CUDA)
+    p_buffer<double> ao3 = add_cuda(ao2, ao1);                                          // = 4 (CUDA)
     ao1 = nullptr;
     ao2 = nullptr;
 
-    hamr::p_buffer<double> ao4 = multiply_scalar_cuda(const_ptr(ao3), 1000.0);                          // = 4000 (CUDA)
+    p_buffer<double> ao4 = multiply_scalar_cuda(ao3, 1000.0);                           // = 4000 (CUDA)
     ao3 = nullptr;
 
-    hamr::p_buffer<float>  ao5 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals, 3.0f);   // = 1 (CPU)
-    hamr::p_buffer<float>  ao6 = multiply_scalar_cuda(const_ptr(ao5), 100.0f);                          // = 300 (CUDA)
+    p_buffer<float>  ao5 = make_shared<buffer<float>>(allocator::malloc, n_vals, 3.0f); // = 1 (CPU)
+    p_buffer<float>  ao6 = multiply_scalar_cuda(ao5, 100.0f);                           // = 300 (CUDA)
     ao5 = nullptr;
 
-    hamr::p_buffer<float> ao7 = hamr::buffer<float>::New(hamr::buffer<float>::malloc, n_vals);          // = uninit (CPU)
-    ao7->set(const_ptr(ao6));                                                                           // = 300 (CPU)
+    p_buffer<float> ao7 = make_shared<buffer<float>>(allocator::malloc, n_vals);        // = uninit (CPU)
+    ao7->set(ref_to(ao6));                                                              // = 300 (CPU)
     ao6 = nullptr;
 
-    hamr::p_buffer<double> ao8 = add_cuda(const_ptr(ao4), const_ptr(ao7));                              // = 4300 (CUDA)
+    p_buffer<double> ao8 = add_cuda(ao4, ao7);                                          // = 4300 (CUDA)
     ao4 = nullptr;
     ao7 = nullptr;
 
-    return compare_int(const_ptr(ao8), 4300);
+    return compare_int(ao8, 4300);
 
     /*
-    hamr::p_buffer<double> ao9 = hamr::buffer<double>::New(hamr::buffer<float>::malloc);                // = empty (CPU)
-    ao9->assign(const_ptr(ao8));                                                                        // = 4300 (CPU)
+    p_buffer<double> ao9 = make_shared<buffer<double>>(allocator::malloc);                // = empty (CPU)
+    ao9->assign(ao8);                                                                        // = 4300 (CPU)
     ao8 = nullptr;
 
     ao9->print();

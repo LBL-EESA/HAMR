@@ -25,7 +25,7 @@ message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # enable CUDA
 if (NOT DEFINED HAMR_ENABLE_CUDA)
-    set(HAMR_ENABLE_CUDA ON CACHE BOOL
+    set(HAMR_ENABLE_CUDA OFF CACHE BOOL
         "Enable features supporting the CUDA memory model")
 endif()
 if (HAMR_ENABLE_CUDA)
