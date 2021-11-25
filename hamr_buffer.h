@@ -310,36 +310,45 @@ buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
 template <typename T>
 buffer<T>::buffer(allocator alloc, size_t n_elem) : buffer<T>(alloc)
 {
-    this->resize(n_elem);
+    m_data = this->allocate(n_elem);
+    m_size = n_elem;
+    m_capacity = n_elem;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc, size_t n_elem, const T &val) : buffer<T>(alloc)
 {
-    this->resize(n_elem, val);
+    m_data = this->allocate(n_elem, val);
+    m_size = n_elem;
+    m_capacity = n_elem;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc, size_t n_elem, const T *vals) : buffer<T>(alloc)
 {
-    this->resize(n_elem);
-    this->set(0, vals, 0, n_elem);
+    m_data = this->allocate(n_elem, vals);
+    m_size = n_elem;
+    m_capacity = n_elem;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(const buffer<T> &other) : buffer<T>(other.m_alloc)
 {
-    this->assign(other);
+    m_data = this->allocate(other);
+    m_size = other.m_size;
+    m_capacity = other.m_size;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc, const buffer<T> &other) : buffer<T>(alloc)
 {
-    this->assign(other);
+    m_data = this->allocate(other);
+    m_size = other.m_size;
+    m_capacity = other.m_size;
 }
 
 // --------------------------------------------------------------------------

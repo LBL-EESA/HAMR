@@ -282,6 +282,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
+    (void) val;
      std::cerr << "ERROR: cuda_malloc_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
@@ -345,6 +346,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
+    (void) vals;
+    (void) cudaVals;
      std::cerr << "ERROR: cuda_malloc_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
