@@ -68,6 +68,8 @@ template <typename T>
 class HAMR_EXPORT buffer
 {
 public:
+    /** An enumeration for the type of allocator to use for memory allocations.
+     * See ::buffer_allocator. */
     using allocator = buffer_allocator;
 
     /// construct an empty buffer that will use the passed allocator type
@@ -119,7 +121,10 @@ public:
      * allocates space for n_elems of data
      */
     ///@{
+    /// reserve n_elem of memory
     int reserve(size_t n_elem);
+
+    /// reserve n_elem of memory and initialize them to val
     int reserve(size_t n_elem, const T &val);
     ///@}
 
@@ -127,7 +132,11 @@ public:
      * resizes storage for n_elems of data
      */
     ///@{
+    /// resize the buffer to hold n_elem of memory
     int resize(size_t n_elem);
+
+    /** resize the buffer to hold n_elem of memory and initialize new elements
+     * to val */
     int resize(size_t n_elem, const T &val);
     ///@}
 
@@ -227,28 +236,33 @@ public:
     }
     ///@}
 
-    /** @name get_accessible
-     * get a pointer to the data that is accessible in the given technology
-     */
-    ///@{
-    /** returns a pointer to the contents of the buffer accessible on the CPU
+    /** @name get_cpu_accessible
+     * returns a pointer to the contents of the buffer accessible on the CPU
      * if the buffer is currently accessible by codes running on the CPU then
      * this call is a NOOP.  If the buffer is not currently accessible by codes
      * running on the CPU then a temporary buffer is allocated and the data is
      * moved to the CPU.  The returned shared_ptr deals with deallocation of
      * the temporary if needed.
      */
+    ///@{
+    /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<T> get_cpu_accessible();
+    /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<const T> get_cpu_accessible() const;
+    ///@}
 
-    /** returns a pointer to the contents of the buffer accessible on the CUDA
+    /** @name get_cuda_accessible
+     *  returns a pointer to the contents of the buffer accessible from within CUDA
      * if the buffer is currently accessible by codes running on the CUDA then
      * this call is a NOOP.  If the buffer is not currently accessible by codes
      * running on the CUDA then a temporary buffer is allocated and the data is
      * moved to the CUDA.  The returned shared_ptr deals with deallocation of
      * the temporary if needed.
      */
+    ///@{
+    ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<T> get_cuda_accessible();
+    ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<const T> get_cuda_accessible() const;
     ///@}
 

@@ -30,7 +30,7 @@ class cuda_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>:
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
-     * @param[in] the number of elements in the array
+     * @param[in] n the number of elements in the array
      */
     cuda_malloc_uva_deleter(T *ptr, size_t n);
 
@@ -120,7 +120,7 @@ class cuda_malloc_uva_deleter<T, typename std::enable_if<std::is_arithmetic<T>::
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
-     * @param[in] the number of elements in the array
+     * @param[in] n the number of elements in the array
      */
     cuda_malloc_uva_deleter(T *ptr, size_t n);
 

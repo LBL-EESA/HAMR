@@ -23,7 +23,7 @@ class HAMR_EXPORT malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
-     * @param[in] the number of elements in the array
+     * @param[in] n the number of elements in the array
      */
     malloc_deleter(T *ptr, size_t n);
 
@@ -89,7 +89,7 @@ class HAMR_EXPORT malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
-     * @param[in] the number of elements in the array
+     * @param[in] n the number of elements in the array
      */
     malloc_deleter(T *ptr, size_t n);
 

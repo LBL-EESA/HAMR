@@ -15,16 +15,20 @@ namespace cuda_kernels
 template <typename T> struct printf_tt {};
 
 #define declare_printf_tt(cpp_t, print_t, code, len)\
+/** printf code wrapper for cpp_t */                \
 template <> struct printf_tt<cpp_t>                 \
 {                                                   \
+    /** cast from cpp_t to print_t */               \
     __device__                                      \
     static print_t get_value(cpp_t v)               \
     { return v; }                                   \
                                                     \
+    /** returns the printf code for cpp_t */        \
     __device__                                      \
     static const char *get_code()                   \
     { return code; }                                \
                                                     \
+    /** copies the printf code */                   \
     __device__                                      \
     static void copy_code(char *dest)               \
     {                                               \
@@ -32,6 +36,7 @@ template <> struct printf_tt<cpp_t>                 \
             dest[i] = get_code()[i];                \
     }                                               \
                                                     \
+    /** returns the length of the printf code */    \
     __device__                                      \
     static int get_code_len()                       \
     { return len; }                                 \

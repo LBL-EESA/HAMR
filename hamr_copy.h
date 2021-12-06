@@ -18,6 +18,7 @@ namespace hamr
 /** copies an array
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -43,6 +44,7 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
 /** copies an array (fast path for arrays of arithmetic types of the same type)
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
@@ -83,6 +85,7 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 /** copies an array
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -153,6 +156,7 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
 /** copies an array
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -177,6 +181,7 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem,
 /** copies an array (fast path for arrays of arithmetic types of the same type)
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
@@ -216,6 +221,7 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
 /** copies an array
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -272,6 +278,7 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
 /** copies an array
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -297,6 +304,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
 /** copies an array (fast path for arrays of arithmetic types of the same type)
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
@@ -336,6 +344,7 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 /** copies an array
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -408,6 +417,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 /** copies an array
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
@@ -434,6 +444,7 @@ static int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
 /** copies an array (fast path for arrays of arithmetic types of the same type)
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
