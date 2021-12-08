@@ -266,6 +266,19 @@ public:
     std::shared_ptr<const T> get_cuda_accessible() const;
     ///@}
 
+    /** @name data
+     * return the raw pointer to the buffer contents. Use this when you know
+     * that the buffer contents are accessible by the code operating on them to
+     * save the cost of a std::shared_ptr copy construct.
+     */
+    ///@{
+    /// return a pointer to the buffer contents
+    T *data() { return m_data.get(); }
+
+    /// return a const pointer to the buffer contents
+    const T *data() const { return m_data.get(); }
+    ///@}
+
     /// returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
 
