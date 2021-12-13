@@ -89,13 +89,13 @@ target_link_libraries(hamr PUBLIC ${hamr_libs})
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-install(FILES ${CMAKE_BINARY_DIR}/hamr_config.h DESTINATION include)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hamr_config.h DESTINATION include)
 
 # hamr_config.cmake
 configure_file(hamr_config.cmake.in
     ${LIB_PREFIX}/cmake/hamr_config.cmake @ONLY)
 
-install(FILES ${CMAKE_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
   DESTINATION ${LIB_PREFIX}/cmake)
 
 target_include_directories(hamr
