@@ -5,6 +5,10 @@ bridges between accelerator technologies (CUDA, HIP, ROCm, OpenMP, Kokos, etc)
 and traditional CPUs in heterogeneous computing environments.  HAMR is light
 weight and implemented in modern C++.
 
+Source Code
+-----------
+Source code can be obtained at the `HAMR github repository <https://github.com/LBL-EESA/HAMR>`_.
+
 Online Source Code Documentation
 --------------------------------
 HAMR's C++ sources are documented via Doxygen at the `HAMR Doxygen site <doxygen/index.html>`_.
