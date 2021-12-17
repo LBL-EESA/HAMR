@@ -22,3 +22,12 @@ add_executable(test_hamr_pipeline_cpu test_hamr_pipeline_cpu.cpp)
 target_link_libraries(test_hamr_pipeline_cpu hamr)
 add_test(NAME test_hamr_pipeline_cpu COMMAND test_hamr_pipeline_cpu)
 set_tests_properties(test_hamr_pipeline_cpu PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+
+if (HAMR_ENABLE_CUDA)
+    set_source_files_properties(test_hamr_multi_gpu_cuda.cpp PROPERTIES LANGUAGE CUDA)
+    add_executable(test_hamr_multi_gpu_cuda test_hamr_multi_gpu_cuda.cpp)
+    target_link_libraries(test_hamr_multi_gpu_cuda hamr)
+    add_test(NAME test_hamr_multi_gpu_cuda COMMAND test_hamr_multi_gpu_cuda)
+    set_tests_properties(test_hamr_multi_gpu_cuda PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+endif()
+

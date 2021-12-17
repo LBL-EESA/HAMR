@@ -72,6 +72,7 @@ set(hamr_sources
 if (HAMR_ENABLE_CUDA)
     list(APPEND hamr_sources
         #hamr_cuda_uva_memory_resource.cu
+        hamr_cuda_device.cu
         hamr_cuda_launch.cu
         )
 endif()

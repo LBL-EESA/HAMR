@@ -6,6 +6,7 @@
 #include "hamr_malloc_allocator.h"
 #include "hamr_new_allocator.h"
 #if defined(HAMR_ENABLE_CUDA)
+#include "hamr_cuda_device.h"
 #include "hamr_cuda_malloc_allocator.h"
 #include "hamr_cuda_malloc_uva_allocator.h"
 #include "hamr_cuda_print.h"
@@ -237,8 +238,8 @@ public:
     ///@}
 
     /** @name get_cpu_accessible
-     * returns a pointer to the contents of the buffer accessible on the CPU
-     * if the buffer is currently accessible by codes running on the CPU then
+     * Returns a pointer to the contents of the buffer accessible on the CPU.
+     * If the buffer is currently accessible by codes running on the CPU then
      * this call is a NOOP.  If the buffer is not currently accessible by codes
      * running on the CPU then a temporary buffer is allocated and the data is
      * moved to the CPU.  The returned shared_ptr deals with deallocation of
@@ -252,12 +253,12 @@ public:
     ///@}
 
     /** @name get_cuda_accessible
-     *  returns a pointer to the contents of the buffer accessible from within CUDA
-     * if the buffer is currently accessible by codes running on the CUDA then
-     * this call is a NOOP.  If the buffer is not currently accessible by codes
-     * running on the CUDA then a temporary buffer is allocated and the data is
-     * moved to the CUDA.  The returned shared_ptr deals with deallocation of
-     * the temporary if needed.
+     * returns a pointer to the contents of the buffer accessible from the
+     * active CUDA device.  If the buffer is currently accessible on the named
+     * CUDA device then this call is a NOOP.  If the buffer is not currently
+     * accessible on the named CUDA device then a temporary buffer is allocated
+     * and the data is moved.  The returned shared_ptr deals with deallocation
+     * of the temporary if needed.
      */
     ///@{
     ///  returns a pointer to the contents of the buffer accessible from within CUDA
@@ -313,24 +314,45 @@ protected:
     template <typename U>
     std::shared_ptr<T> allocate(const buffer<U> &vals);
 
+    /// set the device where the buffer is located.
+    int set_owner();
+
 private:
     allocator m_alloc;
     std::shared_ptr<T> m_data;
     size_t m_size;
     size_t m_capacity;
+    int m_owner;
 
     template<typename U> friend class buffer;
 };
 
 
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::set_owner()
+{
+    m_owner = -1;
+#if defined(HAMR_ENABLE_CUDA)
+    if (((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
+        && hamr::get_active_cuda_device(m_owner))
+    {
+        std::cerr << "Failed to get the active CUDA device." << std::endl;
+        return -1;
+    }
+#endif
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
-    m_data(nullptr), m_size(0), m_capacity(0)
+    m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1)
 {
     assert((alloc == allocator::cpp) || (alloc == allocator::malloc) ||
         (alloc == allocator::cuda) || (alloc == allocator::cuda_uva));
+
+    this->set_owner();
 }
 
 // --------------------------------------------------------------------------
@@ -390,10 +412,15 @@ template <typename T>
 template <typename U>
 void buffer<T>::operator=(buffer<U> &&other)
 {
-    if (std::is_same<T,U>::value && (m_alloc == other.m_alloc))
+    if (std::is_same<T,U>::value &&
+        (m_alloc == other.m_alloc) && (m_owner == other.m_owner))
+    {
         this->swap(other);
+    }
     else
+    {
         this->assign(other);
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -412,6 +439,7 @@ void buffer<T>::swap(buffer<T> &other)
     std::swap(m_data, other.m_data);
     std::swap(m_size, other.m_size);
     std::swap(m_capacity, other.m_capacity);
+    std::swap(m_owner, other.m_owner);
 }
 
 // --------------------------------------------------------------------------
@@ -498,10 +526,12 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == allocator::cuda)
     {
+        activate_cuda_device dev(m_owner);
         return cuda_malloc_allocator<T>::allocate(n_elem, vals);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
+        activate_cuda_device dev(m_owner);
         return cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
     }
 #endif
@@ -532,12 +562,26 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == allocator::cuda)
     {
+        activate_cuda_device dev(m_owner);
         std::shared_ptr<const U> pvals = vals.get_cuda_accessible();
+
+        // a deep copy was made, return the pointer to the copy
+        if (std::is_same<T,U>::value &&
+            (!vals.cuda_accessible() || (vals.m_owner != m_owner)))
+            return std::const_pointer_cast<T>(pvals);
+
         return cuda_malloc_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
+        activate_cuda_device dev(m_owner);
         std::shared_ptr<const U> pvals = vals.get_cuda_accessible();
+
+        // a deep copy was made, return the pointer to the copy
+        if (std::is_same<T,U>::value &&
+            (!vals.cuda_accessible() || (vals.m_owner != m_owner)))
+            return  std::const_pointer_cast<T>(pvals);
+
         return cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
 #endif
@@ -563,10 +607,12 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == allocator::cuda)
     {
+        activate_cuda_device dev(m_owner);
         return cuda_malloc_allocator<T>::allocate(n_elem);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
+        activate_cuda_device dev(m_owner);
         return cuda_malloc_uva_allocator<T>::allocate(n_elem);
     }
 #endif
@@ -602,6 +648,7 @@ int buffer<T>::reserve(size_t n_elem)
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         {
+            activate_cuda_device dev(m_owner);
             ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
         }
 #endif
@@ -648,6 +695,7 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         {
+            activate_cuda_device dev(m_owner);
             ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
         }
 #endif
@@ -704,6 +752,7 @@ int buffer<T>::free()
     m_data = nullptr;
     m_size = 0;
     m_capacity = 0;
+    m_owner = -1;
     return 0;
 }
 
@@ -852,6 +901,9 @@ int buffer<T>::set(size_t dest_start, const U *src,
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
     {
+
+        activate_cuda_device dev(m_owner);
+
         ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
             src + src_start, n_vals);
     }
@@ -893,13 +945,17 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
+#if defined(HAMR_ENABLE_CUDA)
         else if ((src.m_alloc == allocator::cuda) ||
             (src.m_alloc == allocator::cuda_uva))
         {
             // source is on the GPU
+            activate_cuda_device dev(src.m_owner);
+
             ierr = copy_to_cpu_from_cuda(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
+#endif
         else
         {
             std::cerr << "ERROR: Invalid allocator type in the source "
@@ -910,6 +966,7 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
     {
         // destination is on the GPU
+        activate_cuda_device dev(m_owner);
 
         if ((src.m_alloc == allocator::cpp) ||
             (src.m_alloc == allocator::malloc))
@@ -921,9 +978,18 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
         else if ((src.m_alloc == allocator::cuda) ||
             (src.m_alloc == allocator::cuda_uva))
         {
-            // source is on the GPU
-            ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
+            if (m_owner == src.m_owner)
+            {
+                // source is on this GPU
+                ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, n_vals);
+            }
+            else
+            {
+                // source is on another GPU
+                ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, src.m_owner, n_vals);
+            }
         }
         else
         {
@@ -964,6 +1030,8 @@ int buffer<T>::get(size_t src_start, U *dest,
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
     {
+        activate_cuda_device dev(m_owner);
+
         ierr = copy_to_cpu_from_cuda(dest + dest_start,
             m_data.get() + src_start, n_vals);
     }
@@ -1005,13 +1073,17 @@ int buffer<T>::get(size_t src_start,
             ierr = copy_to_cpu_from_cpu(dest.m_data.get() + dest_start,
                 m_data.get() + src_start, n_vals);
         }
+#if defined(HAMR_ENABLE_CUDA)
         else if ((dest.m_alloc == allocator::cuda) ||
             (dest.m_alloc == allocator::cuda_uva))
         {
             // source is on the GPU
+            activate_cuda_device dev(m_owner);
+
             ierr = copy_to_cpu_from_cuda(dest.m_data.get() + dest_start,
                 m_data.get() + src_start, n_vals);
         }
+#endif
         else
         {
             std::cerr << "ERROR: Invalid allocator type in the source "
@@ -1023,6 +1095,7 @@ int buffer<T>::get(size_t src_start,
         (m_alloc == allocator::cuda_uva))
     {
         // destination is on the GPU
+        activate_cuda_device dev(dest.m_owner);
 
         if ((dest.m_alloc == allocator::cpp) ||
             (dest.m_alloc == allocator::malloc))
@@ -1034,9 +1107,18 @@ int buffer<T>::get(size_t src_start,
         else if ((dest.m_alloc == allocator::cuda) ||
             (dest.m_alloc == allocator::cuda_uva))
         {
-            // source is on the GPU
-            ierr = copy_to_cuda_from_cuda(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
+            if (m_owner == dest.m_owner)
+            {
+                // source is on this GPU
+                ierr = copy_to_cuda_from_cuda(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, n_vals);
+            }
+            else
+            {
+                // source is on another GPU
+                ierr = copy_to_cuda_from_cuda(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, m_owner, n_vals);
+            }
         }
         else
         {
@@ -1081,6 +1163,8 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
         // make a copy on the CPU
         std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
 
+        activate_cuda_device dev(m_owner);
+
         if (copy_to_cpu_from_cuda(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
@@ -1114,7 +1198,7 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 #else
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc))
     {
-        // make a copy on the CPU
+        // make a copy on the GPU
         std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_size);
 
         if (copy_to_cuda_from_cpu(tmp.get(), m_data.get(), m_size))
@@ -1124,8 +1208,25 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
     }
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
     {
-        // already on the GPU
-        return m_data;
+        int dest_device = 0;
+        if (hamr::get_active_cuda_device(dest_device))
+            return nullptr;
+
+        if (m_owner == dest_device)
+        {
+            // already on this GPU
+            return m_data;
+        }
+        else
+        {
+            // on another GPU, move to this one
+            std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_size);
+
+            if (copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_owner, m_size))
+                return nullptr;
+
+            return tmp;
+        }
     }
     else
     {
@@ -1157,6 +1258,7 @@ int buffer<T>::print() const
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         {
+            activate_cuda_device dev(m_owner);
             cuda_print(m_data.get(), m_size);
         }
 #endif
