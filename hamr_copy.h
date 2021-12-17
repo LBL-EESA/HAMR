@@ -15,7 +15,8 @@
 namespace hamr
 {
 #if !defined(HAMR_CUDA_OBJECTS)
-/** copies an array
+/** Copies an array to the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -41,7 +42,9 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
 #endif
 }
 #else
-/** copies an array (fast path for arrays of arithmetic types of the same type)
+/** Copies an array to the active CUDA device (fast path for arrays of
+ * arithmetic types of the same type).
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -82,7 +85,8 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** copies an array
+/** Copies an array to the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -153,7 +157,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
 }
 
 #if !defined(HAMR_CUDA_OBJECTS)
-/** copies an array
+/** Copies an array on the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
@@ -178,7 +183,9 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem,
 #endif
 }
 #else
-/** copies an array (fast path for arrays of arithmetic types of the same type)
+/** Ccopies an array on the active CUAD device (fast path for arrays of
+ * arithmetic types of the same type).
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -218,7 +225,8 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** copies an array
+/** Copies an array on the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
@@ -275,7 +283,195 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
 }
 
 #if !defined(HAMR_CUDA_OBJECTS)
-/** copies an array
+/** Copies an array to the active CUDA device from the named CUDA device,
+ *
+ * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] n_elem the number of elements in the array
+ * @returns 0 if there were no errors
+ */
+template <typename T, typename U>
+static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t n_elem,
+   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr)
+{
+#if !defined(HAMR_ENABLE_CUDA)
+    (void) dest;
+    (void) src;
+    (void) src_device;
+    (void) n_elem;
+    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    return -1;
+#else
+    (void) dest;
+    (void) src;
+    (void) src_device;
+    (void) n_elem;
+    std::cerr << "ERROR: copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+    return -1;
+#endif
+}
+#else
+/** Copies an array to the active CUDA device from the named CUDA device, (fast
+ * path for arrays of arithmetic types of the same type).
+ *
+ * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] n_elem the number of elements in the array
+ * @returns 0 if there were no errors
+ */
+template <typename T>
+static int copy_to_cuda_from_cuda(T *dest, const T *src, int src_device, size_t n_elem,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
+{
+#if !defined(HAMR_ENABLE_CUDA)
+    (void) dest;
+    (void) src;
+    (void) src_device;
+    (void) n_elem;
+    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    return -1;
+#else
+    // copy src to gpu
+    size_t n_bytes = n_elem*sizeof(T);
+    cudaError_t ierr = cudaSuccess;
+
+    int dest_device = -1;
+    if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to get the current device id. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    if ((ierr = cudaMemcpyPeer(dest, dest_device, src, src_device, n_bytes)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to copy " << n_bytes
+            << " from CUDA device " << src_device << " to CUDA device "
+            << dest_device << ". " << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+#if defined(HAMR_VERBOSE)
+    if (hamr::get_verbose())
+    {
+        std::cerr << "hamr::copy_to_cuda_from_cuda same " << n_elem
+            << typeid(T).name() << sizeof(T) << " from device "
+            << src_device << " to device " << dest_device << std::endl;
+    }
+#endif
+
+    return 0;
+#endif
+}
+#endif
+
+/** Copies an array on the active CUDA device.
+ *
+ * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] src_device the CUDA device on which src is allocated
+ * @param[in] n_elem the number of elements in the array
+ * @returns 0 if there were no errors
+ */
+template <typename T, typename U>
+static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t n_elem
+#if !defined(HAMR_CUDA_OBJECTS)
+    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
+#endif
+    )
+{
+#if !defined(HAMR_ENABLE_CUDA)
+    (void) dest;
+    (void) src;
+    (void) src_device;
+    (void) n_elem;
+    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    return -1;
+#else
+    // copy on the gpu
+    // get launch parameters
+    int device_id = -1;
+    dim3 block_grid;
+    int n_blocks = 0;
+    dim3 thread_grid = 0;
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
+    {
+        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        return -1;
+    }
+
+    cudaError_t ierr = cudaSuccess;
+
+    // enable peer to peer access
+    int dest_device = -1;
+    if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to get the current device id. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    int access = 0;
+    if ((ierr = cudaDeviceCanAccessPeer(&access, dest_device, src_device)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to determine peer accessibility between "
+            << dest_device << " and " << src_device << ". "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    if (!access)
+    {
+        // NOTE: could fall back to cduaMemcpyPeer here
+        std::cerr << "ERROR: Can't access device " << src_device
+            << " from " << dest_device << std::endl;
+        return -1;
+    }
+
+    if ((ierr = cudaDeviceEnablePeerAccess(src_device, 0)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to enable peer accessibility between "
+            << dest_device << " and " << src_device << ". "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    // invoke the casting copy kernel
+    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to launch the copy kernel. "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    // disable peer to peer memory map
+    if ((ierr = cudaDeviceDisablePeerAccess(src_device)) != cudaSuccess)
+    {
+        std::cerr << "ERROR: Failed to disable peer accessibility between "
+            << dest_device << " and " << src_device << ". "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+#if defined(HAMR_VERBOSE)
+    if (hamr::get_verbose())
+    {
+        std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem
+            << " from " << typeid(U).name() << sizeof(U) << " to "
+            << typeid(T).name() << sizeof(T) << " from device "
+            << src_device << " to device " << dest_device << std::endl;
+    }
+#endif
+
+    return 0;
+#endif
+}
+
+#if !defined(HAMR_CUDA_OBJECTS)
+/** Copies an array from the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
@@ -301,7 +497,9 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
 #endif
 }
 #else
-/** copies an array (fast path for arrays of arithmetic types of the same type)
+/** Copies an array from the active CUDA device (fast path for arrays of
+ * arithmetic types of the same type).
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -341,7 +539,8 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** copies an array
+/** Copies an array from the active CUDA device.
+ *
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
@@ -413,8 +612,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 #endif
 }
 
-
-/** copies an array
+/** Copies an array on the CPU.
+ *
  * @param[in] dest an array of n elements accessible on the CPU
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
@@ -438,10 +637,11 @@ static int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
 #endif
 
     return 0;
-
 }
 
-/** copies an array (fast path for arrays of arithmetic types of the same type)
+/** Copies an array on the CPU (fast path for arrays of arithmetic types of the
+ * same type).
+ *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
