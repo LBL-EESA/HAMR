@@ -12,7 +12,8 @@ int synchronize()
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaDeviceSynchronize()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to synchronize CUDA execution. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to synchronize CUDA execution. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -30,7 +31,8 @@ int get_launch_props(int device_id,
     {
         if ((ierr = cudaGetDevice(&device_id)) != cudaSuccess)
         {
-            std::cerr << "ERROR: Failed to get the active device id. "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to get the active device id. "
                 << cudaGetErrorString(ierr) << std::endl;
             return -1;
         }
@@ -40,13 +42,15 @@ int get_launch_props(int device_id,
         || ((ierr = cudaDeviceGetAttribute(&block_grid_max[1], cudaDevAttrMaxGridDimY, device_id)) != cudaSuccess)
         || ((ierr = cudaDeviceGetAttribute(&block_grid_max[2], cudaDevAttrMaxGridDimZ, device_id)) != cudaSuccess))
     {
-        std::cerr << "ERROR: Failed to get CUDA max grid dim. " << cudaGetErrorString(ierr) << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get CUDA max grid dim. " << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     if ((ierr = cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, device_id)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to get CUDA warp size. " << cudaGetErrorString(ierr) << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get CUDA warp size. " << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
 
@@ -55,7 +59,8 @@ int get_launch_props(int device_id,
     if ((ierr = cudaDeviceGetAttribute(&threads_per_block_max,
         cudaDevAttrMaxThreadsPerBlock, device_id)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to get CUDA max threads per block. " << cudaGetErrorString(ierr) << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get CUDA max threads per block. " << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
 
@@ -103,7 +108,8 @@ int partition_thread_blocks(size_t array_size,
 
             if (block_grid.z > ((unsigned int)block_grid_max[2]))
             {
-                std::cerr << "ERROR: Too many blocks " << n_blocks << " of size " << block_size
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Too many blocks " << n_blocks << " of size " << block_size
                     << " are required for a grid of (" << block_grid_max[0] << ", "
                     << block_grid_max[1] << ", " << block_grid_max[2]
                     << ") blocks. Hint: increase the number of warps per block." << std::endl;
@@ -151,7 +157,8 @@ int partition_thread_blocks(int device_id, size_t array_size,
     if (get_launch_props(device_id, block_grid_max,
         warp_size, warps_per_block_max))
     {
-        std::cerr << "ERROR: Failed to get launch properties" << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get launch properties" << std::endl;
         return -1;
     }
 

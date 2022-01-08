@@ -504,7 +504,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -536,7 +537,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -586,7 +588,8 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -617,7 +620,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -654,7 +658,8 @@ int buffer<T>::reserve(size_t n_elem)
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type "
                 << get_allocator_name(m_alloc) << std::endl;
         }
 
@@ -701,7 +706,8 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type "
                 << get_allocator_name(m_alloc) << std::endl;
         }
 
@@ -910,7 +916,8 @@ int buffer<T>::set(size_t dest_start, const U *src,
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -958,7 +965,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(src.m_alloc) << std::endl;
         }
     }
@@ -993,14 +1001,16 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
         }
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(src.m_alloc) << std::endl;
         }
     }
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1038,7 +1048,8 @@ int buffer<T>::get(size_t src_start, U *dest,
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1086,7 +1097,8 @@ int buffer<T>::get(size_t src_start,
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(dest.m_alloc) << std::endl;
         }
     }
@@ -1122,14 +1134,16 @@ int buffer<T>::get(size_t src_start,
         }
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(dest.m_alloc) << std::endl;
         }
     }
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1173,7 +1187,8 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1192,7 +1207,8 @@ template <typename T>
 std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 {
 #if !defined(HAMR_ENABLE_CUDA)
-    std::cerr << "ERROR: get_cuda_accessible failed, CUDA is not available."
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " get_cuda_accessible failed, CUDA is not available."
         << std::endl;
     return nullptr;
 #else
@@ -1230,7 +1246,8 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
     }
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1264,8 +1281,9 @@ int buffer<T>::print() const
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
-                << get_allocator_name(m_alloc) << std::endl;
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type " << get_allocator_name(m_alloc)
+                << std::endl;
         }
     }
 

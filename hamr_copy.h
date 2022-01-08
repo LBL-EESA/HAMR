@@ -30,13 +30,15 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cpu HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cpu HAMR_CUDA_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -58,7 +60,8 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -66,7 +69,8 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyHostToDevice)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -76,7 +80,6 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
     {
         std::cerr << "hamr::copy_to_cuda_from_cpu same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
-            << std::endl;
     }
 #endif
 
@@ -103,7 +106,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -117,7 +121,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(pTmp.get(), src, n_bytes, cudaMemcpyHostToDevice)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -130,7 +135,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return -1;
     }
 
@@ -138,7 +144,8 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, pTmp.get(), n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the copy kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the copy kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -172,13 +179,15 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
     return -1;
 #endif
 }
@@ -199,7 +208,8 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -207,7 +217,8 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToDevice)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -243,7 +254,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy on the gpu
@@ -255,7 +267,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return -1;
     }
 
@@ -264,7 +277,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
     hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the copy kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the copy kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -299,14 +313,16 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     (void) src;
     (void) src_device;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) src_device;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
     return -1;
 #endif
 }
@@ -328,7 +344,8 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, int src_device, size_t 
     (void) src;
     (void) src_device;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -338,14 +355,16 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, int src_device, size_t 
     int dest_device = -1;
     if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to get the current device id. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get the current device id. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     if ((ierr = cudaMemcpyPeer(dest, dest_device, src, src_device, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes
             << " from CUDA device " << src_device << " to CUDA device "
             << dest_device << ". " << cudaGetErrorString(ierr) << std::endl;
         return -1;
@@ -385,7 +404,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     (void) src;
     (void) src_device;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy on the gpu
@@ -397,7 +417,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return -1;
     }
 
@@ -407,7 +428,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     int dest_device = -1;
     if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to get the current device id. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get the current device id. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -415,7 +437,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     int access = 0;
     if ((ierr = cudaDeviceCanAccessPeer(&access, dest_device, src_device)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to determine peer accessibility between "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine peer accessibility between "
             << dest_device << " and " << src_device << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
@@ -424,14 +447,16 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     if (!access)
     {
         // NOTE: could fall back to cduaMemcpyPeer here
-        std::cerr << "ERROR: Can't access device " << src_device
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Can't access device " << src_device
             << " from " << dest_device << std::endl;
         return -1;
     }
 
     if ((ierr = cudaDeviceEnablePeerAccess(src_device, 0)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to enable peer accessibility between "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to enable peer accessibility between "
             << dest_device << " and " << src_device << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
@@ -441,7 +466,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the copy kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the copy kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -449,7 +475,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     // disable peer to peer memory map
     if ((ierr = cudaDeviceDisablePeerAccess(src_device)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to disable peer accessibility between "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to disable peer accessibility between "
             << dest_device << " and " << src_device << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
@@ -485,13 +512,15 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cpu_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cpu_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -513,7 +542,8 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to cpu
@@ -521,7 +551,8 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -557,7 +588,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     (void) dest;
     (void) src;
     (void) n_elem;
-    std::cerr << "ERROR: copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
 
@@ -576,7 +608,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return -1;
     }
 
@@ -585,7 +618,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(ptmp, src, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the copy kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the copy kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
@@ -594,7 +628,8 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     size_t n_bytes = n_elem*sizeof(T);
     if ((ierr = cudaMemcpy(dest, ptmp, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to copy " << n_bytes << ". "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to copy " << n_bytes << ". "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }

@@ -26,7 +26,8 @@ static int cuda_print(T *vals, size_t n_elem)
 #if !defined(HAMR_ENABLE_CUDA)
     (void) vals;
     (void) n_elem;
-    std::cerr << "ERROR: print_cuda failed because CUDA is not enabled." << std::endl;
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " print_cuda failed because CUDA is not enabled." << std::endl;
     return -1;
 #else
 
@@ -38,7 +39,8 @@ static int cuda_print(T *vals, size_t n_elem)
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return -1;
     }
 
@@ -47,7 +49,8 @@ static int cuda_print(T *vals, size_t n_elem)
     hamr::cuda_kernels::print<<<block_grid, thread_grid>>>(vals, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the print kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the print kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
