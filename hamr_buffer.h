@@ -237,6 +237,7 @@ public:
     }
     ///@}
 
+#if !defined(SWIG)
     /** @name get_cpu_accessible
      * Returns a pointer to the contents of the buffer accessible on the CPU.
      * If the buffer is currently accessible by codes running on the CPU then
@@ -248,10 +249,16 @@ public:
     ///@{
     /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<T> get_cpu_accessible();
+
     /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<const T> get_cpu_accessible() const;
     ///@}
+#endif
 
+    /// returns true if the data is accessible from codes running on the CPU
+    int cpu_accessible() const;
+
+#if !defined(SWIG)
     /** @name get_cuda_accessible
      * returns a pointer to the contents of the buffer accessible from the
      * active CUDA device.  If the buffer is currently accessible on the named
@@ -263,9 +270,14 @@ public:
     ///@{
     ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<T> get_cuda_accessible();
+
     ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<const T> get_cuda_accessible() const;
     ///@}
+#endif
+
+    /// returns true if the data is accessible from CUDA codes
+    int cuda_accessible() const;
 
     /** @name data
      * return the raw pointer to the buffer contents. Use this when you know
@@ -280,14 +292,21 @@ public:
     const T *data() const { return m_data.get(); }
     ///@}
 
+    /** @name data_ptr
+     * return the shared pointer managing the buffer contents. Use this when
+     * you know that the buffer contents are accessible by the code operating
+     * on them.
+     */
+    ///@{
+    /// return a shared pointer to the buffer contents
+    std::shared_ptr<T> &pointer() { return m_data; }
+
+    /// return a const shared pointer to the buffer contents
+    const std::shared_ptr<T> &pointer() const { return m_data; }
+    ///@}
+
     /// returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
-
-    /// returns true if the data is accessible from CUDA codes
-    int cuda_accessible() const;
-
-    /// returns true if the data is accessible from codes running on the CPU
-    int cpu_accessible() const;
 
     /// prints the contents to the stderr stream
     int print() const;

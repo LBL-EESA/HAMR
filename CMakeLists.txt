@@ -83,6 +83,16 @@ if (NOT DEFINED HAMR_ENABLE_CUDA)
     set(HAMR_ENABLE_CUDA OFF CACHE BOOL
         "Enable features supporting the CUDA memory model")
 endif()
+
+set(HAMR_CUDA_OBJECTS ON CACHE BOOL
+    "Disable use of classes in CUDA allocators etc")
+
+set(HAMR_VERBOSE OFF CACHE BOOL
+    "Enable debug messages when HAMR_VERBOSE is found in the environment")
+
+set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
+
+
 if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
     set(CMAKE_CUDA_STANDARD 17)
@@ -132,16 +142,6 @@ if (HAMR_ENABLE_CUDA)
         )
 endif()
 
-set(HAMR_CUDA_OBJECTS ON CACHE BOOL
-    "Disable use of classes in CUDA allocators etc")
-
-set(HAMR_VERBOSE OFF CACHE BOOL
-    "Enable debug messages when HAMR_VERBOSE is found in the environment")
-
-# add the libaraary
-add_library(hamr ${hamr_sources})
-target_link_libraries(hamr PUBLIC ${hamr_libs})
-
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -153,6 +153,10 @@ configure_file(hamr_config.cmake.in
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
   DESTINATION ${LIB_PREFIX}/cmake)
+
+# add the libaraary
+add_library(hamr ${hamr_sources})
+target_link_libraries(hamr PUBLIC ${hamr_libs})
 
 target_include_directories(hamr
     INTERFACE
@@ -177,6 +181,15 @@ install(EXPORT hamr
     FILE hamr.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
+
+# enable Python bindings
+find_package(Python3 COMPONENTS Interpreter Development)
+if (HAMR_ENABLE_PYTHON AND Python3_FOUND)
+    message(STATUS "hamr Python features -- enabled")
+    add_subdirectory(python)
+else()
+    message(STATUS "hamr Python features -- disabled")
+endif()
 
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable regression tests")
