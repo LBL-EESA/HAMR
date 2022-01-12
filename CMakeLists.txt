@@ -165,9 +165,11 @@ target_include_directories(hamr
     $<INSTALL_INTERFACE:${INCLUDE_PREFIX}>
     )
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DESTINATION ${INCLUDE_PREFIX}
-    FILES_MATCHING PATTERN "*.h")
+file(GLOB hamr_headers LIST_DIRECTORIES FALSE
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.h")
+
+install(FILES ${hamr_headers}
+    DESTINATION ${INCLUDE_PREFIX})
 
 install(TARGETS hamr
     EXPORT hamr
