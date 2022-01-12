@@ -15,3 +15,6 @@ The [HAMR Doxygen site](doxygen/index.html) documents the APIs. Most users will
 want to start with the [hamr::buffer](doxygen/classhamr_1_1buffer.html), a
 container that has capabilities similar to std::vector and can provide access
 to data in different accelerator execution environments.
+
+### CI
+![regression testing](https://github.com/LBL-EESA/hamr/actions/workflows/develop.yml/badge.svg)
