@@ -89,6 +89,64 @@ public:
      */
     buffer(allocator alloc, size_t n_elem, const T *vals);
 
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     * @param[in] df    a function `void df(void*ptr)` used to delete the array
+     *                  when this instance is finished.
+     */
+    template <typename delete_func_t>
+    buffer(allocator alloc, size_t size, int owner, T *ptr, delete_func_t df);
+
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     * The pass ::buffer_allocator is used to create the deleter that will be
+     * called when this instance is finished with the memeory. Use this
+     * constructor to transfer ownership of the array.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     */
+    buffer(allocator alloc, size_t size, int owner, T *ptr);
+
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a shared pointer managing the data
+     */
+    buffer(allocator alloc, size_t size, int owner,
+        const std::shared_ptr<T> &data);
+
     /// copy construct from the passed buffer
     buffer(const buffer<T> &other);
 
@@ -292,19 +350,6 @@ public:
     const T *data() const { return m_data.get(); }
     ///@}
 
-    /** @name data_ptr
-     * return the shared pointer managing the buffer contents. Use this when
-     * you know that the buffer contents are accessible by the code operating
-     * on them.
-     */
-    ///@{
-    /// return a shared pointer to the buffer contents
-    std::shared_ptr<T> &pointer() { return m_data; }
-
-    /// return a const shared pointer to the buffer contents
-    const std::shared_ptr<T> &pointer() const { return m_data; }
-    ///@}
-
     /// returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
 
@@ -333,8 +378,16 @@ protected:
     template <typename U>
     std::shared_ptr<T> allocate(const buffer<U> &vals);
 
-    /// set the device where the buffer is located.
+    /** set the device where the buffer is located to the active device or the
+     * CPU. The allocator is used to determine which. @returns 0 if successful.
+     */
     int set_owner();
+
+    /** set the device where the buffer is located by querying the driver API or the
+     * CPU. The allocator is used to determine which. @returns 0 if successful.
+     */
+    int set_owner(const T *ptr);
+
 
 private:
     allocator m_alloc;
@@ -351,15 +404,59 @@ private:
 template <typename T>
 int buffer<T>::set_owner()
 {
+    // CPU backed memory
     m_owner = -1;
+
 #if defined(HAMR_ENABLE_CUDA)
     if (((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         && hamr::get_active_cuda_device(m_owner))
     {
-        std::cerr << "Failed to get the active CUDA device." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get the active CUDA device." << std::endl;
         return -1;
     }
 #endif
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::set_owner(const T *ptr)
+{
+    // CPU backed memory
+    m_owner = -1;
+
+#if defined(HAMR_ENABLE_CUDA)
+    if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
+    {
+        cudaError_t ierr = cudaSuccess;
+        cudaPointerAttributes ptrAtts;
+        ierr = cudaPointerGetAttributes(&ptrAtts, ptr);
+
+        // these types of pointers are NOT accessible on the GPU
+        // cudaErrorInValue occurs when the pointer is unknown to CUDA, as is
+        // the case with pointers allocated by malloc or new.
+        if ((ierr == cudaErrorInvalidValue) ||
+            ((ierr == cudaSuccess) && ((ptrAtts.type == cudaMemoryTypeHost) ||
+            (ptrAtts.type == cudaMemoryTypeUnregistered))))
+        {
+            // this is CPU backed memory not associate with a GPU
+            m_owner = -1;
+        }
+        else if (ierr != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to get pointer attributes for " << ptr << std::endl;
+            return -1;
+        }
+        else
+        {
+            m_owner = ptrAtts.device;
+        }
+    }
+#endif
+
     return 0;
 }
 
@@ -368,8 +465,11 @@ template <typename T>
 buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
     m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1)
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc) ||
-        (alloc == allocator::cuda) || (alloc == allocator::cuda_uva));
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
 
     this->set_owner();
 }
@@ -399,6 +499,100 @@ buffer<T>::buffer(allocator alloc, size_t n_elem, const T *vals) : buffer<T>(all
     m_data = this->allocate(n_elem, vals);
     m_size = n_elem;
     m_capacity = n_elem;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer<T>::buffer(allocator alloc, size_t size, int owner,
+    const std::shared_ptr<T> &data) : m_alloc(alloc),
+    m_data(data), m_size(size), m_capacity(size), m_owner(owner)
+
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // query the driver api to determine the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(data.get());
+    }
+#endif
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename delete_func_t>
+buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
+    delete_func_t df) : m_alloc(alloc), m_data(std::shared_ptr<T>(ptr, df)),
+    m_size(size), m_capacity(size), m_owner(owner)
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // query the driver api to determine the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(ptr);
+    }
+#endif
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
+    : m_alloc(alloc), m_data(nullptr), m_size(size),
+    m_capacity(size), m_owner(owner)
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // create the deleter for the passed allocator
+    if (alloc == allocator::cpp)
+    {
+        m_data = std::shared_ptr<T>(ptr, new_deleter<T>(ptr, m_size));
+    }
+    else if (alloc == allocator::malloc)
+    {
+        m_data = std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, m_size));
+    }
+#if defined(HAMR_ENABLE_CUDA)
+    else if (alloc == allocator::cuda)
+    {
+        m_data = std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, m_size));
+    }
+    else if (alloc == allocator::cuda_uva)
+    {
+        m_data = std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, m_size));
+    }
+#endif
+    else
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type " << get_allocator_name(m_alloc)
+            << std::endl;
+    }
+
+    // set the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(ptr);
+    }
+#endif
 }
 
 // --------------------------------------------------------------------------
