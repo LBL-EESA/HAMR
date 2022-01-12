@@ -58,7 +58,7 @@ array_interface_tt_declare(<, f, 8, double)
  * libraries.
  */
 template <typename T>
-class buffer_handle
+class HAMR_EXPORT buffer_handle
 {
 public:
     /// construct an empty, and unusable object

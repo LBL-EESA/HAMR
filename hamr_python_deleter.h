@@ -1,6 +1,8 @@
 #ifndef hamr_python_deleter_h
 #define hamr_python_deleter_h
 
+#include "hamr_config.h"
+
 #include <Python.h>
 #include <iostream>
 
@@ -57,8 +59,8 @@ python_deleter<T>::python_deleter(T *ptr, size_t n, PyObject *obj)
 template <typename T>
 void python_deleter<T>::operator()(T *ptr)
 {
+    (void)ptr;
     assert(ptr == m_ptr);
-
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
