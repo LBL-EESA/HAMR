@@ -7,6 +7,7 @@
 #include "hamr_buffer.h"
 #include "hamr_buffer_allocator.h"
 #include "hamr_buffer_handle.h"
+#include "hamr_python_deleter.h"
 
 #include <iostream>
 #include <sstream>
@@ -82,6 +83,7 @@
 %template(buffer_handle_unsigned_long) hamr::buffer_handle<unsigned long>;
 %template(buffer_handle_unsigned_long_long) hamr::buffer_handle<unsigned long long>;
 
+
 /***************************************************************************
  * buffer
  **************************************************************************/
@@ -93,6 +95,15 @@
 
 %extend hamr::buffer
 {
+    buffer(hamr::buffer_allocator alloc, size_t n_elem,
+        int owner, size_t intptr, PyObject *src)
+    {
+        T *ptr = (T*)intptr;
+
+        return new hamr::buffer<T>(alloc, n_elem, owner,
+            ptr, hamr::python_deleter(ptr, n_elem, src));
+    }
+
     PyObject *__str__()
     {
         std::ostringstream oss;
@@ -150,3 +161,80 @@
 %template(buffer_unsigned_int) hamr::buffer<unsigned int>;
 %template(buffer_unsigned_long) hamr::buffer<unsigned long>;
 %template(buffer_unsigned_long_long) hamr::buffer<unsigned long long>;
+
+
+%pythoncode
+{
+def buffer(obj):
+    """
+    Zero-copy construct a C++ hamr::buffer<T> instance from Python objects that
+    support the Numpy array interface protocol or the Numba CUDA array
+    interface. The data type of the hamr::buffer is automatically determined. A
+    reference to the object sharing the data is held while the hamr::buffer is
+    using it.
+    """
+
+    aint = None
+    alloc = None
+    if hasattr(obj, '__cuda_array_interface__'):
+        alloc = buffer_allocator_cuda
+        aint = obj.__cuda_array_interface__
+    elif hasattr(obj, '__array_interface__'):
+        alloc = buffer_allocator_malloc
+        aint = obj.__array_interface__
+    else:
+        raise AttributeError('Failed to zero-copy construct the hamr::buffer' \
+                             ' because the object providing the data does not' \
+                             ' implement the array interface protocol')
+
+    data = aint['data']
+    intptr = data[0]
+
+    shape = aint['shape']
+    n_elem = 1
+    for ndim in shape:
+        n_elem *= ndim
+
+    typestr = aint['typestr']
+
+    if not typestr[0] == '<':
+        raise TypeError('The shared data must have little endian byte'
+                        ' order but it has endian code %s' % (typestr[0]))
+
+    if typestr[1] == 'f':
+        if typestr[2] == '8':
+            buf = buffer_double(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '4':
+            buf = buffer_float(alloc, n_elem, -1, intptr, obj)
+        else:
+            raise TypeError('Unsupported floating point size %s' % (typestr[2]))
+
+    elif typestr[1] == 'i':
+        if typestr[2] == '8':
+            buf = buffer_long(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '4':
+            buf = buffer_int(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '2':
+            buf = buffer_short(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '1':
+            buf = buffer_char(alloc, n_elem, -1, intptr, obj)
+        else:
+            raise TypeError('Unsupported integer size %s' % (typestr[2]))
+
+    elif typestr[1] == 'u':
+        if typestr[2] == '8':
+            buf = buffer_unsigned_long(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '4':
+            buf = buffer_unsigned_int(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '2':
+            buf = buffer_unsigned_short(alloc, n_elem, -1, intptr, obj)
+        elif typestr[2] == '1':
+            buf = buffer_unsigned_char(alloc, n_elem, -1, intptr, obj)
+        else:
+            raise TypeError('Unsupported integer size %s' % (typestr[2]))
+
+    else:
+        raise TypeError('Unsupported data type code %s' % (typestr[1]))
+
+    return buf
+}
