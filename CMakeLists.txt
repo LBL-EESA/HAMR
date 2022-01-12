@@ -23,11 +23,76 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
+# add the requisite flags to enable c++11 features on various platforms.
+if (MSVC)
+    # TODO require vs2015
+    # enable exceptions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
+            CACHE STRING "" FORCE)
+else()
+    if (NOT CMAKE_CXX_FLAGS)
+        set(tmp "-fPIC -std=c++17 -Wall -Wextra")
+        if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+            set(tmp "${tmp} -stdlib=libc++")
+        endif()
+        if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+            set(tmp "${tmp} -O3 -march=native -mtune=native -fno-trapping-math -fno-math-errno")
+            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+                set(tmp "${tmp} -fno-signaling-nans")
+            endif()
+        endif()
+        set(CMAKE_CXX_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+    endif()
+    if (NOT CMAKE_Fortran_FLAGS)
+        set(tmp "-Wall -Wextra -Wno-conversion -Wno-compare-reals -fno-math-errno")
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-signaling-nans -fno-math-errno")
+        endif()
+        set(CMAKE_Fortran_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+    endif()
+    if (NOT CMAKE_CUDA_FLAGS)
+        set(tmp "--default-stream per-thread --expt-relaxed-constexpr")
+        if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fno-trapping-math,-fno-math-errno")
+            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+                set(tmp "${tmp},-fno-signaling-nans")
+            endif()
+        elseif ("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+            set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g")
+        endif()
+        set(CMAKE_CUDA_FLAGS "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
+        set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CUDA_FLAGS_RELEASE}")
+        set(CMAKE_CUDA_FLAGS_RELEASE "${tmp}"
+            CACHE STRING "TECA build defaults"
+            FORCE)
+    endif()
+endif()
+
 # enable CUDA
 if (NOT DEFINED HAMR_ENABLE_CUDA)
     set(HAMR_ENABLE_CUDA OFF CACHE BOOL
         "Enable features supporting the CUDA memory model")
 endif()
+
+set(HAMR_CUDA_OBJECTS ON CACHE BOOL
+    "Disable use of classes in CUDA allocators etc")
+
+set(HAMR_VERBOSE OFF CACHE BOOL
+    "Enable debug messages when HAMR_VERBOSE is found in the environment")
+
+set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
+
+
 if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
     set(CMAKE_CUDA_STANDARD 17)
@@ -77,16 +142,6 @@ if (HAMR_ENABLE_CUDA)
         )
 endif()
 
-set(HAMR_CUDA_OBJECTS ON CACHE BOOL
-    "Disable use of classes in CUDA allocators etc")
-
-set(HAMR_VERBOSE OFF CACHE BOOL
-    "Enable debug messages when HAMR_VERBOSE is found in the environment")
-
-# add the libaraary
-add_library(hamr ${hamr_sources})
-target_link_libraries(hamr PUBLIC ${hamr_libs})
-
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -98,6 +153,10 @@ configure_file(hamr_config.cmake.in
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
   DESTINATION ${LIB_PREFIX}/cmake)
+
+# add the libaraary
+add_library(hamr ${hamr_sources})
+target_link_libraries(hamr PUBLIC ${hamr_libs})
 
 target_include_directories(hamr
     INTERFACE
@@ -122,6 +181,15 @@ install(EXPORT hamr
     FILE hamr.cmake
     EXPORT_LINK_INTERFACE_LIBRARIES
     )
+
+# enable Python bindings
+find_package(Python3 COMPONENTS Interpreter Development)
+if (HAMR_ENABLE_PYTHON AND Python3_FOUND)
+    message(STATUS "hamr Python features -- enabled")
+    add_subdirectory(python)
+else()
+    message(STATUS "hamr Python features -- disabled")
+endif()
 
 # enable regression tests
 set(BUILD_TESTING OFF CACHE BOOL "Enable regression tests")

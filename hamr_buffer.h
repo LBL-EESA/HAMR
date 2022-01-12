@@ -89,6 +89,64 @@ public:
      */
     buffer(allocator alloc, size_t n_elem, const T *vals);
 
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     * @param[in] df    a function `void df(void*ptr)` used to delete the array
+     *                  when this instance is finished.
+     */
+    template <typename delete_func_t>
+    buffer(allocator alloc, size_t size, int owner, T *ptr, delete_func_t df);
+
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     * The pass ::buffer_allocator is used to create the deleter that will be
+     * called when this instance is finished with the memeory. Use this
+     * constructor to transfer ownership of the array.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     */
+    buffer(allocator alloc, size_t size, int owner, T *ptr);
+
+    /** construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a shared pointer managing the data
+     */
+    buffer(allocator alloc, size_t size, int owner,
+        const std::shared_ptr<T> &data);
+
     /// copy construct from the passed buffer
     buffer(const buffer<T> &other);
 
@@ -237,6 +295,7 @@ public:
     }
     ///@}
 
+#if !defined(SWIG)
     /** @name get_cpu_accessible
      * Returns a pointer to the contents of the buffer accessible on the CPU.
      * If the buffer is currently accessible by codes running on the CPU then
@@ -248,10 +307,16 @@ public:
     ///@{
     /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<T> get_cpu_accessible();
+
     /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<const T> get_cpu_accessible() const;
     ///@}
+#endif
 
+    /// returns true if the data is accessible from codes running on the CPU
+    int cpu_accessible() const;
+
+#if !defined(SWIG)
     /** @name get_cuda_accessible
      * returns a pointer to the contents of the buffer accessible from the
      * active CUDA device.  If the buffer is currently accessible on the named
@@ -263,9 +328,14 @@ public:
     ///@{
     ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<T> get_cuda_accessible();
+
     ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<const T> get_cuda_accessible() const;
     ///@}
+#endif
+
+    /// returns true if the data is accessible from CUDA codes
+    int cuda_accessible() const;
 
     /** @name data
      * return the raw pointer to the buffer contents. Use this when you know
@@ -282,12 +352,6 @@ public:
 
     /// returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
-
-    /// returns true if the data is accessible from CUDA codes
-    int cuda_accessible() const;
-
-    /// returns true if the data is accessible from codes running on the CPU
-    int cpu_accessible() const;
 
     /// prints the contents to the stderr stream
     int print() const;
@@ -314,8 +378,16 @@ protected:
     template <typename U>
     std::shared_ptr<T> allocate(const buffer<U> &vals);
 
-    /// set the device where the buffer is located.
+    /** set the device where the buffer is located to the active device or the
+     * CPU. The allocator is used to determine which. @returns 0 if successful.
+     */
     int set_owner();
+
+    /** set the device where the buffer is located by querying the driver API or the
+     * CPU. The allocator is used to determine which. @returns 0 if successful.
+     */
+    int set_owner(const T *ptr);
+
 
 private:
     allocator m_alloc;
@@ -332,15 +404,59 @@ private:
 template <typename T>
 int buffer<T>::set_owner()
 {
+    // CPU backed memory
     m_owner = -1;
+
 #if defined(HAMR_ENABLE_CUDA)
     if (((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         && hamr::get_active_cuda_device(m_owner))
     {
-        std::cerr << "Failed to get the active CUDA device." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get the active CUDA device." << std::endl;
         return -1;
     }
 #endif
+
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::set_owner(const T *ptr)
+{
+    // CPU backed memory
+    m_owner = -1;
+
+#if defined(HAMR_ENABLE_CUDA)
+    if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
+    {
+        cudaError_t ierr = cudaSuccess;
+        cudaPointerAttributes ptrAtts;
+        ierr = cudaPointerGetAttributes(&ptrAtts, ptr);
+
+        // these types of pointers are NOT accessible on the GPU
+        // cudaErrorInValue occurs when the pointer is unknown to CUDA, as is
+        // the case with pointers allocated by malloc or new.
+        if ((ierr == cudaErrorInvalidValue) ||
+            ((ierr == cudaSuccess) && ((ptrAtts.type == cudaMemoryTypeHost) ||
+            (ptrAtts.type == cudaMemoryTypeUnregistered))))
+        {
+            // this is CPU backed memory not associate with a GPU
+            m_owner = -1;
+        }
+        else if (ierr != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to get pointer attributes for " << ptr << std::endl;
+            return -1;
+        }
+        else
+        {
+            m_owner = ptrAtts.device;
+        }
+    }
+#endif
+
     return 0;
 }
 
@@ -349,8 +465,11 @@ template <typename T>
 buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
     m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1)
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc) ||
-        (alloc == allocator::cuda) || (alloc == allocator::cuda_uva));
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
 
     this->set_owner();
 }
@@ -380,6 +499,100 @@ buffer<T>::buffer(allocator alloc, size_t n_elem, const T *vals) : buffer<T>(all
     m_data = this->allocate(n_elem, vals);
     m_size = n_elem;
     m_capacity = n_elem;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer<T>::buffer(allocator alloc, size_t size, int owner,
+    const std::shared_ptr<T> &data) : m_alloc(alloc),
+    m_data(data), m_size(size), m_capacity(size), m_owner(owner)
+
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // query the driver api to determine the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(data.get());
+    }
+#endif
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename delete_func_t>
+buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
+    delete_func_t df) : m_alloc(alloc), m_data(std::shared_ptr<T>(ptr, df)),
+    m_size(size), m_capacity(size), m_owner(owner)
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // query the driver api to determine the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(ptr);
+    }
+#endif
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
+    : m_alloc(alloc), m_data(nullptr), m_size(size),
+    m_capacity(size), m_owner(owner)
+{
+    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
+#if defined(HAMR_ENABLE_CUDA)
+        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
+#endif
+        );
+
+    // create the deleter for the passed allocator
+    if (alloc == allocator::cpp)
+    {
+        m_data = std::shared_ptr<T>(ptr, new_deleter<T>(ptr, m_size));
+    }
+    else if (alloc == allocator::malloc)
+    {
+        m_data = std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, m_size));
+    }
+#if defined(HAMR_ENABLE_CUDA)
+    else if (alloc == allocator::cuda)
+    {
+        m_data = std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, m_size));
+    }
+    else if (alloc == allocator::cuda_uva)
+    {
+        m_data = std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, m_size));
+    }
+#endif
+    else
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type " << get_allocator_name(m_alloc)
+            << std::endl;
+    }
+
+    // set the owner
+#if defined(HAMR_ENABLE_CUDA)
+    if (((alloc == allocator::cuda) ||
+        (alloc == allocator::cuda_uva)) && (m_owner < 0))
+    {
+        this->set_owner(ptr);
+    }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -504,7 +717,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -536,7 +750,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -586,7 +801,8 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -617,7 +833,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
     }
 #endif
 
-    std::cerr << "ERROR: Invalid allocator type "
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type "
         << get_allocator_name(m_alloc) << std::endl;
 
     return nullptr;
@@ -654,7 +871,8 @@ int buffer<T>::reserve(size_t n_elem)
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type "
                 << get_allocator_name(m_alloc) << std::endl;
         }
 
@@ -701,7 +919,8 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type "
                 << get_allocator_name(m_alloc) << std::endl;
         }
 
@@ -910,7 +1129,8 @@ int buffer<T>::set(size_t dest_start, const U *src,
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -958,7 +1178,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(src.m_alloc) << std::endl;
         }
     }
@@ -993,14 +1214,16 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
         }
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(src.m_alloc) << std::endl;
         }
     }
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1038,7 +1261,8 @@ int buffer<T>::get(size_t src_start, U *dest,
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1086,7 +1310,8 @@ int buffer<T>::get(size_t src_start,
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(dest.m_alloc) << std::endl;
         }
     }
@@ -1122,14 +1347,16 @@ int buffer<T>::get(size_t src_start,
         }
         else
         {
-            std::cerr << "ERROR: Invalid allocator type in the source "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
                 << get_allocator_name(dest.m_alloc) << std::endl;
         }
     }
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1173,7 +1400,8 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 #endif
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1192,7 +1420,8 @@ template <typename T>
 std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 {
 #if !defined(HAMR_ENABLE_CUDA)
-    std::cerr << "ERROR: get_cuda_accessible failed, CUDA is not available."
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " get_cuda_accessible failed, CUDA is not available."
         << std::endl;
     return nullptr;
 #else
@@ -1230,7 +1459,8 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
     }
     else
     {
-        std::cerr << "ERROR: Invalid allocator type "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Invalid allocator type "
             << get_allocator_name(m_alloc) << std::endl;
     }
 
@@ -1264,8 +1494,9 @@ int buffer<T>::print() const
 #endif
         else
         {
-            std::cerr << "ERROR: Invalid allocator type "
-                << get_allocator_name(m_alloc) << std::endl;
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type " << get_allocator_name(m_alloc)
+                << std::endl;
         }
     }
 

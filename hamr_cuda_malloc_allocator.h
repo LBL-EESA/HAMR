@@ -68,7 +68,8 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) ptr;
-     std::cerr << "ERROR: cuda_malloc_deleter dealllocate objects failed."
+     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+         " cuda_malloc_deleter dealllocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
 #else
@@ -82,7 +83,8 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
     if (hamr::partition_thread_blocks(device_id, m_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties." << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties." << std::endl;
         return;
     }
 
@@ -91,7 +93,8 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
     cuda_kernels::destruct<T><<<block_grid, thread_grid>>>(ptr, m_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return;
     }
@@ -220,7 +223,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
-     std::cerr << "ERROR: cuda_malloc_allocator allocate objects failed."
+     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+         " cuda_malloc_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
@@ -232,7 +236,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << " bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -246,7 +251,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -255,7 +261,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -283,7 +290,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
     (void) val;
-     std::cerr << "ERROR: cuda_malloc_allocator allocate objects failed."
+     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+         " cuda_malloc_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
@@ -295,7 +303,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << sizeof(T) << " total " << n_bytes
             << " bytes. " << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -309,7 +318,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     if (hamr::partition_thread_blocks(-1, n_elem, 8, block_grid, n_blocks,
         thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -318,7 +328,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -348,7 +359,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     (void) n_elem;
     (void) vals;
     (void) cudaVals;
-     std::cerr << "ERROR: cuda_malloc_allocator allocate objects failed."
+     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+         " cuda_malloc_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
@@ -360,7 +372,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << " bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -373,7 +386,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
         size_t n_bytes_vals = n_elem*sizeof(U);
         if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
         {
-            std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to cudaMalloc " << n_elem << " of "
                 << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
@@ -381,7 +395,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 
         if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals, cudaMemcpyHostToDevice)) != cudaSuccess)
         {
-            std::cerr << "ERROR: Failed to cudaMemcpy array of " << n_elem
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to cudaMemcpy array of " << n_elem
                 << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
@@ -398,7 +413,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -407,7 +423,8 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -482,7 +499,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -519,7 +537,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -533,7 +552,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -542,7 +562,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -574,7 +595,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to cudaMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
@@ -588,7 +610,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
 
         if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
         {
-            std::cerr << "ERROR: Failed to cudaMalloc " << n_elem << " of "
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to cudaMalloc " << n_elem << " of "
                 << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
@@ -597,7 +620,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
         if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals,
             cudaMemcpyHostToDevice)) != cudaSuccess)
         {
-            std::cerr << "ERROR: Failed to cudaMemcpy array of " << n_elem
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to cudaMemcpy array of " << n_elem
                 << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
@@ -614,7 +638,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
         n_blocks, thread_grid))
     {
-        std::cerr << "ERROR: Failed to determine launch properties. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine launch properties. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
@@ -623,7 +648,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: Failed to launch the construct kernel. "
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the construct kernel. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }

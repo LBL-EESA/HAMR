@@ -31,3 +31,27 @@ if (HAMR_ENABLE_CUDA)
     set_tests_properties(test_hamr_multi_gpu_cuda PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
 endif()
 
+if (HAMR_ENABLE_PYTHON)
+
+    add_test(NAME test_hamr_buffer_numpy_cpu
+        COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_numpy_cpu.py)
+
+    if (HAMR_ENABLE_CUDA)
+
+        add_test(NAME test_hamr_buffer_numpy_cuda
+            COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_numpy_cuda.py)
+
+        add_test(NAME test_hamr_buffer_cupy_cpu
+            COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_cupy_cpu.py)
+
+        add_test(NAME test_hamr_buffer_cupy_cuda
+            COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_cupy_cuda.py)
+
+    endif()
+
+endif()
+
