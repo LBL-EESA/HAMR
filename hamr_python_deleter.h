@@ -2,6 +2,7 @@
 #define hamr_python_deleter_h
 
 #include "hamr_config.h"
+#include "hamr_gil_state.h"
 
 #include <Python.h>
 #include <iostream>
@@ -51,7 +52,7 @@ python_deleter<T>::python_deleter(T *ptr, size_t n, PyObject *obj)
             << " holding a reference to " << m_object << std::endl;
     }
 #endif
-
+    hamr::gil_state gil;
     Py_INCREF(obj);
 }
 
@@ -69,7 +70,7 @@ void python_deleter<T>::operator()(T *ptr)
             << " release reference to " << m_object << std::endl;
     }
 #endif
-
+    hamr::gil_state gil;
     Py_DECREF(m_object);
 }
 

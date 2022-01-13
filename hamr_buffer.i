@@ -2,6 +2,7 @@
 #include "hamr_config.h"
 #include "hamr_buffer.h"
 #include "hamr_buffer_handle.h"
+#include "hamr_gil_state.h"
 %}
 
 /***************************************************************************
@@ -18,6 +19,8 @@
     buffer(hamr::buffer_allocator alloc, size_t n_elem,
         int owner, size_t intptr, PyObject *src)
     {
+        hamr::gil_state gil;
+
         T *ptr = (T*)intptr;
 
         return new hamr::buffer<T>(alloc, n_elem, owner,
@@ -26,6 +29,8 @@
 
     PyObject *__str__()
     {
+        hamr::gil_state gil;
+
         std::ostringstream oss;
         oss << "{";
         size_t n_elem = self->size();
@@ -51,6 +56,8 @@
     /** return an object that can be used on the CPU */
     hamr::buffer_handle<T> get_cpu_accessible()
     {
+        hamr::gil_state gil;
+
         hamr::buffer_handle<T> h(self->get_cpu_accessible(), self->size(),
             0, 1, self->cpu_accessible() && self->cuda_accessible());
 
@@ -60,6 +67,8 @@
     /** return an object that can be used from CUDA */
     hamr::buffer_handle<T> get_cuda_accessible()
     {
+        hamr::gil_state gil;
+
         hamr::buffer_handle<T> h(self->get_cuda_accessible(), self->size(),
             0, self->cpu_accessible() && self->cuda_accessible(), 1);
 

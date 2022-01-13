@@ -1,6 +1,7 @@
 %{
 #include "hamr_config.h"
 #include "hamr_buffer_handle.h"
+#include "hamr_gil_state.h"
 %}
 
 /***************************************************************************
@@ -15,6 +16,7 @@
 {
     PyObject *__str__()
     {
+        hamr::gil_state gil;
         std::ostringstream oss;
         self->to_stream(oss);
         return PyUnicode_FromString(oss.str().c_str());
