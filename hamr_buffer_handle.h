@@ -4,6 +4,7 @@
 #include "hamr_config.h"
 #include "hamr_env.h"
 #include "hamr_buffer_allocator.h"
+#include "hamr_gil_state.h"
 
 #include <Python.h>
 #include <memory>
@@ -58,7 +59,7 @@ array_interface_tt_declare(<, f, 8, double)
  * libraries.
  */
 template <typename T>
-class buffer_handle
+class HAMR_EXPORT buffer_handle
 {
 public:
     /// construct an empty, and unusable object
@@ -186,6 +187,8 @@ buffer_handle<T>::buffer_handle(buffer_handle<T> &&other) :
 template <typename T>
 PyObject *buffer_handle<T>::get_cuda_array_interface()
 {
+    hamr::gil_state gil;
+
     if (!m_cuda_accessible)
     {
         PyErr_SetString(PyExc_AttributeError,
@@ -206,6 +209,8 @@ PyObject *buffer_handle<T>::get_cuda_array_interface()
 template <typename T>
 PyObject *buffer_handle<T>::get_numpy_array_interface()
 {
+    hamr::gil_state gil;
+
     if (!m_cpu_accessible)
     {
         PyErr_SetString(PyExc_AttributeError,

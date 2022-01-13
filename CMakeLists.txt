@@ -130,6 +130,7 @@ endif()
 set(hamr_sources
     #hamr_cpu_memory_resource.cxx
     #hamr_cuda_uva_memory_resource.cxx
+    hamr_buffer_allocator.cxx
     hamr_env.cxx
     )
 
@@ -168,7 +169,10 @@ target_include_directories(hamr
 file(GLOB hamr_headers LIST_DIRECTORIES FALSE
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.h")
 
-install(FILES ${hamr_headers}
+file(GLOB hamr_interfaces LIST_DIRECTORIES FALSE
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.i")
+
+install(FILES ${hamr_headers} ${hamr_interfaces}
     DESTINATION ${INCLUDE_PREFIX})
 
 install(TARGETS hamr
