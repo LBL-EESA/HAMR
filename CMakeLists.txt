@@ -130,6 +130,7 @@ endif()
 set(hamr_sources
     #hamr_cpu_memory_resource.cxx
     #hamr_cuda_uva_memory_resource.cxx
+    hamr_buffer_allocator.cxx
     hamr_env.cxx
     )
 

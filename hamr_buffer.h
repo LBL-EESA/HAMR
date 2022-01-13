@@ -357,10 +357,6 @@ public:
     int print() const;
 
 protected:
-    /// return the human readable name of the allocator
-    static
-    const char *get_allocator_name(allocator alloc);
-
     /// grow the buffer if needed. doubles in size
     int reserve_for_append(size_t n_vals);
 
@@ -657,31 +653,7 @@ void buffer<T>::swap(buffer<T> &other)
 
 // --------------------------------------------------------------------------
 template <typename T>
-const char *buffer<T>::get_allocator_name(allocator alloc)
-{
-    if (alloc == allocator::cpp)
-    {
-        return "cpp";
-    }
-    else if (alloc == allocator::malloc)
-    {
-        return "malloc";
-    }
-    else if (alloc == allocator::cuda)
-    {
-        return "cuda_malloc_allocator";
-    }
-    else if (alloc == allocator::cuda_uva)
-    {
-        return "cuda_malloc_uva_allocator";
-    }
-
-    return "the allocator name is not known";
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-int buffer<T>::cuda_accessible() const
+int buffer<T>::cpu_accessible() const
 {
     return (m_alloc == allocator::cpp) ||
         (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_uva);
@@ -689,7 +661,7 @@ int buffer<T>::cuda_accessible() const
 
 // --------------------------------------------------------------------------
 template <typename T>
-int buffer<T>::cpu_accessible() const
+int buffer<T>::cuda_accessible() const
 {
     return (m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva);
 }
