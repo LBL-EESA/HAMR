@@ -42,7 +42,7 @@ else()
             endif()
         endif()
         set(CMAKE_CXX_FLAGS "${tmp}"
-            CACHE STRING "TECA build defaults"
+            CACHE STRING "HAMR build defaults"
             FORCE)
     endif()
     if (NOT CMAKE_Fortran_FLAGS)
@@ -51,7 +51,7 @@ else()
             set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-signaling-nans -fno-math-errno")
         endif()
         set(CMAKE_Fortran_FLAGS "${tmp}"
-            CACHE STRING "TECA build defaults"
+            CACHE STRING "HAMR build defaults"
             FORCE)
     endif()
     if (NOT CMAKE_CUDA_FLAGS)
@@ -65,15 +65,15 @@ else()
             set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g")
         endif()
         set(CMAKE_CUDA_FLAGS "${tmp}"
-            CACHE STRING "TECA build defaults"
+            CACHE STRING "HAMR build defaults"
             FORCE)
         string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
         set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
-            CACHE STRING "TECA build defaults"
+            CACHE STRING "HAMR build defaults"
             FORCE)
         string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CUDA_FLAGS_RELEASE}")
         set(CMAKE_CUDA_FLAGS_RELEASE "${tmp}"
-            CACHE STRING "TECA build defaults"
+            CACHE STRING "HAMR build defaults"
             FORCE)
     endif()
 endif()

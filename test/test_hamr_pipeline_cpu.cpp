@@ -1,4 +1,5 @@
 #include "hamr_buffer.h"
+#include "hamr_buffer_pointer.h"
 
 #include <iostream>
 
