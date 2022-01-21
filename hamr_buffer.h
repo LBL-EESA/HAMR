@@ -170,8 +170,7 @@ public:
      * data will be copied.  if this and the passed buffer have different types
      * elements are cast to this type as they are copied.
      */
-    template <typename U>
-    void operator=(buffer<U> &&other);
+    void operator=(buffer<T> &&other);
 
     /// swap the contents of the two buffers
     void swap(buffer<T> &other);
@@ -618,18 +617,9 @@ buffer<T>::buffer(buffer<T> &&other) : buffer<T>(other.m_alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
-template <typename U>
-void buffer<T>::operator=(buffer<U> &&other)
+void buffer<T>::operator=(buffer<T> &&other)
 {
-    if (std::is_same<T,U>::value &&
-        (m_alloc == other.m_alloc) && (m_owner == other.m_owner))
-    {
-        this->swap(other);
-    }
-    else
-    {
-        this->assign(other);
-    }
+    this->swap(other);
 }
 
 // --------------------------------------------------------------------------
