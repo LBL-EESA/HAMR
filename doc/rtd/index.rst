@@ -1,9 +1,14 @@
 The HAMR User’s Guide
 =====================
 HAMR is a library defining an accelerator technology agnostic memory model that
-bridges between accelerator technologies (CUDA, HIP, ROCm, OpenMP, Kokos, etc)
-and traditional CPUs in heterogeneous computing environments.  HAMR is light
-weight and implemented in modern C++.
+bridges between accelerator technologies (CUDA, HIP, ROCm, OpenMP, Sycl,
+OpenCL, Kokos, etc) and traditional CPUs in heterogeneous computing
+environments.   HAMR is light weight and implemented in modern C++. HAMR can be
+used to manage memory with in a single code or as a data model for coupling
+codes in a technologically agnostic way. HAMR provides a Python module for
+coupling C++ and Python codes which implements zero-copy data transfers to and
+from Python using the Numpy array interface and Numba CUDA array interface
+protocols.
 
 Source Code
 -----------
@@ -16,24 +21,50 @@ The `hamr::buffer <doxygen/classhamr_1_1buffer.html>`_ is a container
 that has capabilities similar to `std::vector` and can provide access to data
 in different accelerator execution environments.
 
+Build and Install
+-----------------
+HAMR is configured with CMake. The following CMake variables influence the build.
+
++-------------------------+----------------------------------------------------+
+| CMake Variable          | Description                                        |
++-------------------------+----------------------------------------------------+
+| CMAKE_BUILD_TYPE        | Release or Debug. The default is Release.          |
++-------------------------+----------------------------------------------------+
+| CMAKE_CXX_FLAGS         | HAMR will set the C++ compiler flags if not set.   |
++-------------------------+----------------------------------------------------+
+| CMAKE_CUDA_FLAGS        | HAMR will set the CUDA compiler flags if not set.  |
++-------------------------+----------------------------------------------------+
+| HAMR_ENABLE_CUDA        | If set to ON enables CUDA features. Default OFF    |
++-------------------------+----------------------------------------------------+
+| HAMR_ENABLE_PYTHON      | If set to ON enables Python features. Default OFF  |
++-------------------------+----------------------------------------------------+
+| BUILD_TESTING           | If set to ON enables regression tests. Default OFF |
++-------------------------+----------------------------------------------------+
+
 Introduction
 ------------
-
 HAMR deals only with memory models and serves as a bridge for moving data
 between various low and high level accelerator technologies and the CPU at run
-time. HAMR is designed for coupling codes written in different technologies.
-For this reason HAMR does not implement an execution environment. The
-developer writes their code for the technology of their choice. The
-technology's native execution environment is used to run the code.
-HAMR manages memory and can be used to couple codes written in different
-accelerator technologies and CPU based codes.
+time. HAMR is designed as a data model for coupling codes such that developers
+need not code to a specific technology in order to share data.  For this reason
+HAMR does not implement an execution environment. Developers write their codes
+for the technology of their choice. The technology's native execution
+environment is used for computation.  HAMR provides data structures that manage
+memory and can be used to share data and couple codes written in different
+accelerator technologies (including CPU based codes), by different developers,
+such that the receiving code need not have knowledge of technology used to
+generate that data, and the sending code need not have knowledge of the
+technology that will be used to consume the data.  HAMR manages the necessary
+memory movements such that the codes have access to the data in the technology
+where they will use it.
 
 When allocating or accessing data, codes declare the environment (CUDA, HIP,
-ROCm, OpenMP, Kokos etc) in which data will be accessed. Direct access to
-device pointers in that environment is cheap. The data can then be passed to
-other codes which may not necessarily be written in the same technology. Those
-codes declare the environment in which the data will be accessed. If the data
-is not already accessible in that environment, it is moved upon access.
+ROCm, OpenMP, Sycl, OpenCL, Kokos etc) in which data will be accessed. Direct
+access to device pointers in that environment is cheap. When the data is shared
+with other codes which may not necessarily be written in the same technology
+and the shared data is accessed, the consumer  declares the environment in
+which the data will be processed. If the data is not already accessible in that
+environment, it is moved upon access.
 
 Modern C++ design patterns alleviate the burden for explicit management of
 temporary buffers. Lazy movement of data means data can be left in place. This
@@ -48,7 +79,7 @@ hamr::buffer
 The `hamr::buffer <doxygen/classhamr_1_1buffer.html>`_ class is a container
 that has capabilities similar to `std::vector` and can provide access to data
 in different accelerator execution environments. During construction Producers
-of data declare in which environment (CUDA,ROCm, HIP, OpernMP, etc) the data
+of data declare in which environment (CUDA, ROCm, HIP, OpernMP, etc) the data
 will initially be accessible in. Access to the data in the declared environment
 is essentially free.
 When consumers of the data need to access the data, they
@@ -93,14 +124,23 @@ can be used to access the buffers contents on the CPU. Modern C++
 `spdata` is in scope. In this way the consumer of the data need not know if the
 data was moved or accessed in place.
 
+Python Integration
+~~~~~~~~~~~~~~~~~~
+HAMR provides Python bindings that enable zero-coopy data sharing between C++
+and Python codes. This is accomplished for CPU accessible data via the Numpy
+array interface protocol, and for CUDA accessible data via the Numba CUDA array
+interface protocol. HAMR manages the C++ and Python data structures such that
+they will persist while in use in the other language.
+
+
+
 Examples
 --------
 
-CUDA
-~~~~
+Hello World CUDA
+----------------
 This example illustrates the use of hamr moving data to and from the GPU and
 CPU for use with CUDA.
-
 
 .. _cuda_add_array:
 
@@ -122,3 +162,21 @@ CPU for use with CUDA.
     :linenos:
     :caption: This simple hello world style program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the resulkt.
 
+
+Python - C++ Interoperability
+-----------------------------
+This example illustrates data sharing between C++, Numpy, and Cupy. HAMR's
+Python bindings implement both the Numba CUDA array interface and the Numpy
+array interface protocols for zero-copy data sharing between C++ and Python.
+
+.. _cupy_share_data:
+
+.. literalinclude:: source/zero_copy_cupy/cpp_to_python.py
+    :language: python
+    :linenos:
+    :caption: Zero-copy sharing data allocated in C++ with Python
+
+.. literalinclude:: source/zero_copy_cupy/python_to_cpp.py
+    :language: python
+    :linenos:
+    :caption: Zero-copy sharing data allocated in Python with C++
