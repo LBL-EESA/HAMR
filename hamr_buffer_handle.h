@@ -52,6 +52,33 @@ array_interface_tt_declare(<, f, 4, float)
 array_interface_tt_declare(<, f, 8, double)
 
 
+/// type traits for constructing SWIG wrapped objects
+template <typename cpp_t> struct buffer_handle_tt
+{};
+
+#define buffer_handle_tt_declare(CPP_T, SWIG_T) \
+template <> struct buffer_handle_tt<CPP_T>      \
+{                                               \
+    static swig_type_info *swig_type()          \
+    {                                           \
+        return SWIG_T;                          \
+    };                                          \
+};
+
+buffer_handle_tt_declare(float, SWIGTYPE_p_hamr__buffer_handleT_float_t)
+buffer_handle_tt_declare(double, SWIGTYPE_p_hamr__buffer_handleT_double_t)
+buffer_handle_tt_declare(char, SWIGTYPE_p_hamr__buffer_handleT_char_t)
+buffer_handle_tt_declare(short, SWIGTYPE_p_hamr__buffer_handleT_short_t)
+buffer_handle_tt_declare(int, SWIGTYPE_p_hamr__buffer_handleT_int_t)
+buffer_handle_tt_declare(long, SWIGTYPE_p_hamr__buffer_handleT_long_t)
+buffer_handle_tt_declare(long long, SWIGTYPE_p_hamr__buffer_handleT_long_long_t)
+buffer_handle_tt_declare(unsigned char, SWIGTYPE_p_hamr__buffer_handleT_unsigned_char_t)
+buffer_handle_tt_declare(unsigned short, SWIGTYPE_p_hamr__buffer_handleT_unsigned_short_t)
+buffer_handle_tt_declare(unsigned int, SWIGTYPE_p_hamr__buffer_handleT_unsigned_int_t)
+buffer_handle_tt_declare(unsigned long, SWIGTYPE_p_hamr__buffer_handleT_unsigned_long_t)
+buffer_handle_tt_declare(unsigned long long, SWIGTYPE_p_hamr__buffer_handleT_unsigned_long_long_t)
+
+
 /** A resource management class that is used to keep data shared with Python
  * codes from a ::hamr_buffer alive while it is being accessed by the Python
  * codes. The class also implements the Numpy array interface protocol and
