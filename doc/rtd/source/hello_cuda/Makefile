@@ -1,3 +1,3 @@
 
 all:
-	nvcc hello_cuda.cu -I../../../../ -I ../../../../bin_cuda/ -std=c++17 -L ../../../../bin_cuda/lib/ -lhamr
+	nvcc hello_cuda.cu -I../../../../ -I ../../../../bin/ -std=c++17 -L ../../../../bin/lib/ -lhamr

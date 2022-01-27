@@ -7,24 +7,30 @@ message("++ Executable: ${Python3_EXECUTABLE}")
 find_package(SWIG COMPONENTS python)
 include(UseSWIG)
 
+set(swig_deps
+    ../hamr_buffer_allocator.i
+    ../hamr_buffer_handle.i
+    ../hamr_buffer.i)
+
 set_property(SOURCE hamr_py.i PROPERTY CPLUSPLUS ON)
+set_property(SOURCE hamr_py.i PROPERTY DEPENDS ${swig_deps})
 set_property(SOURCE hamr_py.i PROPERTY SWIG_MODULE_NAME hamr_py)
 
 swig_add_library(hamr_py
-  TYPE SHARED LANGUAGE python
-  SOURCES hamr_py.i
-  OUTPUT_DIR "${CMAKE_BINARY_DIR}/lib"
-  OUTFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    TYPE SHARED LANGUAGE python
+    SOURCES hamr_py.i
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/lib"
+    OUTFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_link_libraries(hamr_py ${Python3_LIBRARIES} hamr)
 
 target_include_directories(hamr_py
-  PRIVATE "${Python3_INCLUDE_DIRS}"
-  "${CMAKE_CURRENT_SOURCE_DIR}"
-  "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  "${CMAKE_CURRENBT_BINARY_DIR}"
-  "${CMAKE_CURRENBT_BINARY_DIR}/.."
-  )
+    PRIVATE "${Python3_INCLUDE_DIRS}"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/.."
+    "${CMAKE_CURRENBT_BINARY_DIR}"
+    "${CMAKE_CURRENBT_BINARY_DIR}/.."
+    )
 
 set_property(TARGET hamr_py
     PROPERTY SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON)
