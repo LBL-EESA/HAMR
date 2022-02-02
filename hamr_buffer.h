@@ -111,7 +111,7 @@ public:
      *                  allocator is a GPU allocator and -1 is passed the
      *                  driver API is used to determine the device that
      *                  allocated the memory.
-     * @param[in] ptr   a shared pointer managing the data
+     * @param[in] data  a shared pointer managing the data
      */
     buffer(allocator alloc, size_t size, int owner,
         const std::shared_ptr<T> &data);
