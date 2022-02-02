@@ -16,23 +16,25 @@ template <typename cpp_t> struct array_interface_tt
 {};
 
 #define array_interface_tt_declare(ENDIAN, KIND, SIZE, CPP_T) \
+/** CPP_T traits for Numpy's array interface protocol */      \
 template <> struct array_interface_tt<CPP_T>                  \
 {                                                             \
+    /** number of bytes per element (SIZE) */                 \
     static constexpr size_t elemsize()                        \
     {                                                         \
         return SIZE;                                          \
     }                                                         \
-                                                              \
+    /** char code for the type (KIND) */                      \
     static constexpr char typekind()                          \
     {                                                         \
         return (#KIND) [0];                                   \
     }                                                         \
-                                                              \
+    /** true if the machine order is little endian */         \
     static constexpr bool little_endian()                     \
     {                                                         \
         return (#ENDIAN) [0] == '<';                          \
     }                                                         \
-                                                              \
+    /** Numpy type descriptor string (ENDIAN KIND SIZE) */    \
     static constexpr const char *descr()                      \
     {                                                         \
         return #ENDIAN #KIND #SIZE;                           \
@@ -114,7 +116,7 @@ public:
     buffer_handle<T> &operator=(buffer_handle<T> &&) = default;
 
 
-    /** returns a dictionary as described in the Numba __cuda_array_interface__
+    /** returns a dictionary as described in the Numba CUDA array interface
      * protocol if the data is accessible from CUDA. Otherwise, an
      * AttributeError is rasied. */
     PyObject *get_cuda_array_interface();
@@ -125,8 +127,8 @@ public:
     PyObject *get_numpy_array_interface();
 
 //private:
-    /** returns a dictionary as decribed in the Numpy __array_interface__ and
-     * the __cuda_array_interface__. The caller must ensure the data is
+    /** returns a dictionary as decribed in the Numpy array interface and Numba
+     * CUDA array interface protocols. The caller must ensure the data is
      * accessible in the desired technology before use. See
      * ::get_numpy_array_interface and ::get_cuda_array_interface which
      * implement check ensuring that this is true. */

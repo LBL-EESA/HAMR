@@ -301,6 +301,7 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
  *
  * @param[in] dest an array of n elements accessible in CUDA
  * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] src_device the CUDA device on which src is allocated
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
@@ -331,7 +332,8 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
  * path for arrays of arithmetic types of the same type).
  *
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] src_device the CUDA device on which src is allocated
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */

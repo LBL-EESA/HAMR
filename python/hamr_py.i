@@ -1,4 +1,9 @@
-%module hamr
+%define DOCSTR
+"HAMR - Heterogeneous Accelerator Memory Resource. A library for autmated
+memory management on systems with heterogeneous accellerators."
+%enddef
+%module(docstring=DOCSTR) hamr
+%feature("autodoc", "3");
 %{
 #define SWIG_FILE_WITH_INIT
 

@@ -10,12 +10,20 @@ coupling C++ and Python codes which implements zero-copy data transfers to and
 from Python using the Numpy array interface and Numba CUDA array interface
 protocols.
 
+Design
+------
+**Modern:** Implemented in C++20 HAMR is efficient and easy to use.
+**Declarative:** Producers and consumers *delcare* where data will be accessed.
+If there is a missmatch HAMR automatically moves the data.  **Lazy:** Data is
+left in place until it is accessed. Zero-copy constructors enable efficient
+code coupling.
+
 Source Code
 -----------
 Source code can be obtained at the `HAMR github repository <https://github.com/LBL-EESA/HAMR>`_.
 
-Online Source Code Documentation
---------------------------------
+Documentation
+-------------
 HAMR's C++ sources are documented via Doxygen at the `HAMR Doxygen site <doxygen/index.html>`_.
 The `hamr::buffer <doxygen/classhamr_1_1buffer.html>`_ is a container
 that has capabilities similar to `std::vector` and can provide access to data
@@ -84,7 +92,7 @@ will initially be accessible in. Access to the data in the declared environment
 is essentially free.
 When consumers of the data need to access the data, they
 declare in which environment access is needed. If the consumers are accessing
-in an environment in which the data is in accessible, a temporary allocation is
+in an environment in which the data is inaccessible, a temporary allocation is
 created and the data is moved. Reference counting is used to manage temporary
 allocations.
 
@@ -133,34 +141,60 @@ interface protocol. HAMR manages the C++ and Python data structures such that
 they will persist while in use in the other language.
 
 
-
 Examples
 --------
 
-Hello World CUDA
-----------------
-This example illustrates the use of hamr moving data to and from the GPU and
-CPU for use with CUDA.
+.. _hello_cuda:
+
+Hello World! w/ C++ and CUDA
+------------------------------
+This example illustrates two codes (in this case functions) using hamr so that
+they can process data produced either on the CPU or GPU without knowing
+specifically where the data passed to them resides. C++ smart pointers are used
+to manage temporary buffers if the passed data needed to be moved to the device
+where it was accessed.  See ref:`hello_cupy` for the Python implementation of the
+example.
 
 .. _cuda_add_array:
 
-.. literalinclude:: source/hello_cuda/add_cuda.h
+.. literalinclude:: source/hello_cuda/add.cuh
     :language: c++
     :linenos:
     :caption: A simple CUDA kernel that adds two arrays.
 
 
-
-.. literalinclude:: source/hello_cuda/add_cuda_dispatch.h
+.. literalinclude:: source/hello_cuda/add.h
     :language: c++
     :linenos:
     :caption: Code that uses HAMR to access array based data in CUDA. Calling `get_cuda_accessible` makes the array's available in CUDA if they are not.  Then CUDA kernels may be applied as usual.
 
 
+.. literalinclude:: source/hello_cuda/write.h
+    :language: c++
+    :linenos:
+    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+
+
 .. literalinclude:: source/hello_cuda/hello_cuda.cu
     :language: c++
     :linenos:
-    :caption: This simple hello world style program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the resulkt.
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+
+
+.. _hello_cupy:
+
+Hello World! w/ Python and cupy
+-------------------------------
+This example illustrates two codes (in this case functions) using hamr so that
+they can process data produced either on the CPU or GPU without knowing
+specifically where the data passed to them resides. C++ smart pointers are used
+to manage temporary buffers if the passed data needed to be moved to the device
+where it was accessed.  See ref:`hello_cuda` for the C++ implementation of this example.
+
+.. literalinclude:: source/hello_cupy/hello_cupy.py
+    :language: python
+    :linenos:
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
 
 
 Python - C++ Interoperability
