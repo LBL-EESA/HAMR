@@ -1,13 +1,9 @@
 #ifndef add_cuda_h
 #define add_cuda_h
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-
-// **************************************************************************
 template<typename T, typename U>
 __global__
-void add_cuda(T *result, const T *array_1, const U *array_2, size_t n_vals)
+void add(T *result, const T *array_1, const U *array_2, size_t n_vals)
 {
     unsigned long i = blockIdx.x*blockDim.x + threadIdx.x;
 
