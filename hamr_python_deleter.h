@@ -22,6 +22,8 @@ class HAMR_EXPORT python_deleter
 {
 public:
     /** constructs the deleter. A reference to obj is stolen by this constructor.
+     * @param[in] ptr a pointer to shared data
+     * @param[in] n_elem the number of elements of type T shared
      * @param[in] obj a PyObject who's reference count will be decremented when
      *                the data shared from Python is no longer needed.
      */
