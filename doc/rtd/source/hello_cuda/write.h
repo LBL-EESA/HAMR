@@ -1,6 +1,3 @@
-#ifndef write_h
-#define write_h
-
 template <typename T>
 void write(std::ostream &os, const hamr::buffer<T> &ai)
 {
@@ -8,12 +5,11 @@ void write(std::ostream &os, const hamr::buffer<T> &ai)
     auto spai = ai.get_cpu_accessible();
     const T *pai = spai.get();
 
+    // write the elements of the array to the stream
     for (int i = 0; i < ai.size(); ++i)
     {
-        std::cerr << pai[i] << " ";
+        os << pai[i] << " ";
     }
 
-    std::cerr << std::endl;
+    os << std::endl;
 }
-
-#endif

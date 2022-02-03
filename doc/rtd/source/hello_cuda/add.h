@@ -1,6 +1,3 @@
-#ifndef add_cuda_dispatch_h
-#define add_cuda_dispatch_h
-
 #include "add.cuh"
 
 template <typename T, typename U>
@@ -25,5 +22,3 @@ hamr::buffer<T> add(const hamr::buffer<T> &a1, const hamr::buffer<U> &a2)
 
     return ao;
 }
-
-#endif

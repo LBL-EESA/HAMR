@@ -20,7 +20,7 @@ int main(int, char **)
     // add the two arrays
     hamr::buffer<float> a2 = add(a0, a1);
 
-    // print the result
+    // write the result
     write(std::cerr, a2);
 
     return 0;
