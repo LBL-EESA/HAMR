@@ -17,7 +17,7 @@ set_property(SOURCE hamr_py.i PROPERTY DEPENDS ${swig_deps})
 set_property(SOURCE hamr_py.i PROPERTY SWIG_MODULE_NAME hamr_py)
 
 swig_add_library(hamr_py
-    TYPE SHARED LANGUAGE python
+    TYPE MODULE LANGUAGE python
     SOURCES hamr_py.i
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/lib"
     OUTFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
