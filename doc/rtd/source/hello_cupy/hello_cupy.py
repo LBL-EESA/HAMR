@@ -9,7 +9,7 @@ def add(buf_0, buf_1):
     arr_0 = cp.array(buf_0.get_cuda_accessible()) # share data w/ cupy on GPU
     arr_1 = cp.array(buf_1.get_cuda_accessible()) # share data w/ cupy on GPU
     arr_2 = arr_0 + arr_1                         # add on the GPU
-    buf_2 = buffer_float(arr_2)                   # zero-copy from cupy on GPU
+    buf_2 = buffer(arr_2)                         # zero-copy from cupy on GPU
     return buf_2
 
 def write(fh, buf):

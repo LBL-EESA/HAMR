@@ -82,6 +82,8 @@ which computational technology the consumer of the data will make use of.
 Technology Agnostic Memory Management
 -------------------------------------
 
+.. _buffer:
+
 hamr::buffer
 ~~~~~~~~~~~~
 The `hamr::buffer <doxygen/classhamr_1_1buffer.html>`_ class is a container
@@ -132,13 +134,80 @@ can be used to access the buffers contents on the CPU. Modern C++
 `spdata` is in scope. In this way the consumer of the data need not know if the
 data was moved or accessed in place.
 
+
+.. _python_int:
+
 Python Integration
 ~~~~~~~~~~~~~~~~~~
-HAMR provides Python bindings that enable zero-coopy data sharing between C++
-and Python codes. This is accomplished for CPU accessible data via the Numpy
-array interface protocol, and for CUDA accessible data via the Numba CUDA array
-interface protocol. HAMR manages the C++ and Python data structures such that
-they will persist while in use in the other language.
+HAMR provides Python bindings that enable interoperability and data sharing
+between C++ and Python codes. This is accomplished via the Numpy array
+interface protocol, and the Numba CUDA array interface protocol. HAMR manages
+the C++ and Python data structures such that they will persist while in use in
+the other language.
+
+
+C++ to Python
+^^^^^^^^^^^^^
+In Python one constructs `hamr::buffer` objects using the wrapped C++ API. The
+passed allocator flag indicates where the memory will be allocated. For
+instance an buffer of 16 values initialized to 3.1415 allocated on the GPU
+would be created with
+
+.. code-block:: python
+
+    buf = buffer_float(buffer_allocator_cuda, 16, 3.1415)
+
+When sharing data with Numpy or Cupy a `hamr::buffer_handle` must be used.  The
+`hamr::buffer_handle` implements both the Numpy array interface and the Numba
+CUDA array interface protocols enabling Numpy and Cupy to directly make use of
+the shared data.
+
+When sharing with Numpy the `hamr::buffer_handle` is obtained by
+calling `hamr::buffer::get_cpu_accessible`.
+
+.. code-block:: python
+
+   arr = numpy.array(buf.get_cpu_accessible())
+
+As explained above, HAMR ensures that the returned data is accessible on the
+CPU by either moving it to a temporary if necessary, or returning a pointer to
+the buffer contents.
+
+Similarly, when sharing with Cupy the `hamr::buffer_handle` instance is
+obtained by calling `hamr::buffer::get_cuda_accessible` ensuring that the
+returned data is accessible in CUDA.
+
+.. code-block:: python
+
+   arr = cupy.array(buf.get_cuda_accessible())
+
+The `hamr::bufer_handle` returned holds a reference to the shared data, or the
+temporary, if data was automatically moved. In turn the Numpy or Cupy array
+holds a reference to the `hamr::buffer_handle`, which keeps the data alive
+while Numpy or Cupy uses it.
+
+While the data is transferred to Numpy or Cupy via the array interface
+protocol which is a zero-copy transfer mechanism, modifications made to the
+data will only be visible in the other language if a temporary was not needed,
+that is, if the data was already accessible in the location it was requested.
+
+Python to C++
+^^^^^^^^^^^^^
+`hamr::buffer` instances may be zero-copy constructed directly from both Numpy
+and Cupy arrays. For example
+
+.. code-block:: python
+
+   arr = cupy.full(16, 3.1415, dtype='float32')
+   buf = buffer(arr)
+
+The `hamr::buffer` zero-copy constructor obtains pointers to the Numpy or Cupy
+array's contents via the appropriate array interface protocol. The new
+`hamr::buffer` instance holds a reference to object sharing the data ensuring
+that it is kept alive while in use.
+
+This is always a zero-copy transfer and modifications in one language will be
+visible in the other.
 
 
 Examples
@@ -148,12 +217,12 @@ Examples
 
 Hello World! w/ C++ and CUDA
 ------------------------------
-This example illustrates two codes (in this case functions) using hamr so that
+This example illustrates coupling two codes, in this case functions, using HAMR so that
 they can process data produced either on the CPU or GPU without knowing
 specifically where the data passed to them resides. C++ smart pointers are used
 to manage temporary buffers if the passed data needed to be moved to the device
-where it was accessed.  See ref:`hello_cupy` for the Python implementation of the
-example.
+where it was accessed.  See :ref:`buffer` for more information. See
+:ref:`hello_cupy` for a Python implementation of this example.
 
 .. _cuda_add_array:
 
@@ -185,32 +254,14 @@ example.
 
 Hello World! w/ Python and cupy
 -------------------------------
-This example illustrates two codes (in this case functions) using hamr so that
-they can process data produced either on the CPU or GPU without knowing
-specifically where the data passed to them resides. C++ smart pointers are used
-to manage temporary buffers if the passed data needed to be moved to the device
-where it was accessed.  See ref:`hello_cuda` for the C++ implementation of this example.
+This example illustrates the coupling of two codes using hamr so that they can
+process data produced either on the CPU or GPU without knowing specifically
+where the data passed to them resides. HAMR's Python integration handle data
+sharing between C++ and Python objects. See :ref:`python_int` for more
+information. See :ref:`hello_cuda` for a C++ implementation of this example.
+
 
 .. literalinclude:: source/hello_cupy/hello_cupy.py
     :language: python
     :linenos:
     :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
-
-
-Python - C++ Interoperability
------------------------------
-This example illustrates data sharing between C++, Numpy, and Cupy. HAMR's
-Python bindings implement both the Numba CUDA array interface and the Numpy
-array interface protocols for zero-copy data sharing between C++ and Python.
-
-.. _cupy_share_data:
-
-.. literalinclude:: source/zero_copy_cupy/cpp_to_python.py
-    :language: python
-    :linenos:
-    :caption: Zero-copy sharing data allocated in C++ with Python
-
-.. literalinclude:: source/zero_copy_cupy/python_to_cpp.py
-    :language: python
-    :linenos:
-    :caption: Zero-copy sharing data allocated in Python with C++
