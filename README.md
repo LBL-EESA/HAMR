@@ -11,8 +11,8 @@ The source code can be obtained at the [HAMR github repository](https://github.c
 The [HAMR User's Guide](https://hamr.readthedocs.io/en/latest/) documents
 compiling and use of HAMR and contains simple examples.
 
-The [HAMR Doxygen site](doxygen/index.html) documents the APIs. Most users will
-want to start with the [hamr::buffer](doxygen/classhamr_1_1buffer.html), a
+The [HAMR Doxygen site](https://hamr.readthedocs.io/en/latest/doxygen/index.html) documents the APIs. Most users will
+want to start with the [hamr::buffer](https://hamr.readthedocs.io/en/latest/doxygen/classhamr_1_1buffer.html), a
 container that has capabilities similar to std::vector and can provide access
 to data in different accelerator execution environments.
 
