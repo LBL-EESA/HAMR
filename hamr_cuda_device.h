@@ -1,5 +1,5 @@
 #ifndef hamr_cuda_device_h
-#define hame_cuda_device_h
+#define hamr_cuda_device_h
 
 #include "hamr_config.h"
 

@@ -44,10 +44,15 @@ HAMR is configured with CMake. The following CMake variables influence the build
 +-------------------------+----------------------------------------------------+
 | HAMR_ENABLE_CUDA        | If set to ON enables CUDA features. Default OFF    |
 +-------------------------+----------------------------------------------------+
+| HAMR_ENABLE_HIP         | If set to ON enables HIP features. Default OFF     |
++-------------------------+----------------------------------------------------+
 | HAMR_ENABLE_PYTHON      | If set to ON enables Python features. Default OFF  |
 +-------------------------+----------------------------------------------------+
 | BUILD_TESTING           | If set to ON enables regression tests. Default OFF |
 +-------------------------+----------------------------------------------------+
+
+Note, use with HIP one must tell CMake to use `clang` and `clang++` from the ROCm
+install via the `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` CMake options.
 
 Introduction
 ------------
@@ -212,16 +217,20 @@ visible in the other.
 
 Examples
 --------
+The source code for the following examples is located in the `doc/rtd/source`
+folder. The C++ examples include a simple Makefile that can be edited to point
+to a build.
 
 .. _hello_cuda:
 
 Hello World! w/ C++ and CUDA
 ------------------------------
-This example illustrates coupling two codes, in this case functions, using HAMR so that
-they can process data produced either on the CPU or GPU without knowing
+This example illustrates coupling two codes, in this case functions, using HAMR
+so that they can process data produced either on the CPU or GPU without knowing
 specifically where the data passed to them resides. C++ smart pointers are used
 to manage temporary buffers if the passed data needed to be moved to the device
-where it was accessed.  See :ref:`buffer` for more information. See
+where it was accessed.  See :ref:`buffer` for more information.  See
+:ref:`hello_hip` for a HIP implementation of this example.  See
 :ref:`hello_cupy` for a Python implementation of this example.
 
 .. _cuda_add_array:
@@ -248,6 +257,43 @@ where it was accessed.  See :ref:`buffer` for more information. See
     :language: c++
     :linenos:
     :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+
+
+.. _hello_hip:
+
+Hello World! w/ C++ and HIP
+------------------------------
+This example illustrates coupling two codes, in this case functions, using HAMR so that
+they can process data produced either on the CPU or GPU without knowing
+specifically where the data passed to them resides. C++ smart pointers are used
+to manage temporary buffers if the passed data needed to be moved to the device
+where it was accessed.  See :ref:`buffer` for more information. See
+:ref:`hello_cuda` for a CUDA implementation of this example.
+
+.. _hip_add_array:
+
+.. literalinclude:: source/hello_hip/add_kernel.h
+    :language: c++
+    :linenos:
+    :caption: A simple HIP kernel that adds two arrays.
+
+
+.. literalinclude:: source/hello_hip/add.h
+    :language: c++
+    :linenos:
+    :caption: Code that uses HAMR to access array based data in HIP. Calling `get_hip_accessible` makes the array's available in HIP if they are not.  Then HIP kernels may be applied as usual.
+
+
+.. literalinclude:: source/hello_hip/write.h
+    :language: c++
+    :linenos:
+    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+
+
+.. literalinclude:: source/hello_hip/hello_hip.cpp
+    :language: c++
+    :linenos:
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in HIP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
 
 
 .. _hello_cupy:

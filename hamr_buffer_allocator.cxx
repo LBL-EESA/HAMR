@@ -22,6 +22,14 @@ const char *get_allocator_name(buffer_allocator alloc)
     {
         return "cuda_malloc_uva_allocator";
     }
+    else if (alloc == buffer_allocator::hip)
+    {
+        return "hip_malloc_allocator";
+    }
+    else if (alloc == buffer_allocator::hip_uva)
+    {
+        return "hip_malloc_uva_allocator";
+    }
 
     return "the allocator name is not known";
 }

@@ -1,84 +1,88 @@
-#ifndef hamr_copy_h
-#define hamr_copy_h
+#ifndef hamr_hip_copy_h
+#define hamr_hip_copy_h
 
 #include "hamr_config.h"
 #include "hamr_env.h"
-#if defined(HAMR_ENABLE_CUDA)
-#include "hamr_cuda_kernels.h"
-#include "hamr_cuda_launch.h"
+#if defined(HAMR_ENABLE_HIP)
+#include "hamr_hip_kernels.h"
+#include "hamr_hip_launch.h"
+#include "hamr_hip_malloc_allocator.h"
 #endif
+#include "hamr_malloc_allocator.h"
 
 #include <cstring>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
 
 /// heterogeneous accelerator memory resource
 namespace hamr
 {
-#if !defined(HAMR_CUDA_OBJECTS)
-/** Copies an array to the active CUDA device.
+#if !defined(HAMR_HIP_OBJECTS)
+/** Copies an array to the active HIP device.
  *
- * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
+static int copy_to_hip_from_cpu(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_cpu HIP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+        " copy_to_hip_from_cpu HAMR_HIP_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
 }
 #else
-/** Copies an array to the active CUDA device (fast path for arrays of
+/** Copies an array to the active HIP device (fast path for arrays of
  * arithmetic types of the same type).
  *
- * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
-static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
+static int copy_to_hip_from_cpu(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_cpu HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
     size_t n_bytes = n_elem*sizeof(T);
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyHostToDevice)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMemcpy(dest, src, n_bytes, hipMemcpyHostToDevice)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu same " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_cpu same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif
@@ -88,42 +92,42 @@ static int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** Copies an array to the active CUDA device.
+/** Copies an array to the active HIP device.
  *
- * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_CUDA_OBJECTS)
+static int copy_to_hip_from_cpu(T *dest, const U *src, size_t n_elem
+#if !defined(HAMR_HIP_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif
     )
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_cpu HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
     // apply the copy on the gpu
 
     // allocate a temporary buffer on the GPU
-    std::shared_ptr<U> pTmp = hamr::cuda_malloc_allocator<U>::allocate(n_elem);
+    std::shared_ptr<U> pTmp = hamr::hip_malloc_allocator<U>::allocate(n_elem);
 
     // copy the data
     size_t n_bytes = n_elem*sizeof(U);
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMemcpy(pTmp.get(), src, n_bytes, cudaMemcpyHostToDevice)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMemcpy(pTmp.get(), src, n_bytes, hipMemcpyHostToDevice)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
@@ -141,19 +145,19 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     }
 
     // invoke the casting copy kernel
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, pTmp.get(), n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hamr::hip_kernels::copy<<<block_grid, thread_grid>>>(dest, pTmp.get(), n_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the copy kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_cpu " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
@@ -163,31 +167,31 @@ static int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
 #endif
 }
 
-#if !defined(HAMR_CUDA_OBJECTS)
-/** Copies an array on the active CUDA device.
+#if !defined(HAMR_HIP_OBJECTS)
+/** Copies an array on the active HIP device.
  *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
+ * @param[in] src an array of n elements accessible in HIP
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem,
+static int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+        " copy_to_hip_from_hip HAMR_HIP_OBJECTS is not enabled." << std::endl;
     return -1;
 #endif
 }
@@ -195,38 +199,38 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem,
 /** Ccopies an array on the active CUAD device (fast path for arrays of
  * arithmetic types of the same type).
  *
- * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
-static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
+static int copy_to_hip_from_hip(T *dest, const T *src, size_t n_elem,
     typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
     size_t n_bytes = n_elem*sizeof(T);
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToDevice)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMemcpy(dest, src, n_bytes, hipMemcpyDeviceToDevice)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda same " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_hip same " << n_elem
             << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif
@@ -236,26 +240,26 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** Copies an array on the active CUDA device.
+/** Copies an array on the active HIP device.
  *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
+ * @param[in] src an array of n elements accessible in HIP
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_CUDA_OBJECTS)
+static int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem
+#if !defined(HAMR_HIP_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif
     )
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy on the gpu
@@ -273,20 +277,20 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
     }
 
     // invoke the casting copy kernel
-    cudaError_t ierr = cudaSuccess;
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    hamr::hip_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the copy kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_hip " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
@@ -296,26 +300,26 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, size_t n_elem
 #endif
 }
 
-#if !defined(HAMR_CUDA_OBJECTS)
-/** Copies an array to the active CUDA device from the named CUDA device,
+#if !defined(HAMR_HIP_OBJECTS)
+/** Copies an array to the active HIP device from the named HIP device,
  *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible in CUDA
- * @param[in] src_device the CUDA device on which src is allocated
+ * @param[in] dest an array of n elements accessible in HIP
+ * @param[in] src an array of n elements accessible in HIP
+ * @param[in] src_device the HIP device on which src is allocated
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t n_elem,
+static int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) src_device;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
@@ -323,59 +327,59 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
     (void) src_device;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+        " copy_to_hip_from_hip HAMR_HIP_OBJECTS is not enabled." << std::endl;
     return -1;
 #endif
 }
 #else
-/** Copies an array to the active CUDA device from the named CUDA device, (fast
+/** Copies an array to the active HIP device from the named HIP device, (fast
  * path for arrays of arithmetic types of the same type).
  *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible in CUDA
- * @param[in] src_device the CUDA device on which src is allocated
+ * @param[in] dest an array of n elements accessible in HIP
+ * @param[in] src an array of n elements accessible in HIP
+ * @param[in] src_device the HIP device on which src is allocated
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
-static int copy_to_cuda_from_cuda(T *dest, const T *src, int src_device, size_t n_elem,
+static int copy_to_hip_from_hip(T *dest, const T *src, int src_device, size_t n_elem,
     typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) src_device;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
     size_t n_bytes = n_elem*sizeof(T);
-    cudaError_t ierr = cudaSuccess;
+    hipError_t ierr = hipSuccess;
 
     int dest_device = -1;
-    if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
+    if ((ierr = hipGetDevice(&dest_device)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to get the current device id. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
-    if ((ierr = cudaMemcpyPeer(dest, dest_device, src, src_device, n_bytes)) != cudaSuccess)
+    if ((ierr = hipMemcpyPeer(dest, dest_device, src, src_device, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes
-            << " from CUDA device " << src_device << " to CUDA device "
-            << dest_device << ". " << cudaGetErrorString(ierr) << std::endl;
+            << " from HIP device " << src_device << " to HIP device "
+            << dest_device << ". " << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda same " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_hip same " << n_elem
             << typeid(T).name() << sizeof(T) << " from device "
             << src_device << " to device " << dest_device << std::endl;
     }
@@ -386,28 +390,28 @@ static int copy_to_cuda_from_cuda(T *dest, const T *src, int src_device, size_t 
 }
 #endif
 
-/** Copies an array on the active CUDA device.
+/** Copies an array on the active HIP device.
  *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible in CUDA
- * @param[in] src_device the CUDA device on which src is allocated
+ * @param[in] dest an array of n elements accessible in HIP
+ * @param[in] src an array of n elements accessible in HIP
+ * @param[in] src_device the HIP device on which src is allocated
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_CUDA_OBJECTS)
+static int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem
+#if !defined(HAMR_HIP_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif
     )
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) src_device;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_hip_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy on the gpu
@@ -424,25 +428,25 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
         return -1;
     }
 
-    cudaError_t ierr = cudaSuccess;
+    hipError_t ierr = hipSuccess;
 
     // enable peer to peer access
     int dest_device = -1;
-    if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
+    if ((ierr = hipGetDevice(&dest_device)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to get the current device id. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     int access = 0;
-    if ((ierr = cudaDeviceCanAccessPeer(&access, dest_device, src_device)) != cudaSuccess)
+    if ((ierr = hipDeviceCanAccessPeer(&access, dest_device, src_device)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine peer accessibility between "
             << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
@@ -455,39 +459,39 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
         return -1;
     }
 
-    if ((ierr = cudaDeviceEnablePeerAccess(src_device, 0)) != cudaSuccess)
+    if ((ierr = hipDeviceEnablePeerAccess(src_device, 0)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to enable peer accessibility between "
             << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     // invoke the casting copy kernel
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hamr::hip_kernels::copy<<<block_grid, thread_grid>>>(dest, src, n_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the copy kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     // disable peer to peer memory map
-    if ((ierr = cudaDeviceDisablePeerAccess(src_device)) != cudaSuccess)
+    if ((ierr = hipDeviceDisablePeerAccess(src_device)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to disable peer accessibility between "
             << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cuda " << n_elem
+        std::cerr << "hamr::copy_to_hip_from_hip " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << " from device "
             << src_device << " to device " << dest_device << std::endl;
@@ -498,71 +502,71 @@ static int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t 
 #endif
 }
 
-#if !defined(HAMR_CUDA_OBJECTS)
-/** Copies an array from the active CUDA device.
+#if !defined(HAMR_HIP_OBJECTS)
+/** Copies an array from the active HIP device.
  *
  * @param[in] dest an array of n elements accessible on the CPU
- * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] src an array of n elements accessible in HIP
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
+static int copy_to_cpu_from_hip(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_cpu_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda HAMR_CUDA_OBJECTS is not enabled." << std::endl;
+        " copy_to_cpu_from_hip HAMR_HIP_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
 }
 #else
-/** Copies an array from the active CUDA device (fast path for arrays of
+/** Copies an array from the active HIP device (fast path for arrays of
  * arithmetic types of the same type).
  *
- * @param[in] dest an array of n elements accessible in CUDA
+ * @param[in] dest an array of n elements accessible in HIP
  * @param[in] src an array of n elements accessible on the CPU
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T>
-static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
+static int copy_to_cpu_from_hip(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_cpu_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to cpu
     size_t n_bytes = n_elem*sizeof(T);
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMemcpy(dest, src, n_bytes, hipMemcpyDeviceToHost)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda same " << n_elem
+        std::cerr << "hamr::copy_to_cpu_from_hip same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif
@@ -572,26 +576,26 @@ static int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 }
 #endif
 
-/** Copies an array from the active CUDA device.
+/** Copies an array from the active HIP device.
  *
  * @param[in] dest an array of n elements accessible on the CPU
- * @param[in] src an array of n elements accessible in CUDA
+ * @param[in] src an array of n elements accessible in HIP
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_CUDA_OBJECTS)
+static int copy_to_cpu_from_hip(T *dest, const U *src, size_t n_elem
+#if !defined(HAMR_HIP_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif
     )
 {
-#if !defined(HAMR_ENABLE_CUDA)
+#if !defined(HAMR_ENABLE_HIP)
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_cpu_from_hip HIP is not enabled." << std::endl;
     return -1;
 #else
 
@@ -599,7 +603,7 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     // copy the buffer to the cpu
 
     // allocate a temporary buffer on the GPU
-    auto sptmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
+    auto sptmp = hamr::hip_malloc_allocator<T>::allocate(n_elem);
     T *ptmp = sptmp.get();
 
     // get launch parameters
@@ -616,30 +620,30 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     }
 
     // invoke the casting copy kernel on the GPU
-    cudaError_t ierr = cudaSuccess;
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid>>>(ptmp, src, n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    hamr::hip_kernels::copy<<<block_grid, thread_grid>>>(ptmp, src, n_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the copy kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
     // copy the data to the CPU
     size_t n_bytes = n_elem*sizeof(T);
-    if ((ierr = cudaMemcpy(dest, ptmp, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
+    if ((ierr = hipMemcpy(dest, ptmp, n_bytes, hipMemcpyDeviceToHost)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to copy " << n_bytes << ". "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return -1;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda " << n_elem
+        std::cerr << "hamr::copy_to_cpu_from_hip " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
@@ -647,60 +651,6 @@ static int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 
     return 0;
 #endif
-}
-
-/** Copies an array on the CPU.
- *
- * @param[in] dest an array of n elements accessible on the CPU
- * @param[in] src an array of n elements accessible on the CPU
- * @param[in] n_elem the number of elements in the array
- * @returns 0 if there were no errors
- */
-template <typename T, typename U>
-static int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
-{
-    for (size_t i = 0; i < n_elem; ++i)
-    {
-        dest[i] = static_cast<T>(src[i]);
-    }
-
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "hamr::copy_to_cpu_from_cpu " << n_elem
-            << " from " << typeid(U).name() << sizeof(U) << " to "
-            << typeid(T).name() << sizeof(T) << std::endl;
-    }
-#endif
-
-    return 0;
-}
-
-/** Copies an array on the CPU (fast path for arrays of arithmetic types of the
- * same type).
- *
- * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
- * @param[in] n_elem the number of elements in the array
- * @returns 0 if there were no errors
- */
-template <typename T>
-static int copy_to_cpu_from_cpu(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr)
-{
-    // copy src to gpu
-    size_t n_bytes = n_elem*sizeof(T);
-    memcpy(dest, src, n_bytes);
-
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "hamr::copy_to_cpu_from_cpu same " << n_elem
-            << " " << typeid(T).name() << sizeof(T) << std::endl;
-    }
-#endif
-
-    return 0;
 }
 
 }
