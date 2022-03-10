@@ -2,6 +2,7 @@
 #define hamr_malloc_allocator_h
 
 #include "hamr_config.h"
+#include "hamr_env.h"
 
 #include <iostream>
 #include <type_traits>

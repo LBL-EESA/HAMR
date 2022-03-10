@@ -7,9 +7,12 @@
 #include "hamr_cuda_kernels.h"
 #include "hamr_cuda_launch.h"
 #endif
+#include "hamr_malloc_allocator.h"
 
 #include <cstring>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
 
 /// heterogeneous accelerator memory resource
 namespace hamr
