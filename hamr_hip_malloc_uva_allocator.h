@@ -1,5 +1,5 @@
-#ifndef hamr_cuda_malloc_allocator_h
-#define hamr_cuda_malloc_allocator_h
+#ifndef hamr_hip_malloc_uva_allocator_h
+#define hamr_hip_malloc_uva_allocator_h
 
 #include <iostream>
 #include <type_traits>
@@ -9,30 +9,30 @@
 #include <cstring>
 #include <cstdlib>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
+
 
 #include "hamr_config.h"
-#include "hamr_cuda_kernels.h"
+#include "hamr_hip_kernels.h"
 #include "hamr_env.h"
 
 namespace hamr
 {
 
-/// a deleter for arrays allocated with cuda_malloc
+/// a deleter for arrays allocated with hip_malloc_uva
 template <typename T, typename E = void>
-class cuda_malloc_deleter {};
+class hip_malloc_uva_deleter {};
 
-/// a deleter for arrays allocated with cuda_malloc, specialized for objects
+/// a deleter for arrays allocated with hip_malloc_uva, specialized for objects
 template <typename T>
-class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+class hip_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
-     * @param[in] n   the number of elements in the array
+     * @param[in] n the number of elements in the array
      */
-    cuda_malloc_deleter(T *ptr, size_t n);
+    hip_malloc_uva_deleter(T *ptr, size_t n);
 
     /** deletes the array
      * @param[in] ptr the pointer to the array to delete. must be the same as
@@ -47,15 +47,14 @@ private:
 
 // --------------------------------------------------------------------------
 template <typename T>
-cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
+hip_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+    ::hip_malloc_uva_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "created cuda_malloc_deleter for array of " << n
-            << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << m_ptr << std::endl;
+        std::cerr << "created hip_malloc_uva_deleter for array of " << n
+            << " objects of type " << typeid(T).name() << std::endl;
     }
 #endif
 }
@@ -63,17 +62,26 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 // --------------------------------------------------------------------------
 template <typename T>
 void
-cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::operator()(T *ptr)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) ptr;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-         " cuda_malloc_deleter dealllocate objects failed."
+         " hip_malloc_uva_deleter dealllocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
 #else
     assert(ptr == m_ptr);
+
+#if defined(HAMR_VERBOSE)
+    if (hamr::get_verbose())
+    {
+        std::cerr << "hip_malloc_uva_deleter deleting array of " << m_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " << m_ptr  << std::endl;
+    }
+#endif
 
     // get launch parameters
     int device_id = -1;
@@ -89,28 +97,19 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
     }
 
     // destruct
-    cudaError_t ierr = cudaSuccess;
-    cuda_kernels::destruct<T><<<block_grid, thread_grid>>>(ptr, m_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    hip_kernels::destruct<T><<<block_grid, thread_grid>>>(ptr, m_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            " Failed to launch the destruct kernel. "
+            << hipGetErrorString(ierr) << std::endl;
         return;
     }
 
     // free the array
-    cudaFree(ptr);
-
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "cuda_malloc_deleter deleting array of " << m_elem
-            << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << m_ptr << std::endl;
-    }
-#endif
-
+    ierr = hipFree(ptr);
+    (void) ierr;
 #endif
 }
 
@@ -118,16 +117,16 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 
 
 
-/// a deleter for arrays allocated with cuda_malloc, specialized for numbers
+/// a deleter for arrays allocated with hip_malloc_uva, specialized for numbers
 template <typename T>
-class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+class hip_malloc_uva_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
 public:
     /** constructs the deleter
      * @param[in] ptr the pointer to the array to delete
      * @param[in] n the number of elements in the array
      */
-    cuda_malloc_deleter(T *ptr, size_t n);
+    hip_malloc_uva_deleter(T *ptr, size_t n);
 
     /** deletes the array
      * @param[in] ptr the pointer to the array to delete. must be the same as
@@ -142,15 +141,15 @@ private:
 
 // --------------------------------------------------------------------------
 template <typename T>
-cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
+hip_malloc_uva_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    ::hip_malloc_uva_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "created cuda_malloc_deleter for array of " << n
+        std::cerr << "created hip_malloc_uva_deleter for array of " << n
             << " numbers of type " << typeid(T).name() << sizeof(T)
-            << " at " << m_ptr << std::endl;
+            << std::endl;
     }
 #endif
 }
@@ -158,7 +157,7 @@ cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::ty
 // --------------------------------------------------------------------------
 template <typename T>
 void
-cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::operator()(T *ptr)
 {
     assert(ptr == m_ptr);
@@ -166,65 +165,63 @@ cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::ty
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_deleter deleting array of " << m_elem
+        std::cerr << "hip_malloc_uva_deleter deleting array of " << m_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
-            << " at " << m_ptr << std::endl;
+            << std::endl;
     }
 #endif
 
     // free the array
-    cudaFree(ptr);
+    hipError_t ierr = hipSuccess;
+    ierr = hipFree(ptr);
+    (void) ierr;
 }
 
 
 
 
 
-/// a class for allocating arrays with cuda_malloc
+/// a class for allocating arrays with hip_malloc_uva
 template <typename T, typename E = void>
-struct cuda_malloc_allocator {};
+struct hip_malloc_uva_allocator {};
 
-/// a class for allocating arrays with cuda_malloc, specialized for objects
+/// a class for allocating arrays with hip_malloc_uva, specialized for objects
 template <typename T>
-struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT hip_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared pointer to the array that holds a deleter for the
-     * memory
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared pointer to the array that holds a deleter for the
-     * memory
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] vals an array of values to initialize the elements with
-     * @param[in] cudaVals a flag set to true if vals are accessible by codes
-     *                     running in CUDA
-     * @returns a shared pointer to the array that holds a deleter for the
-     * memory
+     * @param[in] hipVals a flag that is set to true if vals is accessible from codes running in CUDA
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     template <typename U>
-    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool hipVals = false);
 };
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-         " cuda_malloc_allocator allocate objects failed."
+         " hip_malloc_uva_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
@@ -233,13 +230,13 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
-            << typeid(T).name() << " total " << n_bytes  << " bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            " Failed to hipMallocManaged " << n_elem << " of "
+            << typeid(T).name() << sizeof(T) << " total " << n_bytes  << "bytes. "
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
@@ -253,60 +250,60 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hip_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 #endif
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const T &val)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
     (void) val;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-         " cuda_malloc_allocator allocate objects failed."
+         " hip_malloc_uva_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
 #else
-    size_t n_bytes = n_elem*sizeof(T);
-
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    size_t n_bytes = n_elem*sizeof(T);
+
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
-            << typeid(T).name() << sizeof(T) << " total " << n_bytes
-            << " bytes. " << cudaGetErrorString(ierr) << std::endl;
+            " Failed to hipMallocManaged " << n_elem << " of "
+            << typeid(T).name() << " total " << n_bytes  << "bytes. "
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
@@ -315,36 +312,37 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks,
-        thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+        n_blocks, thread_grid))
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hip_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr << " initialized to " << val << std::endl;
+            << " at " << ptr << " initialized to " << val
+            << std::endl;
     }
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 #endif
 }
 
@@ -352,53 +350,53 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 template <typename T>
 template <typename U>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
+hip_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n_elem, const U *vals, bool hipVals)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
     (void) n_elem;
     (void) vals;
-    (void) cudaVals;
+    (void) hipVals;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-         " cuda_malloc_allocator allocate objects failed."
+         " hip_malloc_uva_allocator allocate objects failed."
         " HAMR_CUDA_OBJECTS is not enabled" << std::endl;
      abort();
      return nullptr;
 #else
-    size_t n_bytes = n_elem*sizeof(T);
-
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    size_t n_bytes = n_elem*sizeof(T);
+
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
-            << typeid(T).name() << " total " << n_bytes  << " bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            " Failed to hipMallocManaged " << n_elem << " of "
+            << typeid(T).name() << " total " << n_bytes  << "bytes. "
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // move the existing array to the GPU
     U *tmp = nullptr;
-    if (!cudaVals)
+    if (!hipVals)
     {
         size_t n_bytes_vals = n_elem*sizeof(U);
-        if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
+        if ((ierr = hipMalloc(&tmp, n_bytes_vals)) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMalloc " << n_elem << " of "
-                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
-                << cudaGetErrorString(ierr) << std::endl;
+                " Failed to hipMalloc " << n_elem << " of "
+                << typeid(U).name() << sizeof(U) << " total " << n_bytes_vals
+                << " bytes. " << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals, cudaMemcpyHostToDevice)) != cudaSuccess)
+        if ((ierr = hipMemcpy(tmp, vals, n_bytes_vals, hipMemcpyHostToDevice)) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMemcpy array of " << n_elem
-                << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
-                << cudaGetErrorString(ierr) << std::endl;
+                " Failed to hipMemcpy array of " << n_elem
+                << " of " << typeid(T).name() << " total " << n_bytes_vals
+                << " bytes. " << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
@@ -415,132 +413,128 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hip_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // free up temporary buffers
-    if (!cudaVals)
+    if (!hipVals)
     {
-        cudaFree(tmp);
+        ierr = hipFree(tmp);
+        (void) ierr;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr << " initialized from the "
-            << (cudaVals ? "CUDA" : "CPU") << " array of objects of "
-            << typeid(U).name() << sizeof(U) << " at " << vals
-            << std::endl;
+            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "CPU")
+            << " array of objects of type " << typeid(U).name() << sizeof(U)
+            << " at " << vals << std::endl;
     }
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 #endif
 }
 
 
 
 
-/// a class for allocating arrays with cuda_malloc, specialized for numbers
+/// a class for allocating arrays with hip_malloc_uva, specialized for numbers
 template <typename T>
-struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+struct HAMR_EXPORT hip_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
-     * @returns a shared pointer to the array that holds a deleter for the
-     * memory
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
-     * @returns a shared pointer to the array that holds a deleter for the
-     * memory
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     static std::shared_ptr<T> allocate(size_t n, const T &val);
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] vals an array of values to initialize the elements with
-     * @param[in] cudaVals a flag set to true if vals are accessible by codes
-     *                     running in CUDA
-     * @returns a shared pointer to the array that holds a
-     * deleter for the memory
+     * @param[in] hipVals a flag set to true if vals is accessible from codes running in CUDA
+     * @returns a shared point to the array that holds a deleter for the memory
      */
     template <typename U>
-    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool hipVals = false);
 };
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem)
 {
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
+            " Failed to hipMalloc " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
 #if defined(HAMR_INIT_ALLOC)
-    cudaMemset(ptr, 0, n_bytes);
+    hipMemset(ptr, 0, n_bytes);
 #endif
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << std::endl;
     }
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+hip_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
     ::allocate(size_t n_elem, const T &val)
 {
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
+            " Failed to hipMallocManaged " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
@@ -554,76 +548,74 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
-    cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hip_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
-            << " numbers of type " << typeid(T).name() << sizeof(T)
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized to " << val << std::endl;
     }
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename U>
 std::shared_ptr<T>
-cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
+hip_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    ::allocate(size_t n_elem, const U *vals, bool hipVals)
 {
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
     T *ptr = nullptr;
-    cudaError_t ierr = cudaSuccess;
-    if ((ierr = cudaMalloc(&ptr, n_bytes)) != cudaSuccess)
+    hipError_t ierr = hipSuccess;
+    if ((ierr = hipMallocManaged(&ptr, n_bytes)) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to cudaMalloc " << n_elem << " of "
+            " Failed to hipMallocManaged " << n_elem << " of "
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // move the existing array to the GPU
     U *tmp = nullptr;
-    if (!cudaVals)
+    if (!hipVals)
     {
         size_t n_bytes_vals = n_elem*sizeof(U);
-
-        if ((ierr = cudaMalloc(&tmp, n_bytes_vals)) != cudaSuccess)
+        if ((ierr = hipMalloc(&tmp, n_bytes_vals)) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMalloc " << n_elem << " of "
+                " Failed to hipMalloc " << n_elem << " of "
                 << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
-                << cudaGetErrorString(ierr) << std::endl;
+                << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals,
-            cudaMemcpyHostToDevice)) != cudaSuccess)
+        if ((ierr = hipMemcpy(tmp, vals, n_bytes_vals, hipMemcpyHostToDevice)) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMemcpy array of " << n_elem
+                " Failed to hipMemcpy array of " << n_elem
                 << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
-                << cudaGetErrorString(ierr) << std::endl;
+                << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
@@ -635,44 +627,45 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     dim3 block_grid;
     int n_blocks = 0;
     dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
-        n_blocks, thread_grid))
+    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid, n_blocks, thread_grid))
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // construct
-    cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    hip_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
+    if ((ierr = hipGetLastError()) != hipSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << hipGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
     // free up temporary buffers
-    if (!cudaVals)
+    if (!hipVals)
     {
-        cudaFree(tmp);
+        ierr = hipFree(tmp);
+        (void) ierr;
     }
 
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "cuda_malloc_allocator allocating array of " << n_elem
-            << " numbers of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr << " initialized from " << (cudaVals ? "CUDA" : "CPU")
-            <<  " array at " << vals << std::endl;
+        std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
+            << " objects of type " << typeid(T).name() << sizeof(T)
+            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "CPU")
+            << " array " << vals << " objects of type " << typeid(U).name() << sizeof(T)
+            << std::endl;
     }
 #endif
 
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
+    return std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, n_elem));
 }
 
 }

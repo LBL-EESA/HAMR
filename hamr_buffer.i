@@ -24,7 +24,7 @@
         T *ptr = (T*)intptr;
 
         return new hamr::buffer<T>(alloc, n_elem, owner,
-            ptr, hamr::python_deleter(ptr, n_elem, src));
+            ptr, hamr::python_deleter<T>(ptr, n_elem, src));
     }
 
     PyObject *__str__()

@@ -1,0 +1,40 @@
+name: HIP-HAMR
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install_deps
+        run: |
+          export DEBIAN_FRONTEND="noninteractive"
+          export TZ="America/Los_Angeles"
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y git-core gcc g++ cmake automake m4 wget swig python-dev
+          wget https://repo.radeon.com/amdgpu-install/21.50.2/ubuntu/focal/amdgpu-install_21.50.2.50002-1_all.deb
+          sudo apt-get install -qq -y ./amdgpu-install_21.50.2.50002-1_all.deb
+          sudo amdgpu-install --usecase=rocm,openclsdk,hiplibsdk --no-dkms
+          python3 -mvenv py3k_testing
+          source py3k_testing/bin/activate
+          python3 -mpip install numpy
+
+      # build for HIP
+      - name: build_hip
+        run: |
+          source py3k_testing/bin/activate
+          mkdir build_hip
+          cd build_hip
+          cmake -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_HIP=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
+          make -j2 install
+          cd ..
+

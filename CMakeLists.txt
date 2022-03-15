@@ -5,13 +5,15 @@ project(hamr)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_ARCHITECTURES 75)
 set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
+
+set(hamr_libs)
 
 # if we forgot to set the build type default to release
 if (NOT CMAKE_BUILD_TYPE)
@@ -78,11 +80,12 @@ else()
     endif()
 endif()
 
+# enable Python
+set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
+
 # enable CUDA
-if (NOT DEFINED HAMR_ENABLE_CUDA)
-    set(HAMR_ENABLE_CUDA OFF CACHE BOOL
-        "Enable features supporting the CUDA memory model")
-endif()
+set(HAMR_ENABLE_CUDA OFF CACHE BOOL
+    "Enable features supporting the CUDA memory model")
 
 set(HAMR_CUDA_OBJECTS ON CACHE BOOL
     "Disable use of classes in CUDA allocators etc")
@@ -90,12 +93,9 @@ set(HAMR_CUDA_OBJECTS ON CACHE BOOL
 set(HAMR_VERBOSE OFF CACHE BOOL
     "Enable debug messages when HAMR_VERBOSE is found in the environment")
 
-set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
-
-
 if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
-    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD 14)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     set(CMAKE_CUDA_ARCHITECTURES 75)
     set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
@@ -110,6 +110,26 @@ if (HAMR_ENABLE_CUDA)
     endif()
 else()
     message(STATUS "hamr CUDA features -- disabled")
+endif()
+
+# enable HIP
+set(HAMR_ENABLE_HIP OFF CACHE BOOL
+    "Enable features supporting the HIP memory model")
+
+set(HAMR_HIP_OBJECTS ON CACHE BOOL
+    "Disable use of classes in HIP allocators etc")
+
+set(HAMR_VERBOSE OFF CACHE BOOL
+    "Enable debug messages when HAMR_VERBOSE is found in the environment")
+
+if (HAMR_ENABLE_HIP)
+    # to get the GPU_TARGETS use: rocminfo | grep gfx
+    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+    set(GPU_TARGETS "gfx1030" CACHE STRING "GPU targets to compile for.")
+    find_package(hip REQUIRED)
+    message(STATUS "hamr HIP features -- enabled")
+else()
+    message(STATUS "hamr HIP features -- disabled")
 endif()
 
 # set build/install sub dirs for various components
@@ -140,6 +160,15 @@ if (HAMR_ENABLE_CUDA)
         #hamr_cuda_uva_memory_resource.cu
         hamr_cuda_device.cu
         hamr_cuda_launch.cu
+        )
+endif()
+
+# HAMR sources
+if (HAMR_ENABLE_HIP)
+    list(APPEND hamr_libs hip::device)
+    list(APPEND hamr_sources
+        hamr_hip_device.cxx
+        hamr_hip_launch.cxx
         )
 endif()
 
