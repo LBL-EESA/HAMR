@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0063 NEW)
 project(hamr)
 
+include(CheckCXXSourceCompiles)
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +28,79 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
 
+# enable Python
+set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
+if (HAMR_ENABLE_PYTHON)
+    message(STATUS "hamr Python features -- enabled")
+else()
+    message(STATUS "hamr Python features -- disabled")
+endif()
+
+# enable verbose debugging reports
+set(HAMR_VERBOSE OFF CACHE BOOL
+    "Enable debug messages when HAMR_VERBOSE is found in the environment")
+
+# enable CUDA
+set(HAMR_ENABLE_CUDA OFF CACHE BOOL
+    "Enable features supporting the CUDA memory model")
+
+set(HAMR_CUDA_OBJECTS ON CACHE BOOL
+    "Disable use of classes in CUDA allocators etc")
+
+if (HAMR_ENABLE_CUDA)
+    include(CheckLanguage)
+    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
+    set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
+    set(CMAKE_CUDA_ARCHITECTURES 75)
+    check_language(CUDA)
+    if (CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        message(STATUS "hamr CUDA features -- enabled")
+    else()
+        message(FATAL_ERROR "CUDA is required for hamr but was not found")
+    endif()
+else()
+    message(STATUS "hamr CUDA features -- disabled")
+endif()
+
+# enable HIP
+set(HAMR_ENABLE_HIP OFF CACHE BOOL
+    "Enable features supporting the HIP memory model")
+
+set(HAMR_HIP_OBJECTS ON CACHE BOOL
+    "Disable use of classes in HIP allocators etc")
+
+if (HAMR_ENABLE_HIP)
+    # to get the GPU_TARGETS use: rocminfo | grep gfx
+    set(GPU_TARGETS "gfx1030" CACHE STRING "GPU targets to compile for.")
+    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+    find_package(hip REQUIRED)
+    message(STATUS "hamr HIP features -- enabled")
+else()
+    message(STATUS "hamr HIP features -- disabled")
+endif()
+
+# enable OpenMP
+set(HAMR_ENABLE_OPENMP OFF CACHE BOOL
+    "Enable features supporting the OpenMP memory model")
+
+set(HAMR_OPENMP_OBJECTS ON CACHE BOOL
+    "Disable use of classes in OpenMP allocators etc")
+
+set(OPENMP_GPU_TARGETS "gfx1030" CACHE STRING "OpenMP GPU targets to compile for.")
+
+if (HAMR_ENABLE_OPENMP)
+    # to get the GPU_TARGETS use: rocminfo | grep gfx
+    #list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
+    #find_package(hip REQUIRED)
+    message(STATUS "hamr OpenMP features -- enabled")
+else()
+    message(STATUS "hamr OpenMP features -- disabled")
+endif()
+
+
 # add the requisite flags to enable c++11 features on various platforms.
 if (MSVC)
     # TODO require vs2015
@@ -43,6 +119,26 @@ else()
                 set(tmp "${tmp} -fno-signaling-nans")
             endif()
         endif()
+         if (HAMR_ENABLE_OPENMP)
+             set(nvidia_omp_flags "-mp=gpu")
+             set(clang_amd_omp_flags "-target x86_64-pc-linux-gnu -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=${OPENMP_GPU_TARGETS}")
+             set(clang_nvidia_omp_flags "-Xopenmp-target -march=sm_75 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_DIR}")
+             set(tmp_loop "distribute parallel for")
+             check_cxx_compiler_flag(${nvidia_omp_flags} nvidia_omp)
+             check_cxx_compiler_flag(${clang_amd_omp_flags} clang_amd_omp)
+             check_cxx_compiler_flag(${clang_nvidia_omp_flags} clang_nvidia_omp)
+             if (nvidia_omp)
+                 set(tmp "${tmp} ${nvidia_omp_flags}")
+                 set(tmp_loop "loop")
+             elseif (clang_amd_omp)
+                 set(tmp "${tmp} ${clang_amd_omp_flags}")
+             elseif (clang_nvidia_omp)
+                 set(tmp "${tmp} ${clang_nvidia_omp_flags}")
+             else()
+                 message(FATAL_ERROR "A viable OpenMP compiler was not found")
+             endif()
+             set(HAMR_OPENMP_LOOP ${tmp_loop} CACHE STRING "OpenMP looping construct to use for device off load")
+         endif()
         set(CMAKE_CXX_FLAGS "${tmp}"
             CACHE STRING "HAMR build defaults"
             FORCE)
@@ -80,58 +176,6 @@ else()
     endif()
 endif()
 
-# enable Python
-set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
-
-# enable CUDA
-set(HAMR_ENABLE_CUDA OFF CACHE BOOL
-    "Enable features supporting the CUDA memory model")
-
-set(HAMR_CUDA_OBJECTS ON CACHE BOOL
-    "Disable use of classes in CUDA allocators etc")
-
-set(HAMR_VERBOSE OFF CACHE BOOL
-    "Enable debug messages when HAMR_VERBOSE is found in the environment")
-
-if (HAMR_ENABLE_CUDA)
-    include(CheckLanguage)
-    set(CMAKE_CUDA_STANDARD 14)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_ARCHITECTURES 75)
-    set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
-    set(CMAKE_CUDA_ARCHITECTURES 75)
-    check_language(CUDA)
-    if (CMAKE_CUDA_COMPILER)
-        enable_language(CUDA)
-        message(STATUS "hamr CUDA features -- enabled")
-        set(tmp ON)
-    else()
-        message(FATAL_ERROR "CUDA is required for hamr but was not found")
-    endif()
-else()
-    message(STATUS "hamr CUDA features -- disabled")
-endif()
-
-# enable HIP
-set(HAMR_ENABLE_HIP OFF CACHE BOOL
-    "Enable features supporting the HIP memory model")
-
-set(HAMR_HIP_OBJECTS ON CACHE BOOL
-    "Disable use of classes in HIP allocators etc")
-
-set(HAMR_VERBOSE OFF CACHE BOOL
-    "Enable debug messages when HAMR_VERBOSE is found in the environment")
-
-if (HAMR_ENABLE_HIP)
-    # to get the GPU_TARGETS use: rocminfo | grep gfx
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
-    set(GPU_TARGETS "gfx1030" CACHE STRING "GPU targets to compile for.")
-    find_package(hip REQUIRED)
-    message(STATUS "hamr HIP features -- enabled")
-else()
-    message(STATUS "hamr HIP features -- disabled")
-endif()
-
 # set build/install sub dirs for various components
 if (NOT LIB_PREFIX)
   set(LIB_PREFIX lib)
@@ -163,12 +207,19 @@ if (HAMR_ENABLE_CUDA)
         )
 endif()
 
-# HAMR sources
+# HIP sources
 if (HAMR_ENABLE_HIP)
     list(APPEND hamr_libs hip::device)
     list(APPEND hamr_sources
         hamr_hip_device.cxx
         hamr_hip_launch.cxx
+        )
+endif()
+
+# OpenMP sources
+if (HAMR_ENABLE_OPENMP)
+    list(APPEND hamr_sources
+        hamr_openmp_device.cxx
         )
 endif()
 

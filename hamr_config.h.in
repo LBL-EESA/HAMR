@@ -8,6 +8,9 @@
 #cmakedefine HAMR_CUDA_OBJECTS
 #cmakedefine HAMR_ENABLE_HIP
 #cmakedefine HAMR_HIP_OBJECTS
+#cmakedefine HAMR_ENABLE_OPENMP
+#cmakedefine HAMR_OPENMP_OBJECTS
+#define HAMR_OPENMP_LOOP @HAMR_OPENMP_LOOP@
 #cmakedefine HAMR_ENABLE_PYTHON
 #cmakedefine HAMR_VERBOSE
 

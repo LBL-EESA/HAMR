@@ -19,14 +19,15 @@ to data in different accelerator execution environments.
 ### CI
 ![CPU-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cpu.yml/badge.svg)
 ![CUDA-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cuda.yml/badge.svg)
-![HIP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_hip.yml/badge.svg) 
+![HIP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_hip.yml/badge.svg)
+![AMD-OpenMP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_amd_openmp.yml/badge.svg)
 
 ### License
 HAMR's [license](LICENSE) is a BSD license with an ADDED paragraph at the end that makes it easy for us to
 accept improvements. See [license](LICENSE) for more information.
 
 ## Copyright Notice
-HAMR - Heterogeneous Accelerator Memory Resource (HAMR) 
+HAMR - Heterogeneous Accelerator Memory Resource (HAMR)
 Copyright (c) 2022, The Regents of the University of California, through
 Lawrence Berkeley National Laboratory (subject to receipt of any
 required approvals from the U.S. Dept. of Energy). All rights reserved.
@@ -39,5 +40,5 @@ NOTICE.  This Software was developed under funding from the U.S. Department
 of Energy and the U.S. Government consequently retains certain rights.  As
 such, the U.S. Government has been granted for itself and others acting on
 its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the
-Software to reproduce, distribute copies to the public, prepare derivative 
+Software to reproduce, distribute copies to the public, prepare derivative
 works, and perform publicly and display publicly, and to permit others to do so.

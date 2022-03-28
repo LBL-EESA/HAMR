@@ -196,7 +196,7 @@ static int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
 #endif
 }
 #else
-/** Ccopies an array on the active CUAD device (fast path for arrays of
+/** Ccopies an array on the active HIP device (fast path for arrays of
  * arithmetic types of the same type).
  *
  * @param[in] dest an array of n elements accessible in HIP
