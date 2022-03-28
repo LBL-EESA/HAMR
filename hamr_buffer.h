@@ -20,6 +20,12 @@
 #include "hamr_hip_print.h"
 #include "hamr_hip_copy.h"
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+#include "hamr_openmp_device.h"
+#include "hamr_openmp_allocator.h"
+#include "hamr_openmp_print.h"
+#include "hamr_openmp_copy.h"
+#endif
 #include "hamr_buffer_allocator.h"
 
 #include <memory>
@@ -334,6 +340,31 @@ public:
     /// returns true if the data is accessible from HIP codes
     int hip_accessible() const;
 
+#if !defined(SWIG)
+    /** @name get_openmp_accessible returns a pointer to the contents of
+     * the buffer accessible from the active OpenMP off load device.  If the
+     * buffer is currently accessible on the named OpenMP off load device then
+     * this call is a NOOP.  If the buffer is not currently accessible on the
+     * named OpenMP off load device then a temporary buffer is allocated and
+     * the data is moved.  The returned shared_ptr deals with deallocation of
+     * the temporary if needed.
+     */
+    ///@{
+    /** returns a pointer to the contents of the buffer accessible from within
+     * OpenMP off load
+     */
+    std::shared_ptr<T> get_openmp_accessible();
+
+    /** returns a pointer to the contents of the buffer accessible from within
+     * OpenMP off load
+     */
+    std::shared_ptr<const T> get_openmp_accessible() const;
+    ///@}
+#endif
+
+    /// returns true if the data is accessible from OpenMP off load codes
+    int openmp_accessible() const;
+
     /** @name data
      * return the raw pointer to the buffer contents. Use this when you know
      * that the buffer contents are accessible by the code operating on them to
@@ -418,6 +449,15 @@ int buffer<T>::set_owner()
         return -1;
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    if ((m_alloc == allocator::openmp)
+        && hamr::get_active_openmp_device(m_owner))
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get the active OpenMP device." << std::endl;
+        return -1;
+    }
+#endif
 
     return 0;
 }
@@ -453,6 +493,16 @@ int buffer<T>::set_owner(const T *ptr)
         }
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    if (m_alloc == allocator::openmp)
+    {
+        // TODO -- is it possible to look up the device on which the
+        // pointer resides?
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine device ownership for " << ptr << std::endl;
+        return -1;
+    }
+#endif
 
     return 0;
 }
@@ -462,14 +512,7 @@ template <typename T>
 buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
     m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1)
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
-#if defined(HAMR_ENABLE_CUDA)
-        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
-#elif defined(HAMR_ENABLE_HIP)
-        || (alloc == allocator::hip) || (alloc == allocator::hip_uva)
-#endif
-        );
-
+    assert_valid_allocator(alloc);
     this->set_owner();
 }
 
@@ -507,13 +550,7 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner,
     m_data(data), m_size(size), m_capacity(size), m_owner(owner)
 
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
-#if defined(HAMR_ENABLE_CUDA)
-        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
-#elif defined(HAMR_ENABLE_HIP)
-        || (alloc == allocator::hip) || (alloc == allocator::hip_uva)
-#endif
-        );
+    assert_valid_allocator(alloc);
 
     // query the driver api to determine the owner
 #if defined(HAMR_ENABLE_CUDA)
@@ -528,6 +565,16 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner,
         (alloc == allocator::hip_uva)) && (m_owner < 0))
     {
         this->set_owner(data.get());
+    }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+    if ((alloc == allocator::openmp) && (m_owner < 0))
+    {
+        //this->set_owner(data.get());
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " The owner must be set explicitly for OpenMP device memory"
+            << std::endl;
+        abort();
     }
 #endif
 }
@@ -539,13 +586,7 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
     delete_func_t df) : m_alloc(alloc), m_data(std::shared_ptr<T>(ptr, df)),
     m_size(size), m_capacity(size), m_owner(owner)
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
-#if defined(HAMR_ENABLE_CUDA)
-        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
-#elif defined(HAMR_ENABLE_HIP)
-        || (alloc == allocator::hip) || (alloc == allocator::hip_uva)
-#endif
-        );
+    assert_valid_allocator(alloc);
 
     // query the driver api to determine the owner
 #if defined(HAMR_ENABLE_CUDA)
@@ -562,6 +603,16 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
         this->set_owner(ptr);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    if ((alloc == allocator::openmp) && (m_owner < 0))
+    {
+        //this->set_owner(data.get());
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " The owner must be set explicitly for OpenMP device memory"
+            << std::endl;
+        abort();
+    }
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -570,13 +621,7 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
     : m_alloc(alloc), m_data(nullptr), m_size(size),
     m_capacity(size), m_owner(owner)
 {
-    assert((alloc == allocator::cpp) || (alloc == allocator::malloc)
-#if defined(HAMR_ENABLE_CUDA)
-        || (alloc == allocator::cuda) || (alloc == allocator::cuda_uva)
-#elif defined(HAMR_ENABLE_HIP)
-        || (alloc == allocator::hip) || (alloc == allocator::hip_uva)
-#endif
-        );
+    assert_valid_allocator(alloc);
 
     // create the deleter for the passed allocator
     if (alloc == allocator::cpp)
@@ -607,6 +652,12 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
         m_data = std::shared_ptr<T>(ptr, hip_malloc_uva_deleter<T>(ptr, m_size));
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (alloc == allocator::openmp)
+    {
+        m_data = std::shared_ptr<T>(ptr, openmp_deleter<T>(ptr, m_size, owner));
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -627,6 +678,16 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
         (alloc == allocator::hip_uva)) && (m_owner < 0))
     {
         this->set_owner(ptr);
+    }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+    if ((alloc == allocator::openmp) && (m_owner < 0))
+    {
+        //this->set_owner(data.get());
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " The owner must be set explicitly for OpenMP device memory"
+            << std::endl;
+        abort();
     }
 #endif
 }
@@ -706,6 +767,13 @@ int buffer<T>::hip_accessible() const
 
 // --------------------------------------------------------------------------
 template <typename T>
+int buffer<T>::openmp_accessible() const
+{
+    return hamr::openmp_accessible(m_alloc);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
 std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
 {
     if (m_alloc == allocator::cpp)
@@ -736,10 +804,16 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
         return hip_malloc_uva_allocator<T>::allocate(n_elem, val);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        return openmp_allocator<T>::allocate(n_elem, val);
+    }
+#endif
 
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " Invalid allocator type "
-        << get_allocator_name(m_alloc) << std::endl;
+        " Invalid allocator type " << get_allocator_name(m_alloc)
+        << std::endl;
 
     return nullptr;
 }
@@ -781,10 +855,17 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
         return hip_malloc_uva_allocator<T>::allocate(n_elem, vals);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        activate_openmp_device dev(m_owner);
+        return openmp_allocator<T>::allocate(n_elem, vals);
+    }
+#endif
 
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " Invalid allocator type "
-        << get_allocator_name(m_alloc) << std::endl;
+        " Invalid allocator type " << get_allocator_name(m_alloc)
+        << std::endl;
 
     return nullptr;
 }
@@ -868,6 +949,20 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
         return hip_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        activate_openmp_device dev(m_owner);
+        std::shared_ptr<const U> pvals = vals.get_openmp_accessible();
+
+        // a deep copy was made, return the pointer to the copy
+        if (std::is_same<T,U>::value &&
+            (!vals.openmp_accessible() || (vals.m_owner != m_owner)))
+            return std::const_pointer_cast<T>(pvals);
+
+        return openmp_allocator<T>::allocate(n_elem, pvals.get(), true);
+    }
+#endif
 
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " Invalid allocator type "
@@ -912,6 +1007,13 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
         return hip_malloc_uva_allocator<T>::allocate(n_elem);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        activate_openmp_device dev(m_owner);
+        return openmp_allocator<T>::allocate(n_elem);
+    }
+#endif
 
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " Invalid allocator type "
@@ -954,6 +1056,13 @@ int buffer<T>::reserve(size_t n_elem)
         {
             activate_hip_device dev(m_owner);
             ierr = copy_to_hip_from_hip(tmp.get(), m_data.get(), m_size);
+        }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (m_alloc == allocator::openmp)
+        {
+            activate_openmp_device dev(m_owner);
+            ierr = copy_to_openmp_from_openmp(tmp.get(), m_data.get(), m_size);
         }
 #endif
         else
@@ -1011,11 +1120,18 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
             ierr = copy_to_hip_from_hip(tmp.get(), m_data.get(), m_size);
         }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (m_alloc == allocator::openmp)
+        {
+            activate_openmp_device dev(m_owner);
+            ierr = copy_to_openmp_from_openmp(tmp.get(), m_data.get(), m_size);
+        }
+#endif
         else
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type "
-                << get_allocator_name(m_alloc) << std::endl;
+                " Invalid allocator type " << get_allocator_name(m_alloc)
+                << std::endl;
         }
 
         // check for errors
@@ -1231,11 +1347,21 @@ int buffer<T>::set(size_t dest_start, const U *src,
             src + src_start, n_vals);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+
+        activate_openmp_device dev(m_owner);
+
+        ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+            src + src_start, n_vals);
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
+            " Invalid allocator type " << get_allocator_name(m_alloc)
+            << std::endl;
     }
 
     // check for errors
@@ -1288,6 +1414,16 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             activate_hip_device dev(src.m_owner);
 
             ierr = copy_to_cpu_from_hip(m_data.get() + dest_start,
+                src.m_data.get() + src_start, n_vals);
+        }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (src.m_alloc == allocator::openmp)
+        {
+            // source is on the GPU
+            activate_openmp_device dev(src.m_owner);
+
+            ierr = copy_to_cpu_from_openmp(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
 #endif
@@ -1370,6 +1506,42 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
         }
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        // destination is on the GPU
+        activate_openmp_device dev(m_owner);
+
+        if ((src.m_alloc == allocator::cpp) ||
+            (src.m_alloc == allocator::malloc))
+        {
+            // source is on the CPU
+            ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+                src.m_data.get() + src_start, n_vals);
+        }
+        else if (src.openmp_accessible())
+        {
+            if (m_owner == src.m_owner)
+            {
+                // source is on this GPU
+                ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, n_vals);
+            }
+            else
+            {
+                // source is on another GPU
+                ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, src.m_owner, n_vals);
+            }
+        }
+        else
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type in the source "
+                << get_allocator_name(src.m_alloc) << std::endl;
+        }
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -1418,6 +1590,15 @@ int buffer<T>::get(size_t src_start, U *dest,
             m_data.get() + src_start, n_vals);
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        activate_openmp_device dev(m_owner);
+
+        ierr = copy_to_cpu_from_openmp(dest + dest_start,
+            m_data.get() + src_start, n_vals);
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -1443,7 +1624,7 @@ int buffer<T>::get(size_t src_start,
     assert(dest.size() >= (dest_start + n_vals));
 
     // copy the value to the back. buffers can either be on the CPU or GPU
-    // and use different technolofies so all permutations must be realized.
+    // and use different technologies so all permutations must be realized.
     int ierr = 0;
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc))
     {
@@ -1475,6 +1656,16 @@ int buffer<T>::get(size_t src_start,
             activate_hip_device dev(m_owner);
 
             ierr = copy_to_cpu_from_hip(dest.m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
+        }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (dest.m_alloc == allocator::openmp)
+        {
+            // source is on the GPU
+            activate_openmp_device dev(m_owner);
+
+            ierr = copy_to_cpu_from_openmp(dest.m_data.get() + dest_start,
                 m_data.get() + src_start, n_vals);
         }
 #endif
@@ -1557,8 +1748,46 @@ int buffer<T>::get(size_t src_start,
         else
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(dest.m_alloc) << std::endl;
+                " Transfers from " << get_allocator_name(m_alloc) << " to "
+                << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                << std::endl;
+        }
+    }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        // destination is on the GPU
+        activate_openmp_device dev(dest.m_owner);
+
+        if ((dest.m_alloc == allocator::cpp) ||
+            (dest.m_alloc == allocator::malloc))
+        {
+            // source is on the CPU
+            ierr = copy_to_openmp_from_cpu(dest.m_data.get() + dest_start,
+                m_data.get() + src_start, n_vals);
+        }
+        else if (dest.m_alloc == allocator::openmp)
+        {
+            if (m_owner == dest.m_owner)
+            {
+                // source is on this GPU
+                ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, n_vals);
+            }
+            else
+            {
+                // source is on another GPU
+                ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, m_owner, n_vals);
+            }
+        }
+        else
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Transfers from " << get_allocator_name(m_alloc) << " to "
+                << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                << std::endl;
         }
     }
 #endif
@@ -1622,11 +1851,25 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
         return tmp;
     }
 #endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        // make a copy on the CPU
+        std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
+
+        activate_openmp_device dev(m_owner);
+
+        if (copy_to_cpu_from_openmp(tmp.get(), m_data.get(), m_size))
+            return nullptr;
+
+        return tmp;
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
+            " Invalid allocator type " << get_allocator_name(m_alloc) 
+            << std::endl;
     }
 
     return nullptr;
@@ -1684,8 +1927,9 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
+            " Transfers from " << get_allocator_name(m_alloc) << " to "
+            << get_allocator_name(allocator::cuda) << " not yet implemented."
+            << std::endl;
     }
 
     return nullptr;
@@ -1744,13 +1988,76 @@ std::shared_ptr<T> buffer<T>::get_hip_accessible()
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
+            " Transfers from " << get_allocator_name(m_alloc) << " to "
+            << get_allocator_name(allocator::hip) << " not yet implemented."
+            << std::endl;
     }
 
     return nullptr;
 #endif
 }
+
+// ---------------------------------------------------------------------------
+template <typename T>
+std::shared_ptr<const T> buffer<T>::get_openmp_accessible() const
+{
+    return const_cast<buffer<T>*>(this)->get_openmp_accessible();
+}
+
+// ---------------------------------------------------------------------------
+template <typename T>
+std::shared_ptr<T> buffer<T>::get_openmp_accessible()
+{
+#if !defined(HAMR_ENABLE_OPENMP)
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " get_openmp_accessible failed, OpenMP is not available."
+        << std::endl;
+    return nullptr;
+#else
+    if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc))
+    {
+        // make a copy on the GPU
+        std::shared_ptr<T> tmp = openmp_allocator<T>::allocate(m_size);
+
+        if (copy_to_openmp_from_cpu(tmp.get(), m_data.get(), m_size))
+            return nullptr;
+
+        return tmp;
+    }
+    else if (m_alloc == allocator::openmp)
+    {
+        int dest_device = 0;
+        if (hamr::get_active_openmp_device(dest_device))
+            return nullptr;
+
+        if (m_owner == dest_device)
+        {
+            // already on this GPU
+            return m_data;
+        }
+        else
+        {
+            // on another GPU, move to this one
+            std::shared_ptr<T> tmp = openmp_allocator<T>::allocate(m_size);
+
+            if (copy_to_openmp_from_openmp(tmp.get(), m_data.get(), m_owner, m_size))
+                return nullptr;
+
+            return tmp;
+        }
+    }
+    else
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Transfers from " << get_allocator_name(m_alloc) << " to "
+            << get_allocator_name(allocator::openmp) << " not yet implemented."
+            << std::endl;
+    }
+
+    return nullptr;
+#endif
+}
+
 
 // --------------------------------------------------------------------------
 template <typename T>
@@ -1781,6 +2088,13 @@ int buffer<T>::print() const
         {
             activate_hip_device dev(m_owner);
             hip_print(m_data.get(), m_size);
+        }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (m_alloc == allocator::openmp)
+        {
+            activate_openmp_device dev(m_owner);
+            openmp_print(m_data.get(), m_size);
         }
 #endif
         else

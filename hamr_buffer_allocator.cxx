@@ -30,6 +30,10 @@ const char *get_allocator_name(buffer_allocator alloc)
     {
         return "hip_malloc_uva_allocator";
     }
+    else if (alloc == buffer_allocator::openmp)
+    {
+        return "openmp_allocator";
+    }
 
     return "the allocator name is not known";
 }

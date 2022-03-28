@@ -1,0 +1,44 @@
+#include "hamr_openmp_device.h"
+
+#include <iostream>
+#include <omp.h>
+
+namespace hamr
+{
+
+// **************************************************************************
+int get_active_openmp_device(int &dev_id)
+{
+    dev_id = omp_get_default_device();
+    return 0;
+}
+
+// **************************************************************************
+int set_active_openmp_device(int dev_id)
+{
+    omp_set_default_device(dev_id);
+    return 0;
+}
+
+
+// --------------------------------------------------------------------------
+activate_openmp_device::activate_openmp_device(int new_dev) : m_device(-1)
+{
+    int cur_dev = -1;
+    if (!get_active_openmp_device(cur_dev) && (cur_dev != new_dev) &&
+        !set_active_openmp_device(new_dev))
+    {
+        m_device = cur_dev;
+    }
+}
+
+// --------------------------------------------------------------------------
+activate_openmp_device::~activate_openmp_device()
+{
+    if (m_device >= 0)
+    {
+        set_active_openmp_device(m_device);
+    }
+}
+
+}
