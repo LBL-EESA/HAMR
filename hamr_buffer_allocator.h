@@ -42,7 +42,10 @@ HAMR_EXPORT
 int cuda_accessible(buffer_allocator alloc)
 {
     return (alloc == buffer_allocator::cuda) ||
-        (alloc == buffer_allocator::cuda_uva);
+        (alloc == buffer_allocator::cuda_uva) ||
+        (alloc == buffer_allocator::hip) ||
+        (alloc == buffer_allocator::hip_uva) ||
+        (alloc == buffer_allocator::openmp);
 }
 
 /// @returns true if the allocator creates HIP accessible memory
@@ -50,7 +53,9 @@ inline
 HAMR_EXPORT
 int hip_accessible(buffer_allocator alloc)
 {
-    return (alloc == buffer_allocator::hip) ||
+    return (alloc == buffer_allocator::cuda) ||
+        (alloc == buffer_allocator::cuda_uva) ||
+        (alloc == buffer_allocator::hip) ||
         (alloc == buffer_allocator::hip_uva);
 }
 

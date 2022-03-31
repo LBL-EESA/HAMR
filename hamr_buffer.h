@@ -12,7 +12,8 @@
 #include "hamr_cuda_malloc_uva_allocator.h"
 #include "hamr_cuda_print.h"
 #include "hamr_cuda_copy.h"
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
 #include "hamr_hip_device.h"
 #include "hamr_hip_malloc_allocator.h"
 #include "hamr_hip_malloc_uva_allocator.h"
@@ -407,7 +408,8 @@ int buffer<T>::set_owner()
             " Failed to get the active CUDA device." << std::endl;
         return -1;
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     if (((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
         && hamr::get_active_hip_device(m_owner))
     {
@@ -424,6 +426,8 @@ int buffer<T>::set_owner()
 template <typename T>
 int buffer<T>::set_owner(const T *ptr)
 {
+    (void) ptr;
+
     // CPU backed memory
     m_owner = -1;
 
@@ -437,7 +441,8 @@ int buffer<T>::set_owner(const T *ptr)
             return -1;
         }
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
     {
         if (get_hip_device(ptr, m_owner))
@@ -447,8 +452,6 @@ int buffer<T>::set_owner(const T *ptr)
             return -1;
         }
     }
-#else
-    (void) ptr;
 #endif
 
     return 0;
@@ -519,7 +522,8 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner,
     {
         this->set_owner(data.get());
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     if (((alloc == allocator::hip) ||
         (alloc == allocator::hip_uva)) && (m_owner < 0))
     {
@@ -550,7 +554,8 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
     {
         this->set_owner(ptr);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     if (((alloc == allocator::hip) ||
         (alloc == allocator::hip_uva)) && (m_owner < 0))
     {
@@ -591,7 +596,8 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
     {
         m_data = std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, m_size));
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if (alloc == allocator::hip)
     {
         m_data = std::shared_ptr<T>(ptr, hip_malloc_deleter<T>(ptr, m_size));
@@ -615,7 +621,8 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
     {
         this->set_owner(ptr);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     if (((alloc == allocator::hip) ||
         (alloc == allocator::hip_uva)) && (m_owner < 0))
     {
@@ -687,14 +694,14 @@ int buffer<T>::cpu_accessible() const
 template <typename T>
 int buffer<T>::cuda_accessible() const
 {
-    return (m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva);
+    return hamr::cuda_accessible(m_alloc);
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 int buffer<T>::hip_accessible() const
 {
-    return (m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva);
+    return hamr::hip_accessible(m_alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -718,7 +725,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
     {
         return cuda_malloc_uva_allocator<T>::allocate(n_elem, val);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if (m_alloc == allocator::hip)
     {
         return hip_malloc_allocator<T>::allocate(n_elem, val);
@@ -760,7 +768,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
         activate_cuda_device dev(m_owner);
         return cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if (m_alloc == allocator::hip)
     {
         activate_hip_device dev(m_owner);
@@ -822,7 +831,8 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
 
         return cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if (m_alloc == allocator::hip)
     {
         activate_hip_device dev(m_owner);
@@ -879,7 +889,8 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
         activate_cuda_device dev(m_owner);
         return cuda_malloc_uva_allocator<T>::allocate(n_elem);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if (m_alloc == allocator::hip)
     {
         activate_hip_device dev(m_owner);
@@ -927,7 +938,8 @@ int buffer<T>::reserve(size_t n_elem)
             activate_cuda_device dev(m_owner);
             ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
         }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
         else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
         {
             activate_hip_device dev(m_owner);
@@ -981,7 +993,8 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
             activate_cuda_device dev(m_owner);
             ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
         }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
         else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
         {
             activate_hip_device dev(m_owner);
@@ -1197,7 +1210,8 @@ int buffer<T>::set(size_t dest_start, const U *src,
         ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
             src + src_start, n_vals);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
     {
 
@@ -1255,7 +1269,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             ierr = copy_to_cpu_from_cuda(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
         else if ((src.m_alloc == allocator::hip) ||
             (src.m_alloc == allocator::hip_uva))
         {
@@ -1286,8 +1301,7 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
-        else if ((src.m_alloc == allocator::cuda) ||
-            (src.m_alloc == allocator::cuda_uva))
+        else if (src.cuda_accessible())
         {
             if (m_owner == src.m_owner)
             {
@@ -1309,7 +1323,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 << get_allocator_name(src.m_alloc) << std::endl;
         }
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
     {
         // destination is on the GPU
@@ -1322,8 +1337,7 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
                 src.m_data.get() + src_start, n_vals);
         }
-        else if ((src.m_alloc == allocator::hip) ||
-            (src.m_alloc == allocator::hip_uva))
+        else if (src.hip_accessible())
         {
             if (m_owner == src.m_owner)
             {
@@ -1384,7 +1398,8 @@ int buffer<T>::get(size_t src_start, U *dest,
         ierr = copy_to_cpu_from_cuda(dest + dest_start,
             m_data.get() + src_start, n_vals);
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
     {
         activate_hip_device dev(m_owner);
@@ -1441,7 +1456,8 @@ int buffer<T>::get(size_t src_start,
             ierr = copy_to_cpu_from_cuda(dest.m_data.get() + dest_start,
                 m_data.get() + src_start, n_vals);
         }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
         else if ((dest.m_alloc == allocator::hip) ||
             (dest.m_alloc == allocator::hip_uva))
         {
@@ -1492,11 +1508,13 @@ int buffer<T>::get(size_t src_start,
         else
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(dest.m_alloc) << std::endl;
+                " Transfers from " << get_allocator_name(m_alloc) << " to "
+                << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                << std::endl;
         }
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if ((m_alloc == allocator::hip) ||
         (m_alloc == allocator::hip_uva))
     {
@@ -1578,7 +1596,8 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 
         return tmp;
     }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
     else if ((m_alloc == allocator::hip) ||
         (m_alloc == allocator::hip_uva))
     {
@@ -1746,7 +1765,8 @@ int buffer<T>::print() const
             activate_cuda_device dev(m_owner);
             cuda_print(m_data.get(), m_size);
         }
-#elif defined(HAMR_ENABLE_HIP)
+#endif
+#if defined(HAMR_ENABLE_HIP)
         else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
         {
             activate_hip_device dev(m_owner);
