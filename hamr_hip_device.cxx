@@ -9,6 +9,38 @@ namespace hamr
 {
 
 // **************************************************************************
+int get_hip_device(const void *ptr, int &device_id)
+{
+    hipError_t ierr = hipSuccess;
+    hipPointerAttribute_t ptrAtts;
+    ierr = hipPointerGetAttributes(&ptrAtts, ptr);
+
+    // TODO -- HIP doesn;t yet have this feature of CUDA
+    // these types of pointers are NOT accessible on the GPU
+    // hipErrorInValue occurs when the pointer is unknown to HIP, as is
+    // the case with pointers allocated by malloc or new.
+    /*if ((ierr == hipErrorInvalidValue) ||
+        ((ierr == hipSuccess) && ((ptrAtts.type == hipMemoryTypeHost) ||
+        (ptrAtts.type == hipMemoryTypeUnregistered))))
+    {
+        // this is CPU backed memory not associate with a GPU
+        device_id = -1;
+    }
+    else*/ if (ierr != hipSuccess)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get pointer attributes for " << ptr << std::endl;
+        return -1;
+    }
+    else
+    {
+        device_id = ptrAtts.device;
+    }
+
+    return 0;
+}
+
+// **************************************************************************
 int get_active_hip_device(int &dev_id)
 {
     hipError_t ierr = hipSuccess;

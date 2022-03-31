@@ -14,6 +14,9 @@ int HAMR_EXPORT get_active_hip_device(int &dev_id);
 /// sets the active HIP device. returns zero if successful.
 int HAMR_EXPORT set_active_hip_device(int dev_id);
 
+/// gets the device that owns the given pointer. @returns zero if successful.
+int HAMR_EXPORT get_hip_device(const void *ptr, int &device_id);
+
 
 /** Activate the specified HIP device, and restore the previously active
  * device when the object is destroyed.
