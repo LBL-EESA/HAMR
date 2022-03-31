@@ -36,6 +36,36 @@ int set_active_cuda_device(int dev_id)
     return 0;
 }
 
+// **************************************************************************
+int get_cuda_device(const void *ptr, int &device_id)
+{
+    cudaError_t ierr = cudaSuccess;
+    cudaPointerAttributes ptrAtts;
+    ierr = cudaPointerGetAttributes(&ptrAtts, ptr);
+
+    // these types of pointers are NOT accessible on the GPU
+    // cudaErrorInValue occurs when the pointer is unknown to CUDA, as is
+    // the case with pointers allocated by malloc or new.
+    if ((ierr == cudaErrorInvalidValue) ||
+        ((ierr == cudaSuccess) && ((ptrAtts.type == cudaMemoryTypeHost) ||
+        (ptrAtts.type == cudaMemoryTypeUnregistered))))
+    {
+        // this is CPU backed memory not associate with a GPU
+        device_id = -1;
+    }
+    else if (ierr != cudaSuccess)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to get pointer attributes for " << ptr << std::endl;
+        return -1;
+    }
+    else
+    {
+        device_id = ptrAtts.device;
+    }
+
+    return 0;
+}
 
 // --------------------------------------------------------------------------
 activate_cuda_device::activate_cuda_device(int new_dev) : m_device(-1)

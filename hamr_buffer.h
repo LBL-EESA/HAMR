@@ -430,29 +430,11 @@ int buffer<T>::set_owner(const T *ptr)
 #if defined(HAMR_ENABLE_CUDA)
     if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
     {
-        cudaError_t ierr = cudaSuccess;
-        cudaPointerAttributes ptrAtts;
-        ierr = cudaPointerGetAttributes(&ptrAtts, ptr);
-
-        // these types of pointers are NOT accessible on the GPU
-        // cudaErrorInValue occurs when the pointer is unknown to CUDA, as is
-        // the case with pointers allocated by malloc or new.
-        if ((ierr == cudaErrorInvalidValue) ||
-            ((ierr == cudaSuccess) && ((ptrAtts.type == cudaMemoryTypeHost) ||
-            (ptrAtts.type == cudaMemoryTypeUnregistered))))
-        {
-            // this is CPU backed memory not associate with a GPU
-            m_owner = -1;
-        }
-        else if (ierr != cudaSuccess)
+        if (get_cuda_device(ptr, m_owner))
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to get pointer attributes for " << ptr << std::endl;
+                " Failed to determine device ownership for " << ptr << std::endl;
             return -1;
-        }
-        else
-        {
-            m_owner = ptrAtts.device;
         }
     }
 #elif defined(HAMR_ENABLE_HIP)

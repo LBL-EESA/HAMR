@@ -8,11 +8,14 @@
 namespace hamr
 {
 
-/// gets the currently atcive CUDA device. returns zero if successful.
+/// gets the currently atcive CUDA device. @returns zero if successful.
 int HAMR_EXPORT get_active_cuda_device(int &dev_id);
 
 /// sets the active CUDA device. returns zero if successful.
 int HAMR_EXPORT set_active_cuda_device(int dev_id);
+
+/// gets the device that owns the given pointer. @returns zero if successful.
+int HAMR_EXPORT get_cuda_device(const void *ptr, int &device_id);
 
 
 /** Activate the specified CUDA device, and restore the previously active
