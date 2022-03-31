@@ -799,11 +799,21 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
     if (m_alloc == allocator::cpp)
     {
         std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
+
+        // a deep copy was made, return the pointer to the copy
+        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+            return std::const_pointer_cast<T>(pvals);
+
         return new_allocator<T>::allocate(n_elem, pvals.get());
     }
     else if (m_alloc == allocator::malloc)
     {
         std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
+
+        // a deep copy was made, return the pointer to the copy
+        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+            return std::const_pointer_cast<T>(pvals);
+
         return malloc_allocator<T>::allocate(n_elem, pvals.get());
     }
 #if defined(HAMR_ENABLE_CUDA)
