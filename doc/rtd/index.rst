@@ -46,6 +46,8 @@ HAMR is configured with CMake. The following CMake variables influence the build
 +-------------------------+----------------------------------------------------+
 | HAMR_ENABLE_HIP         | If set to ON enables HIP features. Default OFF     |
 +-------------------------+----------------------------------------------------+
+| HAMR_ENABLE_OPENMP      | If set to ON enables OpenMP features. Default OFF  |
++-------------------------+----------------------------------------------------+
 | HAMR_ENABLE_PYTHON      | If set to ON enables Python features. Default OFF  |
 +-------------------------+----------------------------------------------------+
 | BUILD_TESTING           | If set to ON enables regression tests. Default OFF |
@@ -220,6 +222,39 @@ Examples
 The source code for the following examples is located in the `doc/rtd/source`
 folder. The C++ examples include a simple Makefile that can be edited to point
 to a build.
+
+.. _hello_openmp:
+
+Hello World! w/ C++ and OpenMP
+------------------------------
+This example illustrates coupling two codes, in this case functions, using HAMR
+so that they can process data produced either on the CPU or GPU without knowing
+specifically where the data passed to them resides. C++ smart pointers are used
+to manage temporary buffers if the passed data needed to be moved to the device
+where it was accessed.  See :ref:`buffer` for more information.  See
+:ref:`hello_cuda` for a CUDA implementation of this example. See :ref:`hello_hip`
+for a HIP implementation of this example.See :ref:`hello_cupy` for a Python
+implementation of this example.
+
+.. _openmp_add_array:
+
+.. literalinclude:: source/hello_openmp/add.h
+    :language: c++
+    :linenos:
+    :caption: Code that uses HAMR to access array based data in OpenMP. Calling `get_openmp_accessible` makes the array's available in OpenMP if they are not. Then OpenMP device oofloading may be applied as usual.
+
+
+.. literalinclude:: source/hello_openmp/write.h
+    :language: c++
+    :linenos:
+    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+
+
+.. literalinclude:: source/hello_openmp/hello_openmp.cpp
+    :language: c++
+    :linenos:
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in OpenMP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+
 
 .. _hello_cuda:
 
