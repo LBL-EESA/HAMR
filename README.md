@@ -2,7 +2,9 @@
 HAMR is a library defining an accelerator technology agnostic memory model that
 bridges between accelerator technologies (CUDA, HIP, ROCm, OpenMP, Kokos, etc)
 and traditional CPUs in heterogeneous computing environments.  HAMR is light
-weight and implemented in modern C++.
+weight and implemented in modern C++. HAMR includes Python integration that
+enables zero-copy data transfer between C++ and Python technogies such as Numba
+and Cupy.
 
 ### Source Code
 The source code can be obtained at the [HAMR github repository](https://github.com/LBL-EESA/HAMR).
