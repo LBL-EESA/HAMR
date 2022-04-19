@@ -6,6 +6,11 @@ weight and implemented in modern C++. HAMR includes Python integration that
 enables zero-copy data transfer between C++ and Python technogies such as Numba
 and Cupy.
 
+### Citing
+If you've used HAMR in your application please cite us.
+
+[![DOI](https://zenodo.org/badge/429528113.svg)](https://zenodo.org/badge/latestdoi/429528113)
+
 ### Source Code
 The source code can be obtained at the [HAMR github repository](https://github.com/LBL-EESA/HAMR).
 
@@ -18,7 +23,7 @@ want to start with the [hamr::buffer](https://hamr.readthedocs.io/en/latest/doxy
 container that has capabilities similar to std::vector and can provide access
 to data in different accelerator execution environments.
 
-### CI
+### Regression Testing and CI
 ![CPU-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cpu.yml/badge.svg)
 ![CUDA-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cuda.yml/badge.svg)
 ![HIP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_hip.yml/badge.svg)
