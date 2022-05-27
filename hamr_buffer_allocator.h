@@ -76,6 +76,7 @@ inline
 HAMR_EXPORT
 void assert_valid_allocator(buffer_allocator alloc)
 {
+    (void) alloc;
     assert((alloc == buffer_allocator::cpp)
         || (alloc == buffer_allocator::malloc)
 #if defined(HAMR_ENABLE_CUDA)

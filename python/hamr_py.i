@@ -26,7 +26,7 @@ memory management on systems with heterogeneous accellerators."
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #if defined(__CUDACC__)
-#pragma diag_suppress = set_but_not_used
+#pragma nv_diag_suppress = set_but_not_used
 #endif
 %}
 
