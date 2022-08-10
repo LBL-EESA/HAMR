@@ -721,7 +721,10 @@ buffer<T>::buffer(buffer<T> &&other) : buffer<T>(other.m_alloc)
 template <typename T>
 void buffer<T>::operator=(buffer<T> &&other)
 {
-    this->swap(other);
+    if (m_alloc == other.m_alloc)
+        this->swap(other);
+    else
+        this->assign(other);
 }
 
 // --------------------------------------------------------------------------
