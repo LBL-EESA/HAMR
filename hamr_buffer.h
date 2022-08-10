@@ -146,6 +146,7 @@ public:
      */
     template <typename U>
     void operator=(const buffer<U> &other);
+    void operator=(const buffer<T> &other);
 
     /** move assign from the other buffer. if this and the passed buffer have
      * the same type and allocator the passed buffer is moved. if this and the
@@ -731,6 +732,13 @@ void buffer<T>::operator=(buffer<T> &&other)
 template <typename T>
 template <typename U>
 void buffer<T>::operator=(const buffer<U> &other)
+{
+    this->assign(other);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+void buffer<T>::operator=(const buffer<T> &other)
 {
     this->assign(other);
 }
