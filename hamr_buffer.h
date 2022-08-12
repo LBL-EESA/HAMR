@@ -139,6 +139,11 @@ public:
     /// move construct from the passed buffer
     buffer(buffer<T> &&other);
 
+    /** move construct from the passed buffer, using the passed allocator type.
+     * move occurs only if the allocators match, otherwise a copy is made.
+     */
+    buffer(allocator alloc, buffer<T> &&other);
+
     /** assign from the other buffer. if this and the passed buffer have
      * different allocators this allocator is used and the data will be copied.
      * if this and the passed buffer have different types elements are
@@ -716,6 +721,16 @@ template <typename T>
 buffer<T>::buffer(buffer<T> &&other) : buffer<T>(other.m_alloc)
 {
     this->swap(other);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer<T>::buffer(allocator alloc, buffer<T> &&other) : buffer<T>(alloc)
+{
+    if (m_alloc == other.m_alloc)
+        this->swap(other);
+    else
+        this->assign(other);
 }
 
 // --------------------------------------------------------------------------
