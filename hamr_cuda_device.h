@@ -7,6 +7,11 @@
 
 namespace hamr
 {
+/// gets the device identifier for the first GPU. @returns zero if successful.
+inline int HAMR_EXPORT get_cuda_device_identifier(int &dev_id) { dev_id = 0; return 0; }
+
+/// gets the device identifier for the CPU. @returns zero if successful.
+inline int HAMR_EXPORT get_cuda_cpu_identifier(int &dev_id) { dev_id = -1; return 0; }
 
 /// gets the currently atcive CUDA device. @returns zero if successful.
 int HAMR_EXPORT get_active_cuda_device(int &dev_id);
@@ -16,7 +21,6 @@ int HAMR_EXPORT set_active_cuda_device(int dev_id);
 
 /// gets the device that owns the given pointer. @returns zero if successful.
 int HAMR_EXPORT get_cuda_device(const void *ptr, int &device_id);
-
 
 /** Activate the specified CUDA device, and restore the previously active
  * device when the object is destroyed.
@@ -36,8 +40,4 @@ private:
 };
 
 }
-
-
-
-
 #endif
