@@ -5,6 +5,12 @@
 
 namespace hamr
 {
+// **************************************************************************
+int get_openmp_cpu_identifier(int &dev_id)
+{
+    dev_id = omp_get_initial_device();
+    return 0;
+}
 
 // **************************************************************************
 int get_active_openmp_device(int &dev_id)
@@ -20,6 +26,13 @@ int set_active_openmp_device(int dev_id)
     return 0;
 }
 
+// **************************************************************************
+int HAMR_EXPORT get_openmp_device(const void *ptr, int &device_id)
+{
+    (void)ptr;
+    device_id = 0;
+    return -1;
+}
 
 // --------------------------------------------------------------------------
 activate_openmp_device::activate_openmp_device(int new_dev) : m_device(-1)

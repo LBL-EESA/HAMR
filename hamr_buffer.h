@@ -139,6 +139,11 @@ public:
     /// move construct from the passed buffer
     buffer(buffer<T> &&other);
 
+    /** move construct from the passed buffer, using the passed allocator type.
+     * move occurs only if the allocators match, otherwise a copy is made.
+     */
+    buffer(allocator alloc, buffer<T> &&other);
+
     /** assign from the other buffer. if this and the passed buffer have
      * different allocators this allocator is used and the data will be copied.
      * if this and the passed buffer have different types elements are
@@ -302,9 +307,9 @@ public:
 #if !defined(SWIG)
     /** @name get_cuda_accessible
      * returns a pointer to the contents of the buffer accessible from the
-     * active CUDA device.  If the buffer is currently accessible on the named
+     * active CUDA device.  If the buffer is currently accessible on the active
      * CUDA device then this call is a NOOP.  If the buffer is not currently
-     * accessible on the named CUDA device then a temporary buffer is allocated
+     * accessible on the active CUDA device then a temporary buffer is allocated
      * and the data is moved.  The returned shared_ptr deals with deallocation
      * of the temporary if needed.
      */
@@ -323,9 +328,9 @@ public:
 #if !defined(SWIG)
     /** @name get_hip_accessible
      * returns a pointer to the contents of the buffer accessible from the
-     * active HIP device.  If the buffer is currently accessible on the named
+     * active HIP device.  If the buffer is currently accessible on the active
      * HIP device then this call is a NOOP.  If the buffer is not currently
-     * accessible on the named HIP device then a temporary buffer is allocated
+     * accessible on the active HIP device then a temporary buffer is allocated
      * and the data is moved.  The returned shared_ptr deals with deallocation
      * of the temporary if needed.
      */
@@ -344,9 +349,9 @@ public:
 #if !defined(SWIG)
     /** @name get_openmp_accessible returns a pointer to the contents of
      * the buffer accessible from the active OpenMP off load device.  If the
-     * buffer is currently accessible on the named OpenMP off load device then
+     * buffer is currently accessible on the active OpenMP off load device then
      * this call is a NOOP.  If the buffer is not currently accessible on the
-     * named OpenMP off load device then a temporary buffer is allocated and
+     * active OpenMP off load device then a temporary buffer is allocated and
      * the data is moved.  The returned shared_ptr deals with deallocation of
      * the temporary if needed.
      */
@@ -365,6 +370,31 @@ public:
 
     /// returns true if the data is accessible from OpenMP off load codes
     int openmp_accessible() const;
+
+#if !defined(SWIG)
+    /** @name get_device_accessible
+     * returns a pointer to the contents of the buffer accessible from the
+     * active device using the technology most suitable witht he current build
+     * configuration. If the buffer is currently accessible on the active
+     * device then this call is a NOOP.  If the buffer is not currently
+     * accessible on the active device then a temporary buffer is allocated and
+     * the data is moved.  The returned shared_ptr deals with deallocation of
+     * the temporary if needed.
+     */
+    ///@{
+    ///  returns a pointer to the contents of the buffer accessible from within CUDA
+    std::shared_ptr<T> get_device_accessible();
+
+    ///  returns a pointer to the contents of the buffer accessible from within CUDA
+    std::shared_ptr<const T> get_device_accessible() const;
+    ///@}
+#endif
+
+    /** returns true if the data is accessible from device codes using the
+    * technology most suitable with the current build configuration.
+    */
+    int device_accessible() const;
+
 
     /** @name data
      * return the raw pointer to the buffer contents. Use this when you know
@@ -720,6 +750,16 @@ buffer<T>::buffer(buffer<T> &&other) : buffer<T>(other.m_alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
+buffer<T>::buffer(allocator alloc, buffer<T> &&other) : buffer<T>(alloc)
+{
+    if (m_alloc == other.m_alloc)
+        this->swap(other);
+    else
+        this->assign(other);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
 void buffer<T>::operator=(buffer<T> &&other)
 {
     if (m_alloc == other.m_alloc)
@@ -781,6 +821,21 @@ template <typename T>
 int buffer<T>::openmp_accessible() const
 {
     return hamr::openmp_accessible(m_alloc);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::device_accessible() const
+{
+#if defined(HAMR_ENABLE_CUDA)
+    return hamr::cuda_accessible(m_alloc);
+#elif defined(HAMR_ENABLE_HIP)
+    return hamr::hip_accessible(m_alloc);
+#elif defined(HAMR_ENABLE_OPENMP)
+    return hamr::openmp_accessible(m_alloc);
+#else
+    return false;
+#endif
 }
 
 // --------------------------------------------------------------------------
@@ -2069,6 +2124,30 @@ std::shared_ptr<T> buffer<T>::get_openmp_accessible()
 #endif
 }
 
+// ---------------------------------------------------------------------------
+template <typename T>
+std::shared_ptr<const T> buffer<T>::get_device_accessible() const
+{
+    return const_cast<buffer<T>*>(this)->get_device_accessible();
+}
+
+// ---------------------------------------------------------------------------
+template <typename T>
+std::shared_ptr<T> buffer<T>::get_device_accessible()
+{
+#if defined(HAMR_ENABLE_CUDA)
+    return get_cuda_accessible();
+#elif defined(HAMR_ENABLE_HIP)
+    return get_hip_accessible();
+#elif defined(HAMR_ENABLE_OPENMP)
+    return get_openmp_accessible();
+#else
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " get_device_accessible failed, No device technology is available"
+        " in this build." << std::endl;
+    return nullptr;
+#endif
+}
 
 // --------------------------------------------------------------------------
 template <typename T>
