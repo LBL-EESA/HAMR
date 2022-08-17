@@ -11,8 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
-set(CMAKE_CUDA_ARCHITECTURES 60 70 75 CACHE
-    STRING "Compile for these CUDA virtual and real architectures")
 set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -48,12 +46,15 @@ set(HAMR_ENABLE_CUDA OFF CACHE BOOL
 set(HAMR_CUDA_OBJECTS ON CACHE BOOL
     "Disable use of classes in CUDA allocators etc")
 
+set(HAMR_CUDA_ARCHITECTURES "60;70;75" CACHE
+    STRING "Compile for these CUDA virtual and real architectures")
+
 if (HAMR_ENABLE_CUDA)
     include(CheckLanguage)
     check_language(CUDA)
     if (CMAKE_CUDA_COMPILER)
         enable_language(CUDA)
-        message(STATUS "hamr CUDA features -- enabled (${CMAKE_CUDA_ARCHITECTURES})")
+        message(STATUS "hamr CUDA features -- enabled (${HAMR_CUDA_ARCHITECTURES})")
     else()
         message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
@@ -234,6 +235,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${LIB_PREFIX}/cmake/hamr_config.cmake
 # add the libaraary
 add_library(hamr ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
+if (HAMR_ENABLE_CUDA)
+    set_target_properties(hamr PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
+endif()
 
 target_include_directories(hamr
     INTERFACE
