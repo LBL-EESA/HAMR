@@ -409,6 +409,20 @@ public:
     const T *data() const { return m_data.get(); }
     ///@}
 
+    /** @name pointer
+     * return the smart pointer managing the buffer contents. Use this when you
+     * know that the buffer contents are accessible by the code operating on
+     * them to save the costs of the logic that determines if a temporary is
+     * needed
+     */
+    ///@{
+    /// return a pointer to the buffer contents
+    std::shared_ptr<T> pointer() { return m_data; }
+
+    /// return a const pointer to the buffer contents
+    const std::shared_ptr<const T> pointer() const { return m_data; }
+    ///@}
+
     /// returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
 
