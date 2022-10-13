@@ -39,6 +39,9 @@ if (HAMR_ENABLE_CUDA)
     set_source_files_properties(
         "${CMAKE_CURRENT_BINARY_DIR}/hamr_pyPYTHON_wrap.cxx"
         PROPERTIES LANGUAGE CUDA)
+
+    set_target_properties(hamr_py PROPERTIES
+        CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
 endif()
 
 configure_file(hamr.py
