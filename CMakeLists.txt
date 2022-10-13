@@ -8,7 +8,7 @@ include(CheckCXXCompilerFlag)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_VISIBILITY_PRESET hidden)
@@ -58,6 +58,7 @@ if (HAMR_ENABLE_CUDA)
     else()
         message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
+    find_package(CUDAToolkit REQUIRED)
 else()
     message(STATUS "hamr CUDA features -- disabled")
 endif()
@@ -193,10 +194,12 @@ set(hamr_sources
     #hamr_cuda_uva_memory_resource.cxx
     hamr_buffer_allocator.cxx
     hamr_env.cxx
+    hamr_stream.cxx
     )
 
 # CUDA sources
 if (HAMR_ENABLE_CUDA)
+    list(APPEND hamr_libs CUDA::cudart)
     list(APPEND hamr_sources
         #hamr_cuda_uva_memory_resource.cu
         hamr_cuda_device.cu
