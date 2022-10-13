@@ -14,6 +14,7 @@ memory management on systems with heterogeneous accellerators."
 #include "hamr_buffer_allocator.h"
 #include "hamr_buffer_handle.h"
 #include "hamr_python_deleter.h"
+#include "hamr_stream.h"
 
 #include <iostream>
 #include <sstream>
@@ -45,6 +46,13 @@ memory management on systems with heterogeneous accellerators."
  * buffer allocator enumerations
  **************************************************************************/
 %include "hamr_buffer_allocator.h"
+
+/***************************************************************************
+ * base class for streams
+ **************************************************************************/
+%ignore hamr::stream::operator=;
+%ignore hamr::stream::stream(stream &&);
+%include "hamr_stream.h"
 
 /***************************************************************************
  * buffer_handle
