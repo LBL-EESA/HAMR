@@ -18,9 +18,10 @@ enum class buffer_allocator
     malloc = 1,    ///< allocates memory with malloc
     cuda = 2,      ///< allocates memory with cudaMalloc
     cuda_uva = 3,  ///< allocates memory with cudaMallocManaged
-    hip = 4,       ///< allocates memory with hipMalloc
-    hip_uva = 5,   ///< allocates memory with hipMallocManaged
-    openmp = 6     ///< allocates memory with OpenMP device offload API
+    cuda_host = 4, ///< allocates memory with cudaMallocHost
+    hip = 5,       ///< allocates memory with hipMalloc
+    hip_uva = 6,   ///< allocates memory with hipMallocManaged
+    openmp = 7     ///< allocates memory with OpenMP device offload API
 };
 
 /// return the human readable name of the allocator
@@ -35,6 +36,7 @@ int cpu_accessible(buffer_allocator alloc)
     return (alloc == buffer_allocator::cpp) ||
         (alloc == buffer_allocator::malloc) ||
         (alloc == buffer_allocator::cuda_uva) ||
+        (alloc == buffer_allocator::cuda_host) ||
         (alloc == buffer_allocator::hip_uva);
 }
 
@@ -82,6 +84,7 @@ void assert_valid_allocator(buffer_allocator alloc)
 #if defined(HAMR_ENABLE_CUDA)
         || (alloc == buffer_allocator::cuda)
         || (alloc == buffer_allocator::cuda_uva)
+        || (alloc == buffer_allocator::cuda_host)
 #endif
 #if defined(HAMR_ENABLE_HIP)
         || (alloc == buffer_allocator::hip)
