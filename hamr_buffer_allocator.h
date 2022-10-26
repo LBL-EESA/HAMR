@@ -17,11 +17,12 @@ enum class buffer_allocator
     cpp = 0,       ///< allocates memory with new
     malloc = 1,    ///< allocates memory with malloc
     cuda = 2,      ///< allocates memory with cudaMalloc
-    cuda_uva = 3,  ///< allocates memory with cudaMallocManaged
-    cuda_host = 4, ///< allocates memory with cudaMallocHost
-    hip = 5,       ///< allocates memory with hipMalloc
-    hip_uva = 6,   ///< allocates memory with hipMallocManaged
-    openmp = 7     ///< allocates memory with OpenMP device offload API
+    cuda_async = 3,///< allocates memory with cudaMallocAsync
+    cuda_uva = 4,  ///< allocates memory with cudaMallocManaged
+    cuda_host = 5, ///< allocates memory with cudaMallocHost
+    hip = 6,       ///< allocates memory with hipMalloc
+    hip_uva = 7,   ///< allocates memory with hipMallocManaged
+    openmp = 8     ///< allocates memory with OpenMP device offload API
 };
 
 /// return the human readable name of the allocator
@@ -46,6 +47,7 @@ HAMR_EXPORT
 int cuda_accessible(buffer_allocator alloc)
 {
     return (alloc == buffer_allocator::cuda) ||
+        (alloc == buffer_allocator::cuda_async) ||
         (alloc == buffer_allocator::cuda_uva) ||
         (alloc == buffer_allocator::hip) ||
         (alloc == buffer_allocator::hip_uva) ||
@@ -58,6 +60,7 @@ HAMR_EXPORT
 int hip_accessible(buffer_allocator alloc)
 {
     return (alloc == buffer_allocator::cuda) ||
+        (alloc == buffer_allocator::cuda_async) ||
         (alloc == buffer_allocator::cuda_uva) ||
         (alloc == buffer_allocator::hip) ||
         (alloc == buffer_allocator::hip_uva);
@@ -69,6 +72,7 @@ HAMR_EXPORT
 int openmp_accessible(buffer_allocator alloc)
 {
     return (alloc == buffer_allocator::cuda) ||
+        (alloc == buffer_allocator::cuda_async) ||
         (alloc == buffer_allocator::cuda_uva) ||
         (alloc == buffer_allocator::openmp);
 }
@@ -83,6 +87,7 @@ void assert_valid_allocator(buffer_allocator alloc)
         || (alloc == buffer_allocator::malloc)
 #if defined(HAMR_ENABLE_CUDA)
         || (alloc == buffer_allocator::cuda)
+        || (alloc == buffer_allocator::cuda_async)
         || (alloc == buffer_allocator::cuda_uva)
         || (alloc == buffer_allocator::cuda_host)
 #endif
