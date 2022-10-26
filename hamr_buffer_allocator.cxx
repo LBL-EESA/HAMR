@@ -22,6 +22,10 @@ const char *get_allocator_name(buffer_allocator alloc)
     {
         return "cuda_malloc_host_allocator";
     }
+    else if (alloc == buffer_allocator::cuda_async)
+    {
+        return "cuda_malloc_async_allocator";
+    }
     else if (alloc == buffer_allocator::cuda_uva)
     {
         return "cuda_malloc_uva_allocator";
