@@ -21,7 +21,7 @@ namespace hamr
  * @returns 0 if there were no errors
  */
 template <typename T>
-static int cuda_print(T *vals, size_t n_elem)
+static int cuda_print(cudaStream_t strm, T *vals, size_t n_elem)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) vals;
@@ -46,7 +46,7 @@ static int cuda_print(T *vals, size_t n_elem)
 
     // invoke the print kernel
     cudaError_t ierr = cudaSuccess;
-    hamr::cuda_kernels::print<<<block_grid, thread_grid>>>(vals, n_elem);
+    hamr::cuda_kernels::print<<<block_grid, thread_grid, 0, strm>>>(vals, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
