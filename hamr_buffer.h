@@ -11,7 +11,8 @@
 #include "hamr_cuda_malloc_allocator.h"
 #include "hamr_cuda_malloc_uva_allocator.h"
 #include "hamr_cuda_print.h"
-#include "hamr_cuda_copy.h"
+//#include "hamr_cuda_copy.h"
+#include "hamr_cuda_copy_async.h"
 #endif
 #if defined(HAMR_ENABLE_HIP)
 #include "hamr_hip_device.h"
@@ -27,6 +28,7 @@
 #include "hamr_openmp_copy.h"
 #endif
 #include "hamr_buffer_allocator.h"
+#include "hamr_stream.h"
 
 #include <memory>
 #include <iostream>
@@ -40,7 +42,7 @@ namespace hamr
  * @details The buffer mediates between different accelerator and platform
  * portability technologies' memory models. Examples of platform portability
  * technologies are HIP, OpenMP, OpenCL, SYCL, and Kokos, Examples of
- * accelerator technologies are CUDA and roc. Other accelerator and platform
+ * accelerator technologies are CUDA and ROCm. Other accelerator and platform
  * portability technologies exist and can be supported. Data can be left in
  * place until it is consumed. The consumer of the data can get a pointer that
  * is accessible in the technology that will be used to process the data. If
@@ -56,21 +58,53 @@ public:
      * See ::buffer_allocator. */
     using allocator = buffer_allocator;
 
-    /// construct an empty buffer that will use the passed allocator type
-    buffer(allocator alloc);
+    /** construct an empty buffer that will use the passed allocator type
+     * and stream.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     */
+    buffer(allocator alloc, const hamr::stream &strm);
+    buffer(allocator alloc) : buffer(alloc, stream()) {}
 
-    /// construct a buffer with n_elem size using the passed allocator type
-    buffer(allocator alloc, size_t n_elem);
+    /** construct an empty buffe of the specified size using the passed
+     * allocator type and stream.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer
+     */
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem);
+    buffer(allocator alloc, size_t n_elem) : buffer(alloc, stream(), n_elem) {}
 
     /** construct a buffer with n_elem size initialized to the passed value
-     * using the passed allocator type
+     * using the passed allocator type and stream.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer
+     * @param[in] val     an single value used to initialize the buffer
+     *                    contents
      */
-    buffer(allocator alloc, size_t n_elem, const T &val);
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T &val);
+    buffer(allocator alloc, size_t n_elem, const T &val) : buffer(alloc, stream(), n_elem, val) {}
 
-    /** construct a buffer with n_elem size initialized to the passed value
-     * using the passed allocator type
+    /** construct a buffer with n_elem size initialized to the passed values
+     * using the passed allocator type and stream.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer and number of
+     *                    elements in the array pointed to by vals
+     * @param[in] vals    an array of values accessible on the CPU used to
+     *                    initialize the buffer contents
      */
-    buffer(allocator alloc, size_t n_elem, const T *vals);
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T *vals);
+    buffer(allocator alloc, size_t n_elem, const T *vals) : buffer(alloc, stream(), n_elem, vals) {}
 
     /** construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -80,6 +114,7 @@ public:
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
+     * @param[in] strm  a ::stream object used to order operations
      * @param[in] size  the number of elements in the array pointed to by ptr
      * @param[in] owner the device owning the memory, -1 for CPU. if the
      *                  allocator is a GPU allocator and -1 is passed the
@@ -90,7 +125,12 @@ public:
      *                  when this instance is finished.
      */
     template <typename delete_func_t>
-    buffer(allocator alloc, size_t size, int owner, T *ptr, delete_func_t df);
+    buffer(allocator alloc, const hamr::stream &strm,
+        size_t size, int owner, T *ptr, delete_func_t df);
+
+    template <typename delete_func_t>
+    buffer(allocator alloc, size_t size, int owner, T *ptr,
+        delete_func_t df) : buffer(alloc, stream(), size, owner, ptr, df) {}
 
     /** construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -110,7 +150,10 @@ public:
      *                  allocated the memory.
      * @param[in] ptr   a pointer to the array
      */
-    buffer(allocator alloc, size_t size, int owner, T *ptr);
+    buffer(allocator alloc, const hamr::stream &strm, size_t size, int owner, T *ptr);
+
+    buffer(allocator alloc, size_t size, int owner, T *ptr) :
+        buffer(alloc, stream(), size, owner, ptr) {}
 
     /** construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -127,14 +170,18 @@ public:
      *                  allocated the memory.
      * @param[in] data  a shared pointer managing the data
      */
+    buffer(allocator alloc, const hamr::stream &strm,
+        size_t size, int owner, const std::shared_ptr<T> &data);
+
     buffer(allocator alloc, size_t size, int owner,
-        const std::shared_ptr<T> &data);
+        const std::shared_ptr<T> &data) : buffer(alloc, stream(), size, owner, data) {}
 
     /// copy construct from the passed buffer
     buffer(const buffer<T> &other);
 
     /// copy construct from the passed buffer, using the passed allocator type.
-    buffer(allocator alloc, const buffer<T> &other);
+    buffer(allocator alloc, const hamr::stream &strm, const buffer<T> &other);
+    buffer(allocator alloc, const buffer<T> &other) :  buffer(alloc, stream(), other) {}
 
     /// move construct from the passed buffer
     buffer(buffer<T> &&other);
@@ -142,7 +189,8 @@ public:
     /** move construct from the passed buffer, using the passed allocator type.
      * move occurs only if the allocators match, otherwise a copy is made.
      */
-    buffer(allocator alloc, buffer<T> &&other);
+    buffer(allocator alloc, const hamr::stream &strm, buffer<T> &&other);
+    buffer(allocator alloc, buffer<T> &&other) : buffer(alloc, stream(), std::move(other)) {}
 
     /** assign from the other buffer. if this and the passed buffer have
      * different allocators this allocator is used and the data will be copied.
@@ -423,8 +471,11 @@ public:
     const std::shared_ptr<const T> pointer() const { return m_data; }
     ///@}
 
-    /// returns the allocator type enum
+    /// @returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
+
+    /// @returns the active stream
+    hamr::stream &get_stream() { return m_stream; }
 
     /// prints the contents to the stderr stream
     int print() const;
@@ -464,6 +515,7 @@ private:
     size_t m_size;
     size_t m_capacity;
     int m_owner;
+    hamr::stream m_stream;
 
     template<typename U> friend class buffer;
 };
@@ -554,8 +606,9 @@ int buffer<T>::set_owner(const T *ptr)
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
-    m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm) : m_alloc(alloc),
+    m_data(nullptr), m_size(0), m_capacity(0), m_owner(-1),
+    m_stream(strm)
 {
     assert_valid_allocator(alloc);
     this->set_owner();
@@ -563,7 +616,7 @@ buffer<T>::buffer(allocator alloc) : m_alloc(alloc),
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, size_t n_elem) : buffer<T>(alloc)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t n_elem) : buffer<T>(alloc, strm)
 {
     m_data = this->allocate(n_elem);
     m_size = n_elem;
@@ -572,7 +625,7 @@ buffer<T>::buffer(allocator alloc, size_t n_elem) : buffer<T>(alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, size_t n_elem, const T &val) : buffer<T>(alloc)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T &val) : buffer<T>(alloc, strm)
 {
     m_data = this->allocate(n_elem, val);
     m_size = n_elem;
@@ -581,7 +634,7 @@ buffer<T>::buffer(allocator alloc, size_t n_elem, const T &val) : buffer<T>(allo
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, size_t n_elem, const T *vals) : buffer<T>(alloc)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T *vals) : buffer<T>(alloc, strm)
 {
     m_data = this->allocate(n_elem, vals);
     m_size = n_elem;
@@ -590,9 +643,9 @@ buffer<T>::buffer(allocator alloc, size_t n_elem, const T *vals) : buffer<T>(all
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, size_t size, int owner,
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t size, int owner,
     const std::shared_ptr<T> &data) : m_alloc(alloc),
-    m_data(data), m_size(size), m_capacity(size), m_owner(owner)
+    m_data(data), m_size(size), m_capacity(size), m_owner(owner), m_stream(strm)
 
 {
     assert_valid_allocator(alloc);
@@ -627,9 +680,9 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner,
 // --------------------------------------------------------------------------
 template <typename T>
 template <typename delete_func_t>
-buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t size, int owner, T *ptr,
     delete_func_t df) : m_alloc(alloc), m_data(std::shared_ptr<T>(ptr, df)),
-    m_size(size), m_capacity(size), m_owner(owner)
+    m_size(size), m_capacity(size), m_owner(owner), m_stream(strm)
 {
     assert_valid_allocator(alloc);
 
@@ -662,9 +715,9 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr,
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
-    : m_alloc(alloc), m_data(nullptr), m_size(size),
-    m_capacity(size), m_owner(owner)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm, size_t size,
+    int owner, T *ptr) : m_alloc(alloc), m_data(nullptr), m_size(size),
+    m_capacity(size), m_owner(owner), m_stream(strm)
 {
     assert_valid_allocator(alloc);
 
@@ -680,11 +733,13 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
 #if defined(HAMR_ENABLE_CUDA)
     else if (alloc == allocator::cuda)
     {
-        m_data = std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, m_size));
+        m_data = std::shared_ptr<T>(ptr,
+            cuda_malloc_deleter<T>(m_stream.get(), ptr, m_size));
     }
     else if (alloc == allocator::cuda_uva)
     {
-        m_data = std::shared_ptr<T>(ptr, cuda_malloc_uva_deleter<T>(ptr, m_size));
+        m_data = std::shared_ptr<T>(ptr,
+            cuda_malloc_uva_deleter<T>(m_stream.get(), ptr, m_size));
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -739,7 +794,7 @@ buffer<T>::buffer(allocator alloc, size_t size, int owner, T *ptr)
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(const buffer<T> &other) : buffer<T>(other.m_alloc)
+buffer<T>::buffer(const buffer<T> &other) : buffer<T>(other.m_alloc, other.m_stream)
 {
     m_data = this->allocate(other);
     m_size = other.m_size;
@@ -748,7 +803,8 @@ buffer<T>::buffer(const buffer<T> &other) : buffer<T>(other.m_alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, const buffer<T> &other) : buffer<T>(alloc)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm,
+    const buffer<T> &other) : buffer<T>(alloc, strm)
 {
     m_data = this->allocate(other);
     m_size = other.m_size;
@@ -764,7 +820,8 @@ buffer<T>::buffer(buffer<T> &&other) : buffer<T>(other.m_alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
-buffer<T>::buffer(allocator alloc, buffer<T> &&other) : buffer<T>(alloc)
+buffer<T>::buffer(allocator alloc, const hamr::stream &strm,
+    buffer<T> &&other) : buffer<T>(alloc, strm)
 {
     if (m_alloc == other.m_alloc)
         this->swap(other);
@@ -806,6 +863,7 @@ void buffer<T>::swap(buffer<T> &other)
     std::swap(m_size, other.m_size);
     std::swap(m_capacity, other.m_capacity);
     std::swap(m_owner, other.m_owner);
+    std::swap(m_stream, other.m_stream);
 }
 
 // --------------------------------------------------------------------------
@@ -867,11 +925,11 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const T &val)
 #if defined(HAMR_ENABLE_CUDA)
     else if (m_alloc == allocator::cuda)
     {
-        return cuda_malloc_allocator<T>::allocate(n_elem, val);
+        return cuda_malloc_allocator<T>::allocate(m_stream.get(), n_elem, val);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
-        return cuda_malloc_uva_allocator<T>::allocate(n_elem, val);
+        return cuda_malloc_uva_allocator<T>::allocate(m_stream.get(), n_elem, val);
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -915,12 +973,12 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem, const U *vals)
     else if (m_alloc == allocator::cuda)
     {
         activate_cuda_device dev(m_owner);
-        return cuda_malloc_allocator<T>::allocate(n_elem, vals);
+        return cuda_malloc_allocator<T>::allocate(m_stream.get(), n_elem, vals);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
         activate_cuda_device dev(m_owner);
-        return cuda_malloc_uva_allocator<T>::allocate(n_elem, vals);
+        return cuda_malloc_uva_allocator<T>::allocate(m_stream.get(), n_elem, vals);
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -988,7 +1046,7 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
             (!vals.cuda_accessible() || (vals.m_owner != m_owner)))
             return std::const_pointer_cast<T>(pvals);
 
-        return cuda_malloc_allocator<T>::allocate(n_elem, pvals.get(), true);
+        return cuda_malloc_allocator<T>::allocate(m_stream.get(), n_elem, pvals.get(), true);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
@@ -1000,7 +1058,7 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
             (!vals.cuda_accessible() || (vals.m_owner != m_owner)))
             return  std::const_pointer_cast<T>(pvals);
 
-        return cuda_malloc_uva_allocator<T>::allocate(n_elem, pvals.get(), true);
+        return cuda_malloc_uva_allocator<T>::allocate(m_stream.get(), n_elem, pvals.get(), true);
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1067,12 +1125,12 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
     else if (m_alloc == allocator::cuda)
     {
         activate_cuda_device dev(m_owner);
-        return cuda_malloc_allocator<T>::allocate(n_elem);
+        return cuda_malloc_allocator<T>::allocate(m_stream.get(), n_elem);
     }
     else if (m_alloc == allocator::cuda_uva)
     {
         activate_cuda_device dev(m_owner);
-        return cuda_malloc_uva_allocator<T>::allocate(n_elem);
+        return cuda_malloc_uva_allocator<T>::allocate(m_stream.get(), n_elem);
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1128,7 +1186,7 @@ int buffer<T>::reserve(size_t n_elem)
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         {
             activate_cuda_device dev(m_owner);
-            ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
+            ierr = copy_to_cuda_from_cuda(m_stream.get(), tmp.get(), m_data.get(), m_size);
         }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1190,7 +1248,7 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_uva))
         {
             activate_cuda_device dev(m_owner);
-            ierr = copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_size);
+            ierr = copy_to_cuda_from_cuda(m_stream.get(), tmp.get(), m_data.get(), m_size);
         }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1413,7 +1471,7 @@ int buffer<T>::set(size_t dest_start, const U *src,
 
         activate_cuda_device dev(m_owner);
 
-        ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
+        ierr = copy_to_cuda_from_cpu(m_stream.get(), m_data.get() + dest_start,
             src + src_start, n_vals);
     }
 #endif
@@ -1482,8 +1540,9 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             // source is on the GPU
             activate_cuda_device dev(src.m_owner);
 
-            ierr = copy_to_cpu_from_cuda(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cuda(m_stream.get(),
+                m_data.get() + dest_start, src.m_data.get() + src_start,
+                n_vals);
         }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1524,22 +1583,24 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
             (src.m_alloc == allocator::malloc))
         {
             // source is on the CPU
-            ierr = copy_to_cuda_from_cpu(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cpu(m_stream.get(),
+                m_data.get() + dest_start, src.m_data.get() + src_start, n_vals);
         }
         else if (src.cuda_accessible())
         {
             if (m_owner == src.m_owner)
             {
                 // source is on this GPU
-                ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
-                    src.m_data.get() + src_start, n_vals);
+                ierr = copy_to_cuda_from_cuda(m_stream.get(),
+                    m_data.get() + dest_start, src.m_data.get() + src_start,
+                    n_vals);
             }
             else
             {
                 // source is on another GPU
-                ierr = copy_to_cuda_from_cuda(m_data.get() + dest_start,
-                    src.m_data.get() + src_start, src.m_owner, n_vals);
+                ierr = copy_to_cuda_from_cuda(m_stream.get(),
+                    m_data.get() + dest_start, src.m_data.get() + src_start,
+                    src.m_owner, n_vals);
             }
         }
         else
@@ -1657,8 +1718,8 @@ int buffer<T>::get(size_t src_start, U *dest,
     {
         activate_cuda_device dev(m_owner);
 
-        ierr = copy_to_cpu_from_cuda(dest + dest_start,
-            m_data.get() + src_start, n_vals);
+        ierr = copy_to_cpu_from_cuda(m_stream.get(),
+            dest + dest_start, m_data.get() + src_start, n_vals);
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1724,8 +1785,9 @@ int buffer<T>::get(size_t src_start,
             // source is on the GPU
             activate_cuda_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_cuda(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cuda(m_stream.get(),
+                dest.m_data.get() + dest_start, m_data.get() + src_start,
+                n_vals);
         }
 #endif
 #if defined(HAMR_ENABLE_HIP)
@@ -1767,8 +1829,9 @@ int buffer<T>::get(size_t src_start,
             (dest.m_alloc == allocator::malloc))
         {
             // source is on the CPU
-            ierr = copy_to_cuda_from_cpu(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
+            ierr = copy_to_cuda_from_cpu(m_stream.get(),
+                dest.m_data.get() + dest_start, m_data.get() + src_start,
+                n_vals);
         }
         else if ((dest.m_alloc == allocator::cuda) ||
             (dest.m_alloc == allocator::cuda_uva))
@@ -1776,13 +1839,15 @@ int buffer<T>::get(size_t src_start,
             if (m_owner == dest.m_owner)
             {
                 // source is on this GPU
-                ierr = copy_to_cuda_from_cuda(dest.m_data.get() + dest_start,
-                    m_data.get() + src_start, n_vals);
+                ierr = copy_to_cuda_from_cuda(m_stream.get(),
+                    dest.m_data.get() + dest_start, m_data.get() + src_start,
+                    n_vals);
             }
             else
             {
                 // source is on another GPU
-                ierr = copy_to_cuda_from_cuda(dest.m_data.get() + dest_start,
+                ierr = copy_to_cuda_from_cuda(m_stream.get(),
+                    dest.m_data.get() + dest_start,
                     m_data.get() + src_start, m_owner, n_vals);
             }
         }
@@ -1910,7 +1975,7 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 
         activate_cuda_device dev(m_owner);
 
-        if (copy_to_cpu_from_cuda(tmp.get(), m_data.get(), m_size))
+        if (copy_to_cpu_from_cuda(m_stream.get(), tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         return tmp;
@@ -1975,9 +2040,9 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc))
     {
         // make a copy on the GPU
-        std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_size);
+        std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_stream.get(), m_size);
 
-        if (copy_to_cuda_from_cpu(tmp.get(), m_data.get(), m_size))
+        if (copy_to_cuda_from_cpu(m_stream.get(), tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         return tmp;
@@ -1996,9 +2061,9 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
         else
         {
             // on another GPU, move to this one
-            std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_size);
+            std::shared_ptr<T> tmp = cuda_malloc_allocator<T>::allocate(m_stream.get(), m_size);
 
-            if (copy_to_cuda_from_cuda(tmp.get(), m_data.get(), m_owner, m_size))
+            if (copy_to_cuda_from_cuda(m_stream.get(), tmp.get(), m_data.get(), m_owner, m_size))
                 return nullptr;
 
             return tmp;
