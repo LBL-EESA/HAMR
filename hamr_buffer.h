@@ -2767,7 +2767,7 @@ int buffer<T>::print() const
         else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_async))
         {
             activate_cuda_device dev(m_owner);
-            cuda_print(m_data.get(), m_size);
+            cuda_print(m_stream.cuda_stream(), m_data.get(), m_size);
         }
 #endif
 #if defined(HAMR_ENABLE_HIP)
