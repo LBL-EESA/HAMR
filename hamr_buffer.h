@@ -405,6 +405,17 @@ public:
     /// swap the contents of the two buffers
     void swap(buffer<T> &other);
 
+    /** This is used to change the location of the buffer contents in place.
+     * For GPU based allocators, the new allocation is made on the device
+     * active at the time the call is made. If the new allocator and owner are
+     * the same as the current allocator and owner, then the call is a NOOP.
+     * Otherwise the data is reallocated and moved.
+     *
+     * @param[in] alloc the new allocator
+     * @returns zero if the operation was successful
+     */
+    int move(allocator alloc);
+
     /** @name reserve
      * allocates space for n_elems of data
      */
@@ -715,6 +726,8 @@ protected:
      */
     int set_owner(const T *ptr);
 
+    /// get the active device id associated with the current allocator
+    int get_active_device(int &dev_id);
 
 private:
     allocator m_alloc;
@@ -1105,6 +1118,71 @@ void buffer<T>::swap(buffer<T> &other)
     std::swap(m_owner, other.m_owner);
     std::swap(m_stream, other.m_stream);
     std::swap(m_sync, other.m_sync);
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::get_active_device(int &dev_id)
+{
+    if ((m_alloc == allocator::malloc) ||
+        (m_alloc == allocator::cpp) || (m_alloc == allocator::cuda_host))
+    {
+        dev_id = -1;
+        return 0;
+    }
+#if defined(HAMR_ENABLE_CUDA)
+    else if ((m_alloc == allocator::cuda) ||
+        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+    {
+        return hamr::get_active_cuda_device(dev_id);
+    }
+#endif
+#if defined(HAMR_ENABLE_HIP)
+    else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
+    {
+        return hamr::get_active_hip_device(dev_id);
+    }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        return hamr::get_active_openmp_device(dev_id);
+    }
+#endif
+
+    std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+        " Invalid allocator type " << get_allocator_name(m_alloc)
+        << std::endl;
+
+    dev_id = 0;
+    return -1;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+int buffer<T>::move(allocator alloc)
+{
+    // get the active device, this is the new owner
+    int owner = -1;
+    if (this->get_active_device(owner))
+        return -1;
+
+    // we don't need to do anything if both the new allocator
+    // and the new owner match the current allocator and owner
+    if ((alloc == m_alloc) && (owner == m_owner))
+        return 0;
+
+    // construct a temporary using the new allocator
+    buffer<T> tmp(alloc, m_stream, m_sync, m_size);
+
+    // copy the data to the temporary
+    if (tmp.set(0, *this, 0, m_size))
+        return -1;
+
+    // swap internals
+    this->swap(tmp);
+
+    return 0;
 }
 
 // --------------------------------------------------------------------------
