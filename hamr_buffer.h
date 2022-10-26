@@ -394,10 +394,11 @@ public:
     void operator=(const buffer<T> &other);
 
     /** move assign from the other buffer. if this and the passed buffer have
-     * the same type and allocator the passed buffer is moved. if this and the
-     * passed buffer have different allocators this allocator is used and the
-     * data will be copied.  if this and the passed buffer have different types
-     * elements are cast to this type as they are copied.
+     * the same type, allocator, and owner the passed buffer is moved. If this
+     * and the passed buffer have different allocators or owners this allocator
+     * is used to allocate space and the data will be copied.  if this and the
+     * passed buffer have different types elements are cast to this type as
+     * they are copied.
      */
     void operator=(buffer<T> &&other);
 
@@ -1020,21 +1021,22 @@ buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(const buffer<T> &other) :
-    buffer<T>(other.m_alloc, other.m_stream, other.m_sync)
+    buffer<T>(other.m_alloc, other.m_stream, other.m_sync, other)
 {
-    m_data = this->allocate(other);
-    m_size = other.m_size;
-    m_capacity = other.m_size;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
-    const buffer<T> &other) : buffer<T>(alloc, strm, sync)
+    const buffer<T> &other) : buffer<T>(alloc, strm, sync, other.m_size)
 {
-    m_data = this->allocate(other);
-    m_size = other.m_size;
-    m_capacity = other.m_size;
+    if (this->set(0, other, 0, m_size))
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Copy constructor failed to copy data from the other object."
+            << std::endl;
+        abort();
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -1049,15 +1051,11 @@ template <typename T>
 buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
     buffer<T> &&other) : buffer<T>(alloc, strm, sync)
 {
-    if (m_alloc == other.m_alloc)
+    if ((m_alloc == other.m_alloc) && (m_owner == other.m_owner))
     {
-        //std::swap(m_alloc, other.m_alloc);
         std::swap(m_data, other.m_data);
         std::swap(m_size, other.m_size);
         std::swap(m_capacity, other.m_capacity);
-        std::swap(m_owner, other.m_owner);
-        //std::swap(m_stream, other.m_stream);
-        //std::swap(m_sync, other.m_sync);
     }
     else
     {
@@ -1069,10 +1067,16 @@ buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
 template <typename T>
 void buffer<T>::operator=(buffer<T> &&other)
 {
-    if (m_alloc == other.m_alloc)
-        this->swap(other);
+    if ((m_alloc == other.m_alloc) && (m_owner == other.m_owner))
+    {
+        std::swap(m_data, other.m_data);
+        std::swap(m_size, other.m_size);
+        std::swap(m_capacity, other.m_capacity);
+    }
     else
+    {
         this->assign(other);
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -1269,6 +1273,9 @@ template <typename T>
 template <typename U>
 std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
 {
+    // TODO -- this implementation fails when the source and dest are on
+    // different GPUs.
+
     size_t n_elem = vals.size();
 
     if (m_alloc == allocator::cpp)
@@ -1305,7 +1312,7 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
         return cuda_malloc_allocator<T>::allocate(
             m_stream.cuda_stream(), n_elem, pvals.get(), true);
     }
-    else if (alloc == allocator::cuda_async)
+    else if (m_alloc == allocator::cuda_async)
     {
         activate_cuda_device dev(m_owner);
         std::shared_ptr<const U> pvals = vals.get_cuda_accessible();
@@ -1318,7 +1325,7 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
         return cuda_malloc_async_allocator<T>::allocate(
             m_stream.cuda_stream(), n_elem, pvals.get(), true);
     }
-    else if (alloc == allocator::cuda_uva)
+    else if (m_alloc == allocator::cuda_uva)
     {
         activate_cuda_device dev(m_owner);
         std::shared_ptr<const U> pvals = vals.get_cuda_accessible();
@@ -1335,12 +1342,9 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
     {
         std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
 
-        // Note: for this case the deep copy will not have used pinned memory,
-        // so we'll need to allocate and transfer there below. TODO -- could we
-        // provide a buffer for the temporary?
         // a deep copy was made, return the pointer to the copy
-        /*if (std::is_same<T,U>::value && !vals.cpu_accessible())
-            return std::const_pointer_cast<T>(pvals);*/
+        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+            return std::const_pointer_cast<T>(pvals);
 
         return cuda_malloc_host_allocator<T>::allocate(n_elem, pvals.get());
     }
