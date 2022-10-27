@@ -28,7 +28,7 @@ namespace hamr
  * necessary.  In most cases API's requiring a hamr::stream can be passed the
  * technology specific stream due to implicit conversions.
  */
-class stream
+class HAMR_EXPORT stream
 {
 public:
     /// constructs a default stream
