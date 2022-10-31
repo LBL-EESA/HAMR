@@ -19,11 +19,11 @@
 namespace hamr
 {
 
-/// a deleter for arrays allocated with the cuda_malloc_async allocator
+/// a deleter for arrays allocated with the cuda_malloc_async_allocator
 template <typename T, typename E = void>
 class cuda_malloc_async_deleter {};
 
-/// a deleter for arrays allocated with the cuda_malloc_async allocator, specialized for objects
+/// a deleter for arrays allocated with the cuda_malloc_async_allocator, specialized for objects
 template <typename T>
 class HAMR_EXPORT cuda_malloc_async_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -121,7 +121,7 @@ cuda_malloc_async_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::val
 
 
 
-/// a deleter for arrays allocated with the cuda_malloc_async allocator, specialized for numbers
+/// A deleter for arrays allocated with the cuda_malloc_async_allocator, specialized for numbers.
 template <typename T>
 class HAMR_EXPORT cuda_malloc_async_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
@@ -186,11 +186,17 @@ cuda_malloc_async_deleter<T, typename std::enable_if<std::is_arithmetic<T>::valu
 
 
 
-/// a class for allocating arrays with cuda_malloc_async
+/** A class for allocating arrays on the GPU in CUDA. This is the preferred
+ * allocator for device memory in CUDA because it does not synchronize the
+ * entire device.
+ */
 template <typename T, typename E = void>
 struct cuda_malloc_async_allocator {};
 
-/// a class for allocating arrays with cuda_malloc_async, specialized for objects
+/** A class for allocating arrays on the GPU in CUDA, specialized for objects.
+ * This is the preferred allocator for device memory in CUDA because it does
+ * not synchronize the entire device.
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_async_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -472,7 +478,10 @@ cuda_malloc_async_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::v
 
 
 
-/// a class for allocating arrays with cuda_malloc_async, specialized for numbers
+/** A class for allocating arrays on the GPU in CUDA, specialized for numeric
+ * types.  This is the preferred allocator for device memory in CUDA because it
+ * does not synchronize the entire device.
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_async_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
