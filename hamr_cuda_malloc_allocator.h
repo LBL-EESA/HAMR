@@ -19,11 +19,11 @@
 namespace hamr
 {
 
-/// a deleter for arrays allocated with cuda_malloc
+/// a deleter for arrays allocated with cudaMalloc
 template <typename T, typename E = void>
 class cuda_malloc_deleter {};
 
-/// a deleter for arrays allocated with cuda_malloc, specialized for objects
+/// a deleter for arrays allocated with cudaMalloc, specialized for objects
 template <typename T>
 class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -121,7 +121,7 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 
 
 
-/// a deleter for arrays allocated with cuda_malloc, specialized for numbers
+/// a deleter for arrays allocated with cudaMalloc, specialized for numbers
 template <typename T>
 class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
@@ -185,11 +185,17 @@ cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::ty
 
 
 
-/// a class for allocating arrays with cuda_malloc
+/** A class for allocating arrays with cudaMalloc. However, note that because
+ * cudaMalloc synchronizes across the device the cuda_malloc_async_allocator
+ * should be preferred.
+ */
 template <typename T, typename E = void>
 struct cuda_malloc_allocator {};
 
-/// a class for allocating arrays with cuda_malloc, specialized for objects
+/** A class for allocating arrays with cudaMalloc, specialized for objects.
+ * However, note that because cudaMalloc synchronizes across the device the
+ * cuda_malloc_async_allocator should be preferred.
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -471,7 +477,10 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 
 
 
-/// a class for allocating arrays with cuda_malloc, specialized for numbers
+/** A class for allocating arrays with cudaMalloc, specialized for numeric
+ * types. However, note that because cudaMalloc synchronizes across the device
+ * the cuda_malloc_async_allocator should be preferred.
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
