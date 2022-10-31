@@ -13,11 +13,11 @@
 
 namespace hamr
 {
-/// a deleter for arrays allocated with malloc
+/// a deleter for arrays allocated with cudaMallocHost
 template <typename T, typename E = void>
 class cuda_malloc_host_deleter {};
 
-/// a deleter for arrays allocated with malloc, specialized for objects
+/// a deleter for arrays allocated with cudaMallocHost, specialized for objects
 template <typename T>
 class HAMR_EXPORT cuda_malloc_host_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -83,7 +83,7 @@ cuda_malloc_host_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::valu
 
 
 
-/// a deleter for arrays allocated with malloc, specialized for numbers
+/// a deleter for arrays allocated with cudaMallocHost, specialized for numbers
 template <typename T>
 class HAMR_EXPORT cuda_malloc_host_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
@@ -145,11 +145,17 @@ cuda_malloc_host_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value
 
 
 
-/// a class for allocating arrays with malloc
+/** A class for allocating arrays with cudaMallocHost.  Use this allocator for
+ * CPU accessible memory when you want to overlap data movement and computation
+ * with CUDA.
+ */
 template <typename T, typename E = void>
 struct cuda_malloc_host_allocator {};
 
-/// a class for allocating arrays with malloc, specialized for objects
+/** a class for allocating arrays with cudaMallocHost, specialized for objects
+ * Use this allocator for CPU accessible memory when you want to overlap data movement and computation
+ * with CUDA
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_host_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
@@ -286,7 +292,10 @@ cuda_malloc_host_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::va
 
 
 
-/// a class for allocating arrays with malloc, specialized for numbers
+/** a class for allocating arrays with cudaMallocHost, specialized for numbers.
+ * Use this allocator for CPU accessible memory when you want to overlap data
+ * movement and computation with CUDA
+ */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_host_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
