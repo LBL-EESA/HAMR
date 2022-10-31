@@ -58,11 +58,13 @@ class HAMR_EXPORT buffer
 {
 public:
     /** An enumeration for the type of allocator to use for memory allocations.
-     * See ::buffer_allocator. */
+     * See ::buffer_allocator.
+     */
     using allocator = buffer_allocator;
 
     /** An enumeration for the types of transfer supported. See
-     * ::buffer_transfer */
+     * ::buffer_transfer
+     */
     using transfer = buffer_transfer;
 
     /** Construct an empty buffer.
@@ -73,13 +75,11 @@ public:
      * @param[in] sync    a ::buffer_transfer specifies synchronous or
      *                    asynchronous behavior.
      */
-    buffer(allocator alloc, const hamr::stream &strm, transfer sync);
+    buffer(allocator alloc, const hamr::stream &strm, transfer sync = transfer::async);
 
     /** Construct an empty buffer. This constructor will result in the default
      * stream for the chosen technology with transfer::sync_cpu mode which
-     * synchronizes after data movement from a device to the CPU. For fully
-     * asynchronous data transfers one must explicitly prtovide a stream and
-     * specify the asynchronous mode.
+     * synchronizes after data movement from a device to the CPU.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
@@ -97,11 +97,21 @@ public:
      */
     buffer(allocator alloc, const hamr::stream &strm, transfer sync, size_t n_elem);
 
+    /** Construct a buffer configured for asynchronous data transfers, with
+     * storage allocated, but unitialized.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer
+     */
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem)
+        : buffer(alloc, strm, transfer::async, n_elem) {}
+
     /** Construct a buffer with storage allocated but unitialized. This
      * constructor will result in the default stream for the chosen technology
      * with transfer::sync_cpu mode which synchronizes after data movement from
-     * a device to the CPU. For fully asynchronous data transfers one must
-     * explicitly prtovide a stream and specify the asynchronous mode.
+     * a device to the CPU.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
@@ -124,6 +134,19 @@ public:
      */
     buffer(allocator alloc, const hamr::stream &strm,
         transfer sync, size_t n_elem, const T &val);
+
+    /** Construct a buffer configured for asynchronous data movement, with
+     * storage allocated, and initialized to a single value.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer
+     * @param[in] val     an single value used to initialize the buffer
+     *                    contents
+     */
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T &val)
+        : buffer(alloc, strm, transfer::async, n_elem, val) {}
 
     /** Construct a buffer with storage allocated and initialized to a single
      * value. This constructor will result in the default stream for the chosen
@@ -158,14 +181,28 @@ public:
     buffer(allocator alloc, const hamr::stream &strm,
         transfer sync, size_t n_elem, const T *vals);
 
+    /** Construct a buffer configured for asynchronous data movement, with
+     * storage allocated, and initialized to the array of values. This array is
+     * always assumed to be accessible on the CPU. Use one of the zero-copy
+     * constructors if the data is already accessible on the device.
+     *
+     * @param[in] alloc   a ::buffer_allocator indicates what technology
+     *                    manages the data internally
+     * @param[in] strm    a ::stream object used to order operations
+     * @param[in] n_elem  the initial size of the new buffer and number of
+     *                    elements in the array pointed to by vals
+     * @param[in] vals    an array of values accessible on the CPU used to
+     *                    initialize the buffer contents
+     */
+    buffer(allocator alloc, const hamr::stream &strm, size_t n_elem, const T *vals)
+        : buffer(alloc, strm, transfer::async, n_elem, vals) {}
+
     /** Construct a buffer with storage allocated and initialized to the array
      * of values. This array is always assumed to be accessible on the CPU. Use
      * one of the zero-copy constructors if the data is already accessible on
      * the device. This constructor will result in the default stream for the
      * chosen technology with transfer::sync_cpu mode which synchronizes after
-     * data movement from a device to the CPU. For fully asynchronous data
-     * transfers one must explicitly prtovide a stream and specify the
-     * asynchronous mode.
+     * data movement from a device to the CPU.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
@@ -205,11 +242,34 @@ public:
      * for zero-copy transfer of data.  One must also name the allocator type
      * and device owning the data.  In addition for new allocations the
      * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers. The buffer is
+     * configured for asynchronous data transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] strm  a ::stream object used to order operations
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     * @param[in] df    a function `void df(void*ptr)` used to delete the array
+     *                  when this instance is finished.
+     */
+    template <typename delete_func_t>
+    buffer(allocator alloc, const hamr::stream &strm, size_t size,
+        int owner, T *ptr, delete_func_t df)
+            : buffer(alloc, strm, transfer::async, size, owner, ptr, df) {}
+
+    /** Construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
      * automatically move data during inter technology transfers. This
      * constructor will result in the default stream for the chosen technology
      * with transfer::sync_cpu mode which synchronizes after data movement from
-     * a device to the CPU. For fully asynchronous data transfers one must
-     * explicitly prtovide a stream and specify the asynchronous mode.
+     * a device to the CPU.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -223,9 +283,8 @@ public:
      *                  when this instance is finished.
      */
     template <typename delete_func_t>
-    buffer(allocator alloc, size_t size, int owner, T *ptr,
-        delete_func_t df) : buffer(alloc, stream(), transfer::sync_cpu,
-        size, owner, ptr, df) {}
+    buffer(allocator alloc, size_t size, int owner, T *ptr, delete_func_t df)
+        : buffer(alloc, stream(), transfer::sync_cpu, size, owner, ptr, df) {}
 
     /** Construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -251,6 +310,29 @@ public:
     buffer(allocator alloc, const hamr::stream &strm,
         transfer sync, size_t size, int owner, T *ptr);
 
+    /** Construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers.
+     * The pass ::buffer_allocator is used to create the deleter that will be
+     * called when this instance is finished with the memeory. Use this
+     * constructor to transfer ownership of the array. The buffer is configured
+     * for asynchronous data transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] strm  a ::stream object used to order operations
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] ptr   a pointer to the array
+     */
+    buffer(allocator alloc, const hamr::stream &strm, size_t size, int owner, T *ptr)
+        : buffer(alloc, strm, transfer::async, size, owner, ptr) {}
+
     /** construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
      * and device owning the data.  In addition for new allocations the
@@ -260,9 +342,7 @@ public:
      * when this instance is finished with the memeory. Use this constructor to
      * transfer ownership of the array.  This constructor will result in the
      * default stream for the chosen technology with transfer::sync_cpu mode
-     * which synchronizes after data movement from a device to the CPU. For
-     * fully asynchronous data transfers one must explicitly prtovide a stream
-     * and specify the asynchronous mode.
+     * which synchronizes after data movement from a device to the CPU.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -301,11 +381,31 @@ public:
      * for zero-copy transfer of data.  One must also name the allocator type
      * and device owning the data.  In addition for new allocations the
      * allocator type and owner are used internally to know how to
+     * automatically move data during inter technology transfers. The buffer is
+     * configured for asynchronous data transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicating the technology
+     *                  backing the pointer
+     * @param[in] strm  a ::stream object used to order operations
+     * @param[in] size  the number of elements in the array pointed to by ptr
+     * @param[in] owner the device owning the memory, -1 for CPU. if the
+     *                  allocator is a GPU allocator and -1 is passed the
+     *                  driver API is used to determine the device that
+     *                  allocated the memory.
+     * @param[in] data  a shared pointer managing the data
+     */
+    buffer(allocator alloc, const hamr::stream &strm,
+        size_t size, int owner, const std::shared_ptr<T> &data)
+            : buffer(alloc, strm, transfer::async, size, owner, data) {}
+
+    /** Construct by directly providing the buffer contents. This can be used
+     * for zero-copy transfer of data.  One must also name the allocator type
+     * and device owning the data.  In addition for new allocations the
+     * allocator type and owner are used internally to know how to
      * automatically move data during inter technology transfers.  This
      * constructor will result in the default stream for the chosen technology
      * with transfer::sync_cpu mode which synchronizes after data movement from
-     * a device to the CPU. For fully asynchronous data transfers one must
-     * explicitly prtovide a stream and specify the asynchronous mode.
+     * a device to the CPU.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -316,9 +416,8 @@ public:
      *                  allocated the memory.
      * @param[in] data  a shared pointer managing the data
      */
-    buffer(allocator alloc, size_t size, int owner,
-        const std::shared_ptr<T> &data) : buffer(alloc, stream(),
-            transfer::sync_cpu, size, owner, data) {}
+    buffer(allocator alloc, size_t size, int owner, const std::shared_ptr<T> &data)
+        : buffer(alloc, stream(), transfer::sync_cpu, size, owner, data) {}
 
     /// copy construct from the passed buffer
     buffer(const buffer<T> &other);
@@ -336,11 +435,21 @@ public:
         transfer sync, const buffer<T> &other);
 
     /** Copy construct from the passed buffer, while specifying a potentially
+     * different allocator, stream, and synchronization behavior. The buffer is
+     * configured for asynchronous data transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicates what technology
+     *                  manages the data internally
+     * @param[in] strm  a ::stream object used to order operations
+     */
+    buffer(allocator alloc, const hamr::stream &strm, const buffer<T> &other)
+        : buffer(alloc, strm, transfer::async, other) {}
+
+    /** Copy construct from the passed buffer, while specifying a potentially
      * different allocator, stream, and synchronization behavior. This
      * constructor will result in the default stream for the chosen technology
      * with transfer::sync_cpu mode which synchronizes after data movement from
-     * a device to the CPU. For fully asynchronous data transfers one must
-     * explicitly prtovide a stream and specify the asynchronous mode.
+     * a device to the CPU.
      *
      * @param[in] alloc a ::buffer_allocator indicates what technology
      *                  manages the data internally
@@ -372,11 +481,24 @@ public:
      * different allocator, owner, stream, and synchronization behavior.  The
      * move occurs only if the allocators and owners match, otherwise a copy is
      * made. For non-CPU allocators, the active device is used to set the owner
+     * of the new object prior to the atempted move. The buffer is configured
+     * for asynchronous data transfers.
+     *
+     * @param[in] alloc a ::buffer_allocator indicates what technology
+     *                  manages the data internally
+     * @param[in] strm  a ::stream object used to order operations
+     */
+    buffer(allocator alloc, const hamr::stream &strm, buffer<T> &&other)
+        : buffer(alloc, strm, transfer::async, std::move(other)) {}
+
+    /** Move construct from the passed buffer,  while specifying a potentially
+     * different allocator, owner, stream, and synchronization behavior.  The
+     * move occurs only if the allocators and owners match, otherwise a copy is
+     * made. For non-CPU allocators, the active device is used to set the owner
      * of the new object prior to the atempted move.  This constructor will
      * result in the default stream for the chosen technology with
      * transfer::sync_cpu mode which synchronizes after data movement from a
-     * device to the CPU. For fully asynchronous data transfers one must
-     * explicitly prtovide a stream and specify the asynchronous mode.
+     * device to the CPU.
      *
      * @param[in] alloc a ::buffer_allocator indicates what technology
      *                  manages the data internally
@@ -393,12 +515,13 @@ public:
     void operator=(const buffer<U> &other);
     void operator=(const buffer<T> &other);
 
-    /** move assign from the other buffer. if this and the passed buffer have
-     * the same type, allocator, and owner the passed buffer is moved. If this
-     * and the passed buffer have different allocators or owners this allocator
-     * is used to allocate space and the data will be copied.  if this and the
-     * passed buffer have different types elements are cast to this type as
-     * they are copied.
+    /** move assign from the other buffer.  The target buffer's allocator,
+     * stream, and device transfer mode are preserved.  if this and the passed
+     * buffer have the same type, allocator, and owner the passed buffer is
+     * moved. If this and the passed buffer have different allocators or owners
+     * this allocator is used to allocate space and the data will be copied.
+     * if this and the passed buffer have different types elements are cast to
+     * this type as they are copied.
      */
     void operator=(buffer<T> &&other);
 
@@ -679,7 +802,9 @@ public:
     /// @returns the active stream
     hamr::stream &get_stream() { return m_stream; }
 
-    /** sets the active stream
+    /** Sets the active stream and data transfer synchrnonization mode. See
+     * buffer_transfer.
+     *
      * @param[in] strm a ::stream object used to order operations
      * @param[in] sync a ::buffer_transfer specifies synchronous or
      *                 asynchronous behavior.
@@ -689,6 +814,21 @@ public:
         m_stream = strm;
         m_sync = sync;
     }
+
+    /** Set the transfer mode to asynchronous. One must manually synchronize
+     * before data access when needed. See ::synchronize
+     */
+    void set_transfer_asynchronous() { m_sync = transfer::async; }
+
+    /** Set the transfer mode to synchronize automatically after data movement
+     * from the GPU to the CPU.
+     */
+    void set_transfer_sycnhronous_cpu() { m_sync = transfer::sync_cpu; }
+
+    /** Set the transfer mode to synchronize every data transfer. This mode
+     * should not be used except for debugging.
+     */
+    void set_transfer_sycnhronous() { m_sync = transfer::sync; }
 
     /** synchronizes with the current stream. This ensures that asynchronous
      * data transfers have completed before you access the data.
