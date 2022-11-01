@@ -9,7 +9,7 @@
 /***************************************************************************
  * buffer
  **************************************************************************/
-%rename(_print) hamr::buffer::print;
+%namewarn("") "print";
 %ignore hamr::buffer::operator=;
 
 %include "hamr_buffer.h"
