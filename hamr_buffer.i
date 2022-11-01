@@ -107,13 +107,16 @@
 /* zero-copy constructor */
 %pythoncode
 {
-def buffer(obj):
+def buffer(obj, **kwargs):
     """
     Zero-copy construct a C++ hamr::buffer<T> instance from Python objects that
     support the Numpy array interface protocol or the Numba CUDA array
     interface. The data type of the hamr::buffer is automatically determined. A
     reference to the object sharing the data is held while the hamr::buffer is
-    using it.
+    using it. By default the buffer will use the same stream as the cupy
+    object. This can be overridden by passing a 'stream' kwargs. Optionally a
+    transfer mode may be specified as well via the 'sync' kwargs. The default
+    transfer mode is sync_cpu.
     """
 
     aint = None
@@ -133,12 +136,17 @@ def buffer(obj):
     intptr = data[0]
 
     strm = None
-    if strm in aint:
+    if 'stream' in kwargs:
+        strm = kwargs['stream']
+    elif strm in aint:
         strm = aint['stream']
     if strm is None:
         strm = 2
 
-    sync = buffer_transfer_sync_cpu
+    if 'sync' in kwargs:
+        sync = kwargs['sync']
+    else:
+        sync = buffer_transfer_sync_cpu
 
     shape = aint['shape']
     n_elem = 1
