@@ -7,7 +7,7 @@
 namespace hamr
 {
 
-/** flag used to indicate whether or not a transfer opertion should be
+/** flag used to indicate whether or not a transfer operation should be
  * synchronous or not.
  */
 enum class buffer_transfer
