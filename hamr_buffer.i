@@ -7,11 +7,6 @@
 %}
 
 /***************************************************************************
- * stream
- **************************************************************************/
-%include "hamr_stream.h"
-
-/***************************************************************************
  * buffer
  **************************************************************************/
 %rename(_print) hamr::buffer::print;
@@ -21,14 +16,26 @@
 
 %extend hamr::buffer
 {
-    buffer(hamr::buffer_allocator alloc, size_t n_elem,
+    /** zero-copy construct from a Python object supporting the Numpy array
+     * interface or the NUMBA CUDA array interface
+     */
+    buffer(hamr::buffer_allocator alloc, size_t intstrm,
+        hamr::buffer_transfer sync, size_t n_elem,
         int owner, size_t intptr, PyObject *src)
     {
         hamr::gil_state gil;
 
         T *ptr = (T*)intptr;
 
-        return new hamr::buffer<T>(alloc, n_elem, owner,
+#if defined(HAMR_ENABLE_CUDA)
+        hamr::stream strm((cudaStream_t)intstrm);
+#elif defined(HAMR_ENABLE_HIP)
+        hamr::stream strm((hipStream_t)intstrm);
+#else
+        hamr::stream strm;
+#endif
+
+        return new hamr::buffer<T>(alloc, strm, sync, n_elem, owner,
             ptr, hamr::python_deleter<T>(ptr, n_elem, src));
     }
 
@@ -64,7 +71,8 @@
         hamr::gil_state gil;
 
         hamr::buffer_handle<T> h(self->get_cpu_accessible(), self->size(),
-            0, 1, self->cpu_accessible() && self->cuda_accessible());
+            0, 1, self->cpu_accessible() && self->cuda_accessible(),
+            self->get_stream().get_stream());
 
         return h;
     }
@@ -75,7 +83,8 @@
         hamr::gil_state gil;
 
         hamr::buffer_handle<T> h(self->get_cuda_accessible(), self->size(),
-            0, self->cpu_accessible() && self->cuda_accessible(), 1);
+            0, self->cpu_accessible() && self->cuda_accessible(), 1,
+            self->get_stream().get_stream());
 
         return h;
     }
@@ -123,6 +132,14 @@ def buffer(obj):
     data = aint['data']
     intptr = data[0]
 
+    strm = None
+    if strm in aint:
+        strm = aint['stream']
+    if strm is None:
+        strm = 2
+
+    sync = buffer_transfer_sync_cpu
+
     shape = aint['shape']
     n_elem = 1
     for ndim in shape:
@@ -136,33 +153,33 @@ def buffer(obj):
 
     if typestr[1] == 'f':
         if typestr[2] == '8':
-            buf = buffer_double(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_double(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '4':
-            buf = buffer_float(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_float(alloc, strm, sync, n_elem, -1, intptr, obj)
         else:
             raise TypeError('Unsupported floating point size %s' % (typestr[2]))
 
     elif typestr[1] == 'i':
         if typestr[2] == '8':
-            buf = buffer_long(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_long(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '4':
-            buf = buffer_int(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_int(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '2':
-            buf = buffer_short(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_short(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '1':
-            buf = buffer_char(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_char(alloc, strm, sync, n_elem, -1, intptr, obj)
         else:
             raise TypeError('Unsupported integer size %s' % (typestr[2]))
 
     elif typestr[1] == 'u':
         if typestr[2] == '8':
-            buf = buffer_unsigned_long(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_unsigned_long(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '4':
-            buf = buffer_unsigned_int(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_unsigned_int(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '2':
-            buf = buffer_unsigned_short(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_unsigned_short(alloc, strm, sync, n_elem, -1, intptr, obj)
         elif typestr[2] == '1':
-            buf = buffer_unsigned_char(alloc, n_elem, -1, intptr, obj)
+            buf = buffer_unsigned_char(alloc, strm, sync, n_elem, -1, intptr, obj)
         else:
             raise TypeError('Unsupported integer size %s' % (typestr[2]))
 
