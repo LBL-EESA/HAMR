@@ -45,7 +45,7 @@ memory management on systems with heterogeneous accellerators."
 /***************************************************************************
  * buffer allocator enumerations
  **************************************************************************/
-%include "hamr_buffer_allocator.h"
+%include "hamr_buffer_allocator.i"
 
 /***************************************************************************
  * buffer transfer mode enumerations
