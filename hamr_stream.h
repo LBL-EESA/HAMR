@@ -5,7 +5,9 @@
 
 #include "hamr_config.h"
 
+#include <cstddef>
 #include <variant>
+
 #if defined(HAMR_ENABLE_CUDA)
 #include <cuda_runtime.h>
 #else
@@ -17,16 +19,18 @@ using cudaStream_t = char;
 using hipStream_t = char;
 #endif
 
-
 namespace hamr
 {
 
 /// A wrapper around technology specific streams.
-/** Streams are used to enable concurrent operations on the GPU. The default is
- * for a stream per thread.  However, note that libraries built seperately will
- * likely use the default blocking stream and if so explicit use of streams is
- * necessary.  In most cases API's requiring a hamr::stream can be passed the
- * technology specific stream due to implicit conversions.
+/** Streams are used to enable and order concurrent operations on accelerator
+ * devices. The default stream used in hamr is a stream-per-thread where
+ * available.  However, note that libraries built seperately will likely use
+ * the default blocking stream and if so explicit specification of the stream
+ * when calling into those libraries is necessary. Note that hamr passes stream
+ * correctly when interfacing with Python. In most cases the hamr API's
+ * requiring a ::stream can be passed the technology specific stream due to
+ * implicit conversion operators implemented here.
  */
 class HAMR_EXPORT stream
 {
@@ -57,7 +61,7 @@ public:
     }
 
     /// Constructs or converts from a CUDA stream
-    stream(cudaStream_t &strm) : m_stream(std::in_place_index<1>, strm) {}
+    stream(const cudaStream_t &strm) : m_stream(std::in_place_index<1>, strm) {}
 
     /// Accesses the CUDA stream.
     cudaStream_t cuda_stream() const
@@ -93,21 +97,13 @@ public:
     int synchronize() const;
 
     /// evaluates true if a stream has been set
-    operator bool()
-    {
-        if (std::get_if<1>(&m_stream))
-        {
-            return true;
-        }
-        else if (std::get_if<2>(&m_stream))
-        {
-            return true;
-        }
-        return false;
-    }
+    operator bool() const;
 
     /// sends the value of the stream to std::cerr
     void print() const;
+
+    /// convert the technology specific stream to an integer
+    size_t get_stream();
 
 private:
     std::variant<char, cudaStream_t, hipStream_t> m_stream;
