@@ -93,12 +93,14 @@ class HAMR_EXPORT buffer_handle
 public:
     /// construct an empty, and unusable object
     buffer_handle() : m_data(nullptr), m_size(0),
-        m_read_only(0), m_cpu_accessible(0), m_cuda_accessible(0)
+        m_read_only(0), m_cpu_accessible(0), m_cuda_accessible(0),
+        m_stream(0)
         {}
 
     /// construct from existing data
     buffer_handle(const std::shared_ptr<T> &src, size_t size,
-        int read_only, int cpu_accessible, int cuda_accessible);
+        int read_only, int cpu_accessible, int cuda_accessible,
+        size_t stream);
 
     /// destruct
     ~buffer_handle();
@@ -141,6 +143,7 @@ public:
     int m_read_only;
     int m_cpu_accessible;
     int m_cuda_accessible;
+    size_t m_stream;
 };
 
 // **************************************************************************
@@ -166,13 +169,14 @@ void buffer_handle<T>::to_stream(std::ostream &os) const
 // --------------------------------------------------------------------------
 template <typename T>
 buffer_handle<T>::buffer_handle(const std::shared_ptr<T> &src,
-    size_t size, int read_only, int cpu_accessible, int cuda_accessible) :
-    m_data(src), m_size(size), m_read_only(read_only),
-    m_cpu_accessible(cpu_accessible), m_cuda_accessible(cuda_accessible)
+    size_t size, int read_only, int cpu_accessible, int cuda_accessible,
+    size_t stream) : m_data(src), m_size(size), m_read_only(read_only),
+    m_cpu_accessible(cpu_accessible), m_cuda_accessible(cuda_accessible),
+    m_stream(stream)
 {
     if (hamr::get_verbose())
     {
-        std::cerr << "construct " << *this << std::endl;
+        std::cerr << "buffer_handle::construct " << *this << std::endl;
     }
 }
 
@@ -182,7 +186,7 @@ buffer_handle<T>::~buffer_handle()
 {
     if (hamr::get_verbose())
     {
-        std::cerr << "destruct " << *this << std::endl;
+        std::cerr << "buffer_handle::destruct " << *this << std::endl;
     }
 }
 
@@ -191,11 +195,11 @@ template <typename T>
 buffer_handle<T>::buffer_handle(const buffer_handle<T> &other) :
     m_data(other.m_data), m_size(other.m_size),
     m_read_only(other.m_read_only), m_cpu_accessible(other.m_cpu_accessible),
-    m_cuda_accessible(other.m_cuda_accessible)
+    m_cuda_accessible(other.m_cuda_accessible), m_stream(other.m_stream)
 {
     if (hamr::get_verbose())
     {
-        std::cerr << "copy construct " << *this << std::endl;
+        std::cerr << "buffer_handle::copy construct " << *this << std::endl;
     }
 }
 
@@ -204,11 +208,11 @@ template <typename T>
 buffer_handle<T>::buffer_handle(buffer_handle<T> &&other) :
     m_data(std::move(other.m_data)), m_size(other.m_size),
     m_read_only(other.m_read_only), m_cpu_accessible(other.m_cpu_accessible),
-    m_cuda_accessible(other.m_cuda_accessible)
+    m_cuda_accessible(other.m_cuda_accessible), m_stream(other.m_stream)
 {
     if (hamr::get_verbose())
     {
-        std::cerr << "move construct " << *this << std::endl;
+        std::cerr << "buffer_handle::move construct " << *this << std::endl;
     }
 }
 
@@ -286,6 +290,9 @@ PyObject *buffer_handle<T>::get_array_interface()
     // mask
     PyObject *mask = Py_None;
 
+    // stream
+    PyObject *strm = PyLong_FromSize_t(m_stream);
+
     // version
     PyObject *version = PyLong_FromLong(3);
 
@@ -297,12 +304,14 @@ PyObject *buffer_handle<T>::get_array_interface()
     PyDict_SetItemString(aint, "data", data);
     PyDict_SetItemString(aint, "strides", strides);
     PyDict_SetItemString(aint, "mask", mask);
+    PyDict_SetItemString(aint, "stream", strm);
     PyDict_SetItemString(aint, "version", version);
 
     Py_DECREF(shape);
     Py_DECREF(typestr);
     Py_DECREF(descr);
     Py_DECREF(data);
+    Py_DECREF(strm);
     Py_DECREF(version);
 
     return aint;
