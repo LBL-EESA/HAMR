@@ -16,9 +16,6 @@
  **************************************************************************/
 %rename(_print) hamr::buffer::print;
 %ignore hamr::buffer::operator=;
-%ignore hamr::buffer::buffer(buffer &&);
-%ignore hamr::buffer::buffer(allocator, buffer &&);
-%ignore hamr::buffer::buffer(allocator, stream const &, buffer &&);
 
 %include "hamr_buffer.h"
 

@@ -460,6 +460,7 @@ public:
     buffer(allocator alloc, const buffer<T> &other) :
         buffer(alloc, other.m_stream, other.m_sync, other) {}
 
+#if !defined(SWIG)
     /// Move construct from the passed buffer.
     buffer(buffer<T> &&other);
 
@@ -506,15 +507,6 @@ public:
     buffer(allocator alloc, buffer<T> &&other) :
         buffer(alloc, other.m_stream, other.m_sync, std::move(other)) {}
 
-    /** Allocate space and copy the contents of another buffer. The allocator,
-     * owner, stream, and sychronization mode of the receiving object are
-     * unmodified by this operation. Thus one may move data around the system
-     * using copy assignment.
-     */
-    template <typename U>
-    void operator=(const buffer<U> &other);
-    void operator=(const buffer<T> &other);
-
     /** move assign from the other buffer.  The target buffer's allocator,
      * stream, and device transfer mode are preserved.  if this and the passed
      * buffer have the same type, allocator, and owner the passed buffer is
@@ -524,6 +516,16 @@ public:
      * this type as they are copied.
      */
     void operator=(buffer<T> &&other);
+#endif
+
+    /** Allocate space and copy the contents of another buffer. The allocator,
+     * owner, stream, and sychronization mode of the receiving object are
+     * unmodified by this operation. Thus one may move data around the system
+     * using copy assignment.
+     */
+    template <typename U>
+    void operator=(const buffer<U> &other);
+    void operator=(const buffer<T> &other);
 
     /// swap the contents of the two buffers
     void swap(buffer<T> &other);
