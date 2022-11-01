@@ -94,7 +94,7 @@ hamr::buffer<double> gen_A(int n)
     {
         for (int i = 0; i < n; ++i) // row
         {
-            ptmp[j*n +i] = i + 1;
+            ptmp[j*n + i] = i + 1;
         }
     }
 
@@ -111,7 +111,7 @@ hamr::buffer<double> gen_B(int n)
     {
         for (int i = 0; i < n; ++i) // row
         {
-            ptmp[j*n +i] = j + 1;
+            ptmp[j*n + i] = j + 1;
         }
     }
 
