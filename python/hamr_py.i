@@ -48,11 +48,9 @@ memory management on systems with heterogeneous accellerators."
 %include "hamr_buffer_allocator.h"
 
 /***************************************************************************
- * base class for streams
+ * stream
  **************************************************************************/
-%ignore hamr::stream::operator=;
-%ignore hamr::stream::stream(stream &&);
-%include "hamr_stream.h"
+%include "hamr_stream.i"
 
 /***************************************************************************
  * buffer_handle
