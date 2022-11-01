@@ -835,7 +835,7 @@ public:
     /** synchronizes with the current stream. This ensures that asynchronous
      * data transfers have completed before you access the data.
      */
-    int synchronize() { return m_stream.synchronize(); }
+    int synchronize() const { return m_stream.synchronize(); }
 
     /// prints the contents to the stderr stream
     int print() const;
