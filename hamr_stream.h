@@ -11,12 +11,12 @@
 #if defined(HAMR_ENABLE_CUDA)
 #include <cuda_runtime.h>
 #else
-using cudaStream_t = char;
+using cudaStream_t = void*;
 #endif
 #if defined(HAMR_ENABLE_HIP)
 #include <hip/hip_runtime.h>
 #else
-using hipStream_t = char;
+using hipStream_t = void*;
 #endif
 
 namespace hamr
@@ -53,6 +53,9 @@ public:
     stream &operator=(stream &&) = default;
 
 #if defined(HAMR_ENABLE_CUDA)
+    /// convert to a CUDA stream
+    operator cudaStream_t () const { return this->get_cuda_stream(); }
+
     /// assign a CUDA stream
     stream &operator=(cudaStream_t strm)
     {
@@ -64,7 +67,7 @@ public:
     stream(const cudaStream_t &strm) : m_stream(std::in_place_index<1>, strm) {}
 
     /// Accesses the CUDA stream.
-    cudaStream_t cuda_stream() const
+    cudaStream_t get_cuda_stream() const
     {
         const cudaStream_t *cs;
         if ((cs = std::get_if<1>(&m_stream)))
@@ -73,6 +76,9 @@ public:
     }
 #endif
 #if defined(HAMR_ENABLE_HIP)
+    /// convert to a HIP stream
+    operator hipStream_t () const { return this->get_hip_stream(); }
+
     /// assign a HIP stream
     stream &operator=(hipStream_t strm)
     {
@@ -84,7 +90,7 @@ public:
     stream(hipStream_t &strm) : m_stream(std::in_place_index<2>, strm) {}
 
     /// Accesses the HIP stream.
-    hipStream_t hip_stream() const
+    hipStream_t get_hip_stream() const
     {
         const hipStream_t *hs;
         if ((hs = std::get_if<2>(&m_stream)))
