@@ -2719,9 +2719,9 @@ std::shared_ptr<const T> buffer<T>::get_hip_accessible() const
             if (copy_to_hip_from_hip(tmp.get(), m_data.get(), m_owner, m_size))
                 return nullptr;
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
 
             return tmp;
         }
