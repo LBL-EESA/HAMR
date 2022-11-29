@@ -1,5 +1,6 @@
 #include "hamr_config.h"
 #include "hamr_buffer.h"
+#include "hamr_buffer_util.h"
 #include "hamr_buffer_allocator.h"
 
 #include <iostream>
@@ -11,11 +12,8 @@ template <typename T>
 hamr::buffer<T> initialize(size_t n_vals, const T &val)
 {
     // allocate the memory
-    hamr::buffer<T> ao(allocator::openmp);
-    ao.resize(n_vals);
-
-    auto spao = ao.get_openmp_accessible();
-    T *pao = spao.get();
+    hamr::buffer<T> ao(allocator::openmp, n_vals);
+    T *pao = ao.data();
 
     // initialize using openmp
 
@@ -43,19 +41,17 @@ hamr::buffer<T> initialize(size_t n_vals, const T &val)
 template <typename T, typename U>
 hamr::buffer<T> add(const hamr::buffer<T> &a1, const hamr::buffer<U> &a2)
 {
-    // get the inputs
-    auto spa1 = a1.get_openmp_accessible();
-    const T *pa1 = spa1.get();
-
-    auto spa2 = a2.get_openmp_accessible();
-    const U *pa2 = spa2.get();
-
     size_t n_vals = a1.size();
 
-    // allocate the memory
-    hamr::buffer<T> ao(allocator::openmp);
-    ao.resize(n_vals, T(0));
+    // get the inputs
+    auto spa1 = a1.get_openmp_accessible();
+    auto pa1 = spa1.get();
 
+    auto spa2 = a2.get_openmp_accessible();
+    auto pa2 = spa2.get();
+
+    // allocate the memory
+    hamr::buffer<T> ao(allocator::openmp, n_vals, T(0));
     T *pao = ao.data();
 
     // do the calculation
@@ -82,25 +78,23 @@ hamr::buffer<T> add(const hamr::buffer<T> &a1, const hamr::buffer<U> &a2)
 
 // **************************************************************************
 template <typename T, typename U>
-hamr::buffer<T> multiply_scalar(const hamr::buffer<T> &ain, const U &val)
+hamr::buffer<T> multiply_scalar(const hamr::buffer<T> &ai, const U &val)
 {
-    // get the inputs
-    auto spain = ain.get_openmp_accessible();
-    const T *pain = spain.get();
+    size_t n_vals = ai.size();
 
-    size_t n_vals = ain.size();
+    // get the inputs
+    auto spai = ai.get_openmp_accessible();
+    auto pai = spai.get();
 
     // allocate the memory
-    hamr::buffer<T> ao(allocator::openmp);
-    ao.resize(n_vals, T(0));
-
+    hamr::buffer<T> ao(allocator::openmp, n_vals, T(0));
     T *pao = ao.data();
 
     // do the calculation
-    #pragma omp target teams HAMR_OPENMP_LOOP is_device_ptr(pao, pain) map(to: val)
+    #pragma omp target teams HAMR_OPENMP_LOOP is_device_ptr(pao, pai) map(to: val)
     for (size_t i = 0; i < n_vals; ++i)
     {
-        pao[i] = val * pain[i];
+        pao[i] = val * pai[i];
     }
 
     // print the results
@@ -109,7 +103,7 @@ hamr::buffer<T> multiply_scalar(const hamr::buffer<T> &ain, const U &val)
 
     if (n_vals < 33)
     {
-        std::cerr << "ain = "; ain.print(); std::cerr << std::endl;
+        std::cerr << "ai = "; ai.print(); std::cerr << std::endl;
         std::cerr << "ao = "; ao.print(); std::cerr << std::endl;
     }
 
@@ -124,8 +118,7 @@ int compare_int(const hamr::buffer<T> &ain, int val)
     size_t n_vals = ain.size();
     std::cerr << "comparing array with " << n_vals << " elements to " << val << std::endl;
 
-    hamr::buffer<int> ai(ain.get_allocator());
-    ai.resize(n_vals);
+    hamr::buffer<int> ai(ain.get_allocator(), n_vals);
     ain.get(ai);
 
     if (n_vals < 33)
@@ -133,8 +126,7 @@ int compare_int(const hamr::buffer<T> &ain, int val)
         ai.print();
     }
 
-    auto spai = ai.get_cpu_accessible();
-    int *pai = spai.get();
+    auto [spai, pai] = hamr::get_cpu_accessible(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {

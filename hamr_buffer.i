@@ -1,6 +1,7 @@
 %{
 #include "hamr_config.h"
 #include "hamr_buffer.h"
+#include "hamr_buffer_util.h"
 #include "hamr_buffer_handle.h"
 #include "hamr_gil_state.h"
 #include "hamr_stream.h"
@@ -48,8 +49,7 @@
         size_t n_elem = self->size();
         if (n_elem)
         {
-            auto spb = self->get_cpu_accessible();
-            T *pb = spb.get();
+            auto [spb, pb] = get_cpu_accessible(*self);
 
             oss << pb[0];
 

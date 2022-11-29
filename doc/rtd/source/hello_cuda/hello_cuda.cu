@@ -1,4 +1,5 @@
 #include <hamr_buffer.h>
+#include <hamr_buffer_util.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <iostream>

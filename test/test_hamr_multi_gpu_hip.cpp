@@ -1,4 +1,5 @@
 #include "hamr_buffer.h"
+#include "hamr_buffer_util.h"
 
 #include <hip/hip_runtime.h>
 
@@ -8,8 +9,7 @@
 template <typename T>
 void print(const hamr::buffer<T> &buf)
 {
-    auto spbuf = buf.get_cpu_accessible();
-    const T *pbuf = spbuf.get();
+    auto [spbuf, pbuf] = hamr::get_cpu_accessible(buf);
 
     std::cerr << pbuf[0];
     for (size_t i = 1; i < buf.size(); ++i)
@@ -81,8 +81,7 @@ int main(int argc, char **argv)
     // check for 31415
     std::cerr << " ==== validate ==== " << std::endl;
 
-    auto spsrc = src->get_cpu_accessible();
-    T *psrc = spsrc.get();
+    auto [spsrc, psrc] = hamr::get_cpu_accessible(*src);
 
     for (size_t i = 0; i < n_elem; ++i)
     {
