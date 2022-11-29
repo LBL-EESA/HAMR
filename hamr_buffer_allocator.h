@@ -104,16 +104,17 @@ void assert_valid_allocator(buffer_allocator alloc)
 /// get the allocator type most suitable for the current build configuration
 inline HAMR_EXPORT buffer_allocator get_device_allocator()
 {
+    buffer_allocator alloc = buffer_allocator::malloc;
 #if defined(HAMR_ENABLE_CUDA)
-    return buffer_allocator::cuda;
+    alloc = buffer_allocator::cuda;
 #endif
 #if defined(HAMR_ENABLE_HIP)
-    return buffer_allocator::hip;
+    alloc = buffer_allocator::hip;
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-    return buffer_allocator::openmp;
+    alloc = buffer_allocator::openmp;
 #endif
-    return buffer_allocator::malloc;
+    return alloc;
 }
 
 }
