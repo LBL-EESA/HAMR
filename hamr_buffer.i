@@ -70,8 +70,11 @@
     {
         hamr::gil_state gil;
 
-        hamr::buffer_handle<T> h(self->get_cpu_accessible(), self->size(),
-            0, 1, self->cpu_accessible() && self->cuda_accessible(),
+        std::shared_ptr<T> ptr
+            (std::const_pointer_cast<T>(self->get_cpu_accessible()));
+
+        hamr::buffer_handle<T> h(ptr, self->size(), 0, 1,
+            self->cpu_accessible() && self->cuda_accessible(),
             self->get_stream().get_stream());
 
         return h;
@@ -82,8 +85,11 @@
     {
         hamr::gil_state gil;
 
-        hamr::buffer_handle<T> h(self->get_cuda_accessible(), self->size(),
-            0, self->cpu_accessible() && self->cuda_accessible(), 1,
+        std::shared_ptr<T> ptr
+            (std::const_pointer_cast<T>(self->get_cuda_accessible()));
+
+        hamr::buffer_handle<T> h(ptr, self->size(), 0,
+            self->cpu_accessible() && self->cuda_accessible(), 1,
             self->get_stream().get_stream());
 
         return h;

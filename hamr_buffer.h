@@ -659,63 +659,42 @@ public:
     ///@}
 
 #if !defined(SWIG)
-    /** @name get_cpu_accessible
-     * @returns a pointer to the contents of the buffer accessible on the CPU.
-     * If the buffer is currently accessible by codes running on the CPU then
-     * this call is a NOOP.  If the buffer is not currently accessible by codes
-     * running on the CPU then a temporary buffer is allocated and the data is
-     * moved to the CPU.  The returned shared_ptr deals with deallocation of
-     * the temporary if needed.
+    /** @returns a read only pointer to the contents of the buffer accessible on
+     * the CPU.  If the buffer is currently accessible by codes running on the
+     * CPU then this call is a NOOP.  If the buffer is not currently accessible
+     * by codes running on the CPU then a temporary buffer is allocated and the
+     * data is moved to the CPU.  The returned shared_ptr deals with
+     * deallocation of the temporary if needed.
      */
-    ///@{
-    /// returns a pointer to the contents of the buffer accessible on the CPU.
-    std::shared_ptr<T> get_cpu_accessible();
-
-    /// returns a pointer to the contents of the buffer accessible on the CPU.
     std::shared_ptr<const T> get_cpu_accessible() const;
-    ///@}
 #endif
 
     /// returns true if the data is accessible from codes running on the CPU
     int cpu_accessible() const;
 
 #if !defined(SWIG)
-    /** @name get_cuda_accessible
-     * @returns a pointer to the contents of the buffer accessible from the
-     * active CUDA device.  If the buffer is currently accessible on the active
-     * CUDA device then this call is a NOOP.  If the buffer is not currently
-     * accessible on the active CUDA device then a temporary buffer is allocated
-     * and the data is moved.  The returned shared_ptr deals with deallocation
-     * of the temporary if needed.
+    /** @returns a read only pointer to the contents of the buffer accessible
+     * from the active CUDA device.  If the buffer is currently accessible on
+     * the active CUDA device then this call is a NOOP.  If the buffer is not
+     * currently accessible on the active CUDA device then a temporary buffer
+     * is allocated and the data is moved.  The returned shared_ptr deals with
+     * deallocation of the temporary if needed.
      */
-    ///@{
-    /// returns a pointer to the contents of the buffer accessible from within CUDA
-    std::shared_ptr<T> get_cuda_accessible();
-
-    /// returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<const T> get_cuda_accessible() const;
-    ///@}
 #endif
 
     /// returns true if the data is accessible from CUDA codes
     int cuda_accessible() const;
 
 #if !defined(SWIG)
-    /** @name get_hip_accessible
-     * @returns a pointer to the contents of the buffer accessible from the
-     * active HIP device.  If the buffer is currently accessible on the active
-     * HIP device then this call is a NOOP.  If the buffer is not currently
-     * accessible on the active HIP device then a temporary buffer is allocated
-     * and the data is moved.  The returned shared_ptr deals with deallocation
-     * of the temporary if needed.
+    /** @returns a read only pointer to the contents of the buffer accessible
+     * from the active HIP device.  If the buffer is currently accessible on
+     * the active HIP device then this call is a NOOP.  If the buffer is not
+     * currently accessible on the active HIP device then a temporary buffer is
+     * allocated and the data is moved.  The returned shared_ptr deals with
+     * deallocation of the temporary if needed.
      */
-    ///@{
-    ///  returns a pointer to the contents of the buffer accessible from within HIP
-    std::shared_ptr<T> get_hip_accessible();
-
-    ///  returns a pointer to the contents of the buffer accessible from within HIP
     std::shared_ptr<const T> get_hip_accessible() const;
-    ///@}
 #endif
 
     /// returns true if the data is accessible from HIP codes
@@ -723,20 +702,15 @@ public:
 
 #if !defined(SWIG)
     /** @name get_openmp_accessible
-     * @returns a pointer to the contents of
-     * the buffer accessible from the active OpenMP off load device.  If the
-     * buffer is currently accessible on the active OpenMP off load device then
-     * this call is a NOOP.  If the buffer is not currently accessible on the
-     * active OpenMP off load device then a temporary buffer is allocated and
-     * the data is moved.  The returned shared_ptr deals with deallocation of
-     * the temporary if needed.
+     * @returns a read only pointer to the contents of the buffer accessible
+     * from the active OpenMP off load device.  If the buffer is currently
+     * accessible on the active OpenMP off load device then this call is a
+     * NOOP.  If the buffer is not currently accessible on the active OpenMP
+     * off load device then a temporary buffer is allocated and the data is
+     * moved.  The returned shared_ptr deals with deallocation of the temporary
+     * if needed.
      */
     ///@{
-    /** returns a pointer to the contents of the buffer accessible from within
-     * OpenMP off load
-     */
-    std::shared_ptr<T> get_openmp_accessible();
-
     /** returns a pointer to the contents of the buffer accessible from within
      * OpenMP off load
      */
@@ -748,22 +722,15 @@ public:
     int openmp_accessible() const;
 
 #if !defined(SWIG)
-    /** @name get_device_accessible
-     * @returns a pointer to the contents of the buffer accessible from the
-     * active device using the technology most suitable witht he current build
-     * configuration. If the buffer is currently accessible on the active
-     * device then this call is a NOOP.  If the buffer is not currently
-     * accessible on the active device then a temporary buffer is allocated and
-     * the data is moved.  The returned shared_ptr deals with deallocation of
-     * the temporary if needed.
+    /** @returns a read only pointer to the contents of the buffer accessible
+     * from the active device using the technology most suitable witht he
+     * current build configuration. If the buffer is currently accessible on
+     * the active device then this call is a NOOP.  If the buffer is not
+     * currently accessible on the active device then a temporary buffer is
+     * allocated and the data is moved.  The returned shared_ptr deals with
+     * deallocation of the temporary if needed.
      */
-    ///@{
-    ///  returns a pointer to the contents of the buffer accessible from within CUDA
-    std::shared_ptr<T> get_device_accessible();
-
-    ///  returns a pointer to the contents of the buffer accessible from within CUDA
     std::shared_ptr<const T> get_device_accessible() const;
-    ///@}
 #endif
 
     /** returns true if the data is accessible from device codes using the
@@ -772,9 +739,10 @@ public:
     int device_accessible() const;
 
     /** @name data
-     * return the raw pointer to the buffer contents. Use this when you know
-     * that the buffer contents are accessible by the code operating on them to
-     * save the cost of a std::shared_ptr copy construct.
+     * @returns a writable pointer to the buffer contents. Use this to modify
+     * the buffer contents or when you know that the buffer contents are
+     * accessible by the code operating on them to save the cost of a
+     * std::shared_ptr copy construct.
      */
     ///@{
     /// return a pointer to the buffer contents
@@ -785,16 +753,16 @@ public:
     ///@}
 
     /** @name pointer
-     * return the smart pointer managing the buffer contents. Use this when you
+     * @returns the smart pointer managing the buffer contents. Use this when you
      * know that the buffer contents are accessible by the code operating on
      * them to save the costs of the logic that determines if a temporary is
      * needed
      */
     ///@{
-    /// return a pointer to the buffer contents
+    /// @returns a pointer to the buffer contents
     std::shared_ptr<T> pointer() { return m_data; }
 
-    /// return a const pointer to the buffer contents
+    /// @returns a const pointer to the buffer contents
     const std::shared_ptr<const T> pointer() const { return m_data; }
     ///@}
 
@@ -2557,16 +2525,9 @@ int buffer<T>::get(size_t src_start,
     return 0;
 }
 
-// --------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
-{
-    return const_cast<buffer<T>*>(this)->get_cpu_accessible();
-}
-
 // ---------------------------------------------------------------------------
 template <typename T>
-std::shared_ptr<T> buffer<T>::get_cpu_accessible()
+std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
 {
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc) ||
         (m_alloc == allocator::cuda_uva) || (m_alloc == allocator::cuda_host) ||
@@ -2650,13 +2611,6 @@ std::shared_ptr<T> buffer<T>::get_cpu_accessible()
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_cuda_accessible() const
 {
-    return const_cast<buffer<T>*>(this)->get_cuda_accessible();
-}
-
-// ---------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> buffer<T>::get_cuda_accessible()
-{
 #if !defined(HAMR_ENABLE_CUDA)
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " get_cuda_accessible failed, CUDA is not available."
@@ -2725,13 +2679,6 @@ std::shared_ptr<T> buffer<T>::get_cuda_accessible()
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_hip_accessible() const
 {
-    return const_cast<buffer<T>*>(this)->get_hip_accessible();
-}
-
-// ---------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> buffer<T>::get_hip_accessible()
-{
 #if !defined(HAMR_ENABLE_HIP)
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " get_hip_accessible failed, HIP is not available."
@@ -2795,13 +2742,6 @@ std::shared_ptr<T> buffer<T>::get_hip_accessible()
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_openmp_accessible() const
 {
-    return const_cast<buffer<T>*>(this)->get_openmp_accessible();
-}
-
-// ---------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> buffer<T>::get_openmp_accessible()
-{
 #if !defined(HAMR_ENABLE_OPENMP)
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " get_openmp_accessible failed, OpenMP is not available."
@@ -2864,13 +2804,6 @@ std::shared_ptr<T> buffer<T>::get_openmp_accessible()
 // ---------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_device_accessible() const
-{
-    return const_cast<buffer<T>*>(this)->get_device_accessible();
-}
-
-// ---------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> buffer<T>::get_device_accessible()
 {
 #if defined(HAMR_ENABLE_CUDA)
     return get_cuda_accessible();
