@@ -1,15 +1,13 @@
 template <typename T, typename U>
 hamr::buffer<T> add(const hamr::buffer<T> &a1, const hamr::buffer<U> &a2)
 {
-    // get pointers to the input arrays that are safe to use on the GPU
-    auto spa1 = a1.get_openmp_accessible();
-    const T *pa1 = spa1.get();
+    size_t n_vals = a1.size();
 
-    auto spa2 = a2.get_openmp_accessible();
-    const U *pa2 = spa2.get();
+    // get pointers to the input arrays that are safe to use on the GPU
+    auto [spa1, pa1] = hamr::get_openmp_accessible(a1);
+    auto [spa2, pa2] = hamr::get_openmp_accessible(a2);
 
     // allocate the memory for the result on the GPU, and get a pointer to it
-    size_t n_vals = a1.size();
     hamr::buffer<T> ao(hamr::buffer_allocator::openmp, n_vals, T(0));
     T *pao = ao.data();
 
