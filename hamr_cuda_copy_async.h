@@ -3,16 +3,11 @@
 
 #include "hamr_config.h"
 #include "hamr_env.h"
-#if defined(HAMR_ENABLE_CUDA)
 #include "hamr_cuda_kernels.h"
 #include "hamr_cuda_launch.h"
-#include "hamr_cuda_malloc_allocator.h"
+#include "hamr_cuda_malloc_async_allocator.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
-#else
-using cudaStream_t = void;
-#endif
-#include "hamr_malloc_allocator.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -134,7 +129,7 @@ static int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const U *src, size_t
     // apply the copy on the gpu
 
     // allocate a temporary buffer on the GPU
-    std::shared_ptr<U> pTmp = hamr::cuda_malloc_allocator<U>::allocate(str, n_elem);
+    std::shared_ptr<U> pTmp = hamr::cuda_malloc_async_allocator<U>::allocate(str, n_elem);
 
     // copy the data
     size_t n_bytes = n_elem*sizeof(U);
@@ -646,7 +641,7 @@ static int copy_to_cpu_from_cuda(cudaStream_t str, T *dest, const U *src, size_t
     (void) str;
     (void) dest;
     (void) src;
-    (void) n_elem;/
+    (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
         " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
     return -1;
@@ -655,7 +650,7 @@ static int copy_to_cpu_from_cuda(cudaStream_t str, T *dest, const U *src, size_t
     // copy the buffer to the cpu
 
     // allocate a temporary buffer on the GPU
-    auto sptmp = hamr::cuda_malloc_allocator<T>::allocate(str, n_elem);
+    auto sptmp = hamr::cuda_malloc_async_allocator<T>::allocate(str, n_elem);
     T *ptmp = sptmp.get();
 
     // get launch parameters
