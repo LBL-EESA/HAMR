@@ -29,11 +29,10 @@ class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithm
 {
 public:
     /** constructs the deleter
-     * @param[in] str a pointer to a CUDA stream or null for the default stream
      * @param[in] ptr the pointer to the array to delete
      * @param[in] n   the number of elements in the array
      */
-    cuda_malloc_deleter(cudaStream_t str, T *ptr, size_t n);
+    cuda_malloc_deleter(T *ptr, size_t n);
 
     /** deletes the array
      * @param[in] ptr the pointer to the array to delete. must be the same as
@@ -44,14 +43,12 @@ public:
 private:
     T *m_ptr;
     size_t m_elem;
-    const cudaStream_t m_str;
 };
 
 // --------------------------------------------------------------------------
 template <typename T>
 cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::cuda_malloc_deleter(cudaStream_t str, T *ptr, size_t n) :
-        m_ptr(ptr), m_elem(n), m_str(str)
+    ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
@@ -93,7 +90,7 @@ cuda_malloc_deleter<T, typename std::enable_if<!std::is_arithmetic<T>::value>::t
 
     // destruct
     cudaError_t ierr = cudaSuccess;
-    cuda_kernels::destruct<T><<<block_grid, thread_grid, 0, m_str>>>(ptr, m_elem);
+    cuda_kernels::destruct<T><<<block_grid, thread_grid>>>(ptr, m_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -127,11 +124,10 @@ class HAMR_EXPORT cuda_malloc_deleter<T, typename std::enable_if<std::is_arithme
 {
 public:
     /** constructs the deleter
-     * @param[in] str a CUDA stream or null for the default stream
      * @param[in] ptr the pointer to the array to delete
      * @param[in] n the number of elements in the array
      */
-    cuda_malloc_deleter(cudaStream_t str, T *ptr, size_t n);
+    cuda_malloc_deleter(T *ptr, size_t n);
 
     /** deletes the array
      * @param[in] ptr the pointer to the array to delete. must be the same as
@@ -147,9 +143,8 @@ private:
 // --------------------------------------------------------------------------
 template <typename T>
 cuda_malloc_deleter<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::cuda_malloc_deleter(cudaStream_t str, T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
+    ::cuda_malloc_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
 {
-    (void) str;
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
@@ -200,27 +195,21 @@ template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @returns a shared pointer to the array that holds a deleter for the
      * memory
      */
-    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n);
+    static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
      * @returns a shared pointer to the array that holds a deleter for the
      * memory
      */
-    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const T &val);
+    static std::shared_ptr<T> allocate(size_t n, const T &val);
 
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @param[in] vals an array of values to initialize the elements with
      * @param[in] cudaVals a flag set to true if vals are accessible by codes
@@ -229,18 +218,16 @@ struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_ari
      * memory
      */
     template <typename U>
-    static std::shared_ptr<T> allocate(cudaStream_t str,
-        size_t n, const U *vals, bool cudaVals = false);
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
 };
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem)
+    ::allocate(size_t n_elem)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
-    (void) str;
     (void) n_elem;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
          " cuda_malloc_allocator allocate objects failed."
@@ -277,7 +264,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem);
+    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -296,7 +283,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 #endif
 }
 
@@ -304,10 +291,9 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 template <typename T>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem, const T &val)
+    ::allocate(size_t n_elem, const T &val)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
-    (void) str;
     (void) n_elem;
     (void) val;
      std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -345,7 +331,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, val);
+    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -364,7 +350,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 #endif
 }
 
@@ -373,10 +359,9 @@ template <typename T>
 template <typename U>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem, const U *vals, bool cudaVals)
+    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
 {
 #if !defined(HAMR_CUDA_OBJECTS)
-    (void) str;
     (void) n_elem;
     (void) vals;
     (void) cudaVals;
@@ -414,8 +399,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
             return nullptr;
         }
 
-        if ((ierr = cudaMemcpyAsync(tmp, vals, n_bytes_vals,
-            cudaMemcpyHostToDevice, str)) != cudaSuccess)
+        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals, cudaMemcpyHostToDevice)) != cudaSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
                 " Failed to cudaMemcpy array of " << n_elem
@@ -442,7 +426,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
     }
 
     // construct
-    cuda_kernels::construct<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, vals);
+    cuda_kernels::construct<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -470,7 +454,7 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 #endif
 }
 
@@ -485,27 +469,21 @@ template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @returns a shared pointer to the array that holds a deleter for the
      * memory
      */
-    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n);
+    static std::shared_ptr<T> allocate(size_t n);
 
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
      * @returns a shared pointer to the array that holds a deleter for the
      * memory
      */
-    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const T &val);
+    static std::shared_ptr<T> allocate(size_t n, const T &val);
 
     /** allocate an array of n elements.
-     * @param[in] str a stream used to order operations, or null for the
-     *                default stream
      * @param[in] n the number of elements to allocate
      * @param[in] vals an array of values to initialize the elements with
      * @param[in] cudaVals a flag set to true if vals are accessible by codes
@@ -514,17 +492,15 @@ struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arit
      * deleter for the memory
      */
     template <typename U>
-    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const U *vals, bool cudaVals = false);
+    static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
 };
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem)
+    ::allocate(size_t n_elem)
 {
-    (void) str;
-
     size_t n_bytes = n_elem*sizeof(T);
 
     // allocate
@@ -554,14 +530,14 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem, const T &val)
+    ::allocate(size_t n_elem, const T &val)
 {
     size_t n_bytes = n_elem*sizeof(T);
 
@@ -592,7 +568,7 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     }
 
     // construct
-    cuda_kernels::fill<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, val);
+    cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, val);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -611,7 +587,7 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
 #endif
 
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 }
 
 // --------------------------------------------------------------------------
@@ -619,7 +595,7 @@ template <typename T>
 template <typename U>
 std::shared_ptr<T>
 cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    ::allocate(cudaStream_t str, size_t n_elem, const U *vals, bool cudaVals)
+    ::allocate(size_t n_elem, const U *vals, bool cudaVals)
 {
     size_t n_bytes = n_elem*sizeof(T);
 
@@ -650,8 +626,8 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
             return nullptr;
         }
 
-        if ((ierr = cudaMemcpyAsync(tmp, vals, n_bytes_vals,
-            cudaMemcpyHostToDevice, str)) != cudaSuccess)
+        if ((ierr = cudaMemcpy(tmp, vals, n_bytes_vals,
+            cudaMemcpyHostToDevice)) != cudaSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
                 " Failed to cudaMemcpy array of " << n_elem
@@ -678,7 +654,7 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     }
 
     // construct
-    cuda_kernels::fill<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, vals);
+    cuda_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -703,8 +679,9 @@ cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::
     }
 #endif
 
+
     // package
-    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(str, ptr, n_elem));
+    return std::shared_ptr<T>(ptr, cuda_malloc_deleter<T>(ptr, n_elem));
 }
 
 }
