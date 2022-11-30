@@ -15,6 +15,7 @@
 #include "hamr_config.h"
 #include "hamr_cuda_kernels.h"
 #include "hamr_env.h"
+#include "hamr_cuda_malloc_async_allocator.h"
 
 namespace hamr
 {
@@ -188,8 +189,10 @@ template <typename T, typename E = void>
 struct cuda_malloc_allocator {};
 
 /** A class for allocating arrays with cudaMalloc, specialized for objects.
- * However, note that because cudaMalloc synchronizes across the device the
- * cuda_malloc_async_allocator should be preferred.
+ * To obtain the best performance, especially in multi-threaded codes, one
+ * should use the overloads that accept a cudaStream. When a stream is provided
+ * allocations and initialization are asyncronous with respect to the CPU and
+ * other streams.
  */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::type>
@@ -219,6 +222,23 @@ struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<!std::is_ari
      */
     template <typename U>
     static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
+
+    /// @name asynchronous allocation
+    /** These calls are forwarded to the hamr::cuda_malloc_async_allocator.
+     * The passed stream is used for both allocation and initialization. The
+     * caller is expected to appy explicit synchronization when it is needed.
+     */
+    ///@{
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n)
+    { return cuda_malloc_async_allocator::allocate(str, n); }
+
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const T &val);
+    { return cuda_malloc_async_allocator::allocate(str, n, val); }
+
+    template <typename U>
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const U *vals, bool cudaVals = false);
+    { return cuda_malloc_async_allocator::allocate(str, n, vals, cudaVals); }
+    ///@}
 };
 
 // --------------------------------------------------------------------------
@@ -462,8 +482,10 @@ cuda_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>:
 
 
 /** A class for allocating arrays with cudaMalloc, specialized for numeric
- * types. However, note that because cudaMalloc synchronizes across the device
- * the cuda_malloc_async_allocator should be preferred.
+ * types.  To obtain the best performance, especially in multi-threaded codes,
+ * one should use the overloads that accept a cudaStream. When a stream is
+ * provided allocations and initialization are asyncronous with respect to the
+ * CPU and other streams.
  */
 template <typename T>
 struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -493,6 +515,22 @@ struct HAMR_EXPORT cuda_malloc_allocator<T, typename std::enable_if<std::is_arit
      */
     template <typename U>
     static std::shared_ptr<T> allocate(size_t n, const U *vals, bool cudaVals = false);
+
+    /// @name asynchronous allocation
+    /** These calls are forwarded to the hamr::cuda_malloc_async_allocator.
+     * The passed stream is used for both allocation and initialization. The
+     * caller is expected to appy explicit synchronization when it is needed.
+     */
+    ///@{
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n)
+    { return cuda_malloc_async_allocator::allocate(str, n); }
+
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const T &val);
+    { return cuda_malloc_async_allocator::allocate(str, n, val); }
+
+    template <typename U>
+    static std::shared_ptr<T> allocate(cudaStream_t str, size_t n, const U *vals, bool cudaVals = false);
+    { return cuda_malloc_async_allocator::allocate(str, n, vals, cudaVals); }
 };
 
 // --------------------------------------------------------------------------
