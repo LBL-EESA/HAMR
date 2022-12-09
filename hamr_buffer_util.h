@@ -138,7 +138,7 @@ auto get_device_accessible(const TT &b, PP &&... args)
 }
 
 
-/** Calls hamr::buffer::data on a number of hamr::buffer<NT> instances.
+/** Calls hamr::buffer::data on a number of hamr::buffer instances.
  *
  * @tparam PP a paramater pack of hamr::buffer<NT>
  * @param args any number of hamr::buffer<NT> instances
@@ -148,6 +148,32 @@ template <typename... PP>
 auto data(PP &&... args)
 {
     return std::make_tuple(args.data()...);
+}
+
+/** Calls hamr::buffer::pointer on a number of hamr::buffer instances.
+ *
+ * @tparam PP a paramater pack of hamr::buffer<NT>
+ * @param args any number of hamr::buffer<NT> instances
+ * @returns a tuple of std::shared_ptr<NT> one for each hamr::buffer<NT> passed in.
+ */
+template <typename... PP>
+auto pointer(PP &&... args)
+{
+    return std::make_tuple(args.pointer()...);
+}
+
+/** Calls hamr::buffer::synchronize on a number of hamr::buffer<NT> instances.
+ * Note however that one typically need not call synchronize on multiple buffer
+ * instances that share the same stream. Synchronizing on any one of them will
+ * synchronize all.
+ *
+ * @tparam PP a paramater pack of hamr::buffer<NT>
+ * @param args any number of hamr::buffer<NT> instances
+ */
+template <typename... PP>
+void synchronize(PP &&... args)
+{
+    (args.synchronize(), ...);
 }
 
 /** constructs an un-initialized hamr::buffer<NT> with space for n_elem
@@ -180,5 +206,6 @@ auto make_buffer(buffer_allocator alloc, size_t n_elem, const NT &ival)
     hamr::buffer<NT> buf(alloc, n_elem, ival);
     return std::make_tuple(buf, buf.data());
 }
+
 }
 #endif
