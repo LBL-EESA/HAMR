@@ -16,7 +16,7 @@ if (HAMR_ENABLE_CUDA)
 
     set_source_files_properties(test_hamr_stream_cuda.cpp PROPERTIES LANGUAGE CUDA)
     add_executable(test_hamr_stream_cuda test_hamr_stream_cuda.cpp)
-    target_link_libraries(test_hamr_stream_cuda hamr cublas)
+    target_link_libraries(test_hamr_stream_cuda hamr CUDA::cublas)
     set_target_properties(test_hamr_stream_cuda PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
     add_test(NAME test_hamr_stream_cuda_async COMMAND test_hamr_stream_cuda 5000 async)
     set_tests_properties(test_hamr_stream_cuda_async PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
