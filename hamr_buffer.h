@@ -1070,15 +1070,19 @@ buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
         m_data = std::shared_ptr<T>(ptr, malloc_deleter<T>(ptr, m_size));
     }
 #if defined(HAMR_ENABLE_CUDA)
+    else if ((alloc == allocator::cuda_async) ||
+        ((alloc == allocator::cuda) && (m_stream != cudaStreamDefault) &&
+        (m_stream != cudaStreamLegacy) && (m_stream != cudaStreamPerThread)))
+    {
+        // using a stream with cuda_malloc_allocator should forward to the
+        // cuda_malloc_async_allocator
+        m_data = std::shared_ptr<T>(ptr,
+            cuda_malloc_async_deleter<T>(m_stream, ptr, m_size));
+    }
     else if (alloc == allocator::cuda)
     {
         m_data = std::shared_ptr<T>(ptr,
-            cuda_malloc_deleter<T>(m_stream, ptr, m_size));
-    }
-    else if (alloc == allocator::cuda_async)
-    {
-        m_data = std::shared_ptr<T>(ptr,
-            cuda_malloc_async_deleter<T>(m_stream, ptr, m_size));
+            cuda_malloc_deleter<T>(ptr, m_size));
     }
     else if (alloc == allocator::cuda_uva)
     {
