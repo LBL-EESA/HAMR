@@ -102,6 +102,10 @@ public:
         int read_only, int cpu_accessible, int cuda_accessible,
         size_t stream);
 
+    /// construct from existing read only data
+    buffer_handle(const std::shared_ptr<const T> &src, size_t size,
+        int cpu_accessible, int cuda_accessible, size_t stream);
+
     /// destruct
     ~buffer_handle();
 
@@ -178,6 +182,15 @@ buffer_handle<T>::buffer_handle(const std::shared_ptr<T> &src,
     {
         std::cerr << "buffer_handle::construct " << *this << std::endl;
     }
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+buffer_handle<T>::buffer_handle(const std::shared_ptr<const T> &src,
+    size_t size, int cpu_accessible, int cuda_accessible,
+    size_t stream) : buffer_handle(std::const_pointer_cast<T>(src), size,
+    1, cpu_accessible, cuda_accessible, stream)
+{
 }
 
 // --------------------------------------------------------------------------
