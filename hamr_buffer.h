@@ -760,10 +760,10 @@ public:
      */
     ///@{
     /// @returns a pointer to the buffer contents
-    std::shared_ptr<T> pointer() { return m_data; }
+    std::shared_ptr<T> &pointer() { return m_data; }
 
     /// @returns a const pointer to the buffer contents
-    const std::shared_ptr<const T> pointer() const { return m_data; }
+    const std::shared_ptr<T> &pointer() const { return m_data; }
     ///@}
 
     /// @returns the allocator type enum
