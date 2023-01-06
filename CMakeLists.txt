@@ -99,15 +99,19 @@ else()
 endif()
 
 
-# add the requisite flags to enable c++11 features on various platforms.
+# add the requisite flags. CMake enthusiasts will say that this is "not the
+# CMake way". However, CMake has spotty coverage, is inconsistent in
+# mechanisms, and often it does not work. Nonetheless, one may override our
+# settings here by specifying them on the command line.
 if (MSVC)
     # TODO require vs2015
     # enable exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
             CACHE STRING "" FORCE)
 else()
+    # C++
     if (NOT CMAKE_CXX_FLAGS)
-        set(tmp "-fPIC -std=c++17 -Wall -Wextra")
+        set(tmp "-fPIC -std=c++17 -Wall -Wextra -fvisibility=hidden")
         if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
             set(tmp "${tmp} -stdlib=libc++")
         endif()
@@ -117,30 +121,39 @@ else()
                 set(tmp "${tmp} -fno-signaling-nans")
             endif()
         endif()
-         if (HAMR_ENABLE_OPENMP)
-             set(nvidia_omp_flags "-mp=gpu")
-             set(clang_amd_omp_flags "-target x86_64-pc-linux-gnu -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=${OPENMP_GPU_TARGETS}")
-             set(clang_nvidia_omp_flags "-Xopenmp-target -march=sm_75 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_DIR}")
-             set(tmp_loop "distribute parallel for")
-             check_cxx_compiler_flag(${nvidia_omp_flags} nvidia_omp)
-             check_cxx_compiler_flag(${clang_amd_omp_flags} clang_amd_omp)
-             check_cxx_compiler_flag(${clang_nvidia_omp_flags} clang_nvidia_omp)
-             if (nvidia_omp)
-                 set(tmp "${tmp} ${nvidia_omp_flags}")
-                 set(tmp_loop "loop")
-             elseif (clang_amd_omp)
-                 set(tmp "${tmp} ${clang_amd_omp_flags}")
-             elseif (clang_nvidia_omp)
-                 set(tmp "${tmp} ${clang_nvidia_omp_flags}")
-             else()
-                 message(FATAL_ERROR "A viable OpenMP compiler was not found")
-             endif()
-             set(HAMR_OPENMP_LOOP ${tmp_loop} CACHE STRING "OpenMP looping construct to use for device off load")
-         endif()
+
+        if (HAMR_ENABLE_OPENMP)
+            set(nvidia_omp_flags "-mp=gpu")
+            set(clang_amd_omp_flags "-target x86_64-pc-linux-gnu -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=${OPENMP_GPU_TARGETS}")
+            set(clang_nvidia_omp_flags "-Xopenmp-target -march=sm_75 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_DIR}")
+            set(tmp_loop "distribute parallel for")
+            check_cxx_compiler_flag(${nvidia_omp_flags} nvidia_omp)
+            check_cxx_compiler_flag(${clang_amd_omp_flags} clang_amd_omp)
+            check_cxx_compiler_flag(${clang_nvidia_omp_flags} clang_nvidia_omp)
+            if (nvidia_omp)
+                set(tmp "${tmp} ${nvidia_omp_flags}")
+                set(tmp_loop "loop")
+            elseif (clang_amd_omp)
+                set(tmp "${tmp} ${clang_amd_omp_flags}")
+            elseif (clang_nvidia_omp)
+                set(tmp "${tmp} ${clang_nvidia_omp_flags}")
+            else()
+                message(FATAL_ERROR "A viable OpenMP compiler was not found")
+            endif()
+            set(HAMR_OPENMP_LOOP ${tmp_loop} CACHE STRING "OpenMP looping construct to use for device off load")
+        endif()
+
         set(CMAKE_CXX_FLAGS "${tmp}"
             CACHE STRING "HAMR build defaults"
             FORCE)
+
+        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
+        set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
+            CACHE STRING "HAMR build defaults"
+            FORCE)
     endif()
+
+    # FORTRAN
     if (NOT CMAKE_Fortran_FLAGS)
         set(tmp "-Wall -Wextra -Wno-conversion -Wno-compare-reals -fno-math-errno")
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -150,23 +163,23 @@ else()
             CACHE STRING "HAMR build defaults"
             FORCE)
     endif()
+
+    # CUDA
     if (NOT CMAKE_CUDA_FLAGS)
         set(tmp "--default-stream per-thread --expt-relaxed-constexpr")
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fno-trapping-math,-fno-math-errno")
+            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fno-trapping-math,-fno-math-errno,-fvisibility=hidden")
             if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
                 set(tmp "${tmp},-fno-signaling-nans")
             endif()
         elseif ("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-            set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g")
+            set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g,-fvisibility=hidden")
         endif()
+
         set(CMAKE_CUDA_FLAGS "${tmp}"
             CACHE STRING "HAMR build defaults"
             FORCE)
-        string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
-        set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
-            CACHE STRING "HAMR build defaults"
-            FORCE)
+
         string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CUDA_FLAGS_RELEASE}")
         set(CMAKE_CUDA_FLAGS_RELEASE "${tmp}"
             CACHE STRING "HAMR build defaults"
