@@ -25,14 +25,14 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
         STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
-message(STATUS "Configuring a ${CMAKE_BUILD_TYPE} build")
+message(STATUS "HAMR: Configuring a ${CMAKE_BUILD_TYPE} build")
 
 # enable Python
 set(HAMR_ENABLE_PYTHON OFF CACHE BOOL "Enable Python bindings")
 if (HAMR_ENABLE_PYTHON)
-    message(STATUS "hamr Python features -- enabled")
+    message(STATUS "HAMR: Python features -- enabled")
 else()
-    message(STATUS "hamr Python features -- disabled")
+    message(STATUS "HAMR: Python features -- disabled")
 endif()
 
 # enable verbose debugging reports
@@ -54,13 +54,13 @@ if (HAMR_ENABLE_CUDA)
     check_language(CUDA)
     if (CMAKE_CUDA_COMPILER)
         enable_language(CUDA)
-        message(STATUS "hamr CUDA features -- enabled (${HAMR_CUDA_ARCHITECTURES})")
+        message(STATUS "HAMR: CUDA features -- enabled (${HAMR_CUDA_ARCHITECTURES})")
     else()
         message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
     find_package(CUDAToolkit REQUIRED)
 else()
-    message(STATUS "hamr CUDA features -- disabled")
+    message(STATUS "HAMR: CUDA features -- disabled")
 endif()
 
 # enable HIP
@@ -75,9 +75,9 @@ if (HAMR_ENABLE_HIP)
     set(GPU_TARGETS "gfx1030" CACHE STRING "GPU targets to compile for.")
     list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
     find_package(hip REQUIRED)
-    message(STATUS "hamr HIP features -- enabled")
+    message(STATUS "HAMR: HIP features -- enabled")
 else()
-    message(STATUS "hamr HIP features -- disabled")
+    message(STATUS "HAMR: HIP features -- disabled")
 endif()
 
 # enable OpenMP
@@ -93,9 +93,9 @@ if (HAMR_ENABLE_OPENMP)
     # to get the GPU_TARGETS use: rocminfo | grep gfx
     #list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
     #find_package(hip REQUIRED)
-    message(STATUS "hamr OpenMP features -- enabled")
+    message(STATUS "HAMR: OpenMP features -- enabled")
 else()
-    message(STATUS "hamr OpenMP features -- disabled")
+    message(STATUS "HAMR: OpenMP features -- disabled")
 endif()
 
 
@@ -287,10 +287,10 @@ install(EXPORT hamr
 # enable Python bindings
 find_package(Python3 COMPONENTS Interpreter Development)
 if (HAMR_ENABLE_PYTHON AND Python3_FOUND)
-    message(STATUS "hamr Python features -- enabled")
+    message(STATUS "HAMR: Python features -- enabled")
     add_subdirectory(python)
 else()
-    message(STATUS "hamr Python features -- disabled")
+    message(STATUS "HAMR: Python features -- disabled")
 endif()
 
 # enable regression tests
