@@ -248,6 +248,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
         return nullptr;
     }
 
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+    }
+
     // get launch parameters
     int device_id = -1;
     dim3 block_grid;
@@ -315,6 +327,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
     }
 
     // get launch parameters
@@ -387,6 +411,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::val
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
     }
 
     // move the existing array to the GPU
@@ -518,6 +554,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
         return nullptr;
     }
 
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+    }
+
     // construct
 #if defined(HAMR_INIT_ALLOC)
     cudaMemset(ptr, 0, n_bytes);
@@ -554,6 +602,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
     }
 
     // get launch parameters
@@ -612,6 +672,18 @@ cuda_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::valu
             << typeid(T).name() << " total " << n_bytes  << "bytes. "
             << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
+    }
+
+    // attach the stream
+    if (str)
+    {
+        if ((ierr = cudaStreamAttachMemAsync(str, ptr)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to associate managed memory with the given stream. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
     }
 
     // move the existing array to the GPU
