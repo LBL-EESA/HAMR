@@ -1605,7 +1605,7 @@ std::shared_ptr<T> buffer<T>::allocate(size_t n_elem)
     else if (m_alloc == allocator::cuda)
     {
         activate_cuda_device dev(m_owner);
-        return cuda_malloc_allocator<T>::allocate(m_stream, n_elem);
+        return cuda_malloc_allocator<T>::allocate(n_elem);
     }
     else if (m_alloc == allocator::cuda_async)
     {
