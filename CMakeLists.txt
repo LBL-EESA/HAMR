@@ -103,12 +103,7 @@ endif()
 # CMake way". However, CMake has spotty coverage, is inconsistent in
 # mechanisms, and often it does not work. Nonetheless, one may override our
 # settings here by specifying them on the command line.
-if (MSVC)
-    # TODO require vs2015
-    # enable exceptions
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc"
-            CACHE STRING "" FORCE)
-else()
+if (NOT MSVC)
     # C++
     if (NOT CMAKE_CXX_FLAGS)
         set(tmp "-fPIC -std=c++17 -Wall -Wextra -fvisibility=hidden")
@@ -116,10 +111,7 @@ else()
             set(tmp "${tmp} -stdlib=libc++")
         endif()
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-            set(tmp "${tmp} -O3 -march=native -mtune=native -fno-trapping-math -fno-math-errno")
-            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-                set(tmp "${tmp} -fno-signaling-nans")
-            endif()
+            set(tmp "${tmp} -O3 -march=native -mtune=native")
         endif()
 
         if (HAMR_ENABLE_OPENMP)
@@ -144,23 +136,12 @@ else()
         endif()
 
         set(CMAKE_CXX_FLAGS "${tmp}"
-            CACHE STRING "HAMR build defaults"
+            CACHE STRING "HAMR CXX compiler defaults"
             FORCE)
 
         string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CXX_FLAGS_RELEASE}")
         set(CMAKE_CXX_FLAGS_RELEASE "${tmp}"
-            CACHE STRING "HAMR build defaults"
-            FORCE)
-    endif()
-
-    # FORTRAN
-    if (NOT CMAKE_Fortran_FLAGS)
-        set(tmp "-Wall -Wextra -Wno-conversion -Wno-compare-reals -fno-math-errno")
-        if (CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(tmp "${tmp} -march=native -mtune=native -fno-trapping-math -fno-signaling-nans -fno-math-errno")
-        endif()
-        set(CMAKE_Fortran_FLAGS "${tmp}"
-            CACHE STRING "HAMR build defaults"
+            CACHE STRING "HAMR CXX compiler defaults"
             FORCE)
     endif()
 
@@ -168,21 +149,18 @@ else()
     if (NOT CMAKE_CUDA_FLAGS)
         set(tmp "--default-stream per-thread --expt-relaxed-constexpr")
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
-            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fno-trapping-math,-fno-math-errno,-fvisibility=hidden")
-            if (NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-                set(tmp "${tmp},-fno-signaling-nans")
-            endif()
+            set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fvisibility=hidden")
         elseif ("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
             set(tmp "${tmp} -g -G -Xcompiler -Wall,-Wextra,-O0,-g,-fvisibility=hidden")
         endif()
 
         set(CMAKE_CUDA_FLAGS "${tmp}"
-            CACHE STRING "HAMR build defaults"
+            CACHE STRING "HAMR CUDA compiler defaults"
             FORCE)
 
         string(REGEX REPLACE "-O[0-9]" "-O3" tmp "${CMAKE_CUDA_FLAGS_RELEASE}")
         set(CMAKE_CUDA_FLAGS_RELEASE "${tmp}"
-            CACHE STRING "HAMR build defaults"
+            CACHE STRING "HAMR CUDA compiler defaults"
             FORCE)
     endif()
 endif()
