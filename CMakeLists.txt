@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
-cmake_policy(SET CMP0063 NEW)
+cmake_minimum_required(VERSION 3.18)
 project(hamr)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
@@ -81,23 +82,27 @@ else()
 endif()
 
 # enable OpenMP
+include(omp_offload)
+
 set(HAMR_ENABLE_OPENMP OFF CACHE BOOL
     "Enable features supporting the OpenMP memory model")
 
 set(HAMR_OPENMP_OBJECTS ON CACHE BOOL
     "Disable use of classes in OpenMP allocators etc")
 
-set(OPENMP_GPU_TARGETS "gfx1030" CACHE STRING "OpenMP GPU targets to compile for.")
+# clang/AMD: target=amdgcn, arch=gfx1030. Intel: target=spir64.
+# clang/NVIDIA: target=nvptx64 arch=sm_75.
+# gcc/NVIDIA: target=nvptx-none arch=sm_75.
+# NVIDIA/NVIDIA: 
+set(HAMR_OPENMP_TARGET "" CACHE STRING "OpenMP targets to compile for.")
+set(HAMR_OPENMP_ARCH "" CACHE STRING "OpenMP architectures to compile for.")
+set(HAMR_OPENMP_FLAGS "" CACHE STRING "Additional flags for OpenMP offlaod.")
 
 if (HAMR_ENABLE_OPENMP)
-    # to get the GPU_TARGETS use: rocminfo | grep gfx
-    #list(APPEND CMAKE_PREFIX_PATH /opt/rocm/hip /opt/rocm)
-    #find_package(hip REQUIRED)
-    message(STATUS "HAMR: OpenMP features -- enabled")
+    message(STATUS "HAMR: OpenMP features -- enabled.")
 else()
     message(STATUS "HAMR: OpenMP features -- disabled")
 endif()
-
 
 # add the requisite flags. CMake enthusiasts will say that this is "not the
 # CMake way". However, CMake has spotty coverage, is inconsistent in
@@ -115,26 +120,17 @@ if (NOT MSVC)
         endif()
 
         if (HAMR_ENABLE_OPENMP)
-            set(gcc_omp_flags "-fopenmp -foffload=nvptx-none -foffload-options=nvptx-none=-march=sm_75")
-            set(nvidia_omp_flags "-mp=gpu")
-            set(clang_amd_omp_flags "-target x86_64-pc-linux-gnu -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=${OPENMP_GPU_TARGETS}")
-            set(clang_nvidia_omp_flags "-Xopenmp-target -march=sm_75 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_DIR}")
+            set(tmp_flags)
+
+            get_offload_flags( TARGET ${HAMR_OPENMP_TARGET}
+                ARCH ${HAMR_OPENMP_ARCH} ADD_FLAGS ${HAMR_OPENMP_FLAGS}
+                RESULT tmp_flags)
+
+            set(tmp "${tmp} ${tmp_flags}")
+
             set(tmp_loop "distribute parallel for")
-            check_cxx_compiler_flag(${gcc_omp_flags} gcc_omp)
-            check_cxx_compiler_flag(${nvidia_omp_flags} nvidia_omp)
-            check_cxx_compiler_flag(${clang_amd_omp_flags} clang_amd_omp)
-            check_cxx_compiler_flag(${clang_nvidia_omp_flags} clang_nvidia_omp)
-            if (gcc_omp)
-                set(tmp "${tmp} ${gcc_omp_flags}")
-            elseif (nvidia_omp)
-                set(tmp "${tmp} ${nvidia_omp_flags}")
+            if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "NVHPC")
                 set(tmp_loop "loop")
-            elseif (clang_amd_omp)
-                set(tmp "${tmp} ${clang_amd_omp_flags}")
-            elseif (clang_nvidia_omp)
-                set(tmp "${tmp} ${clang_nvidia_omp_flags}")
-            else()
-                message(FATAL_ERROR "A viable OpenMP compiler was not found")
             endif()
             set(HAMR_OPENMP_LOOP ${tmp_loop} CACHE STRING "OpenMP looping construct to use for device off load")
         endif()
