@@ -1,13 +1,6 @@
 include(CMakeFindDependencyMacro)
 
-if (NOT HAMR_DIR)
-  if (@HAMR_BUILD@)
-    set(HAMR_DIR "@CMAKE_BINARY_DIR@")
-  else()
-    set(HAMR_DIR "@CMAKE_INSTALL_PREFIX@")
-  endif()
-endif()
-list(APPEND CMAKE_MODULE_PATH "${HAMR_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 
 set(HAMR_LIB_TYPE STATIC)
 if (@BUILD_SHARED_LIBS@)
