@@ -769,6 +769,9 @@ public:
     /// @returns the allocator type enum
     allocator get_allocator() const { return m_alloc; }
 
+    /// @returns the device id where the memory was allocated
+    int get_owner() const { return m_owner; }
+
     /// @returns the active stream
     hamr::stream &get_stream() { return m_stream; }
 
