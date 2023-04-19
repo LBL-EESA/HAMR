@@ -1874,23 +1874,25 @@ int buffer<T>::assign(const U *src, size_t src_start, size_t n_vals)
 template <typename T>
 int buffer<T>::reserve_for_append(size_t n_vals)
 {
-    size_t new_size = m_size + n_vals;
-    size_t new_capacity = m_capacity;
-    if (new_size > new_capacity)
+    if (n_vals)
     {
+        size_t new_size = m_size + n_vals;
+        size_t new_capacity = m_capacity;
+        if (new_size > new_capacity)
+        {
 
-        if (new_capacity == 0)
-            new_capacity = 8;
+            if (new_capacity == 0)
+                new_capacity = 8;
 
-        while (new_size > new_capacity)
-            new_capacity *= 2;
+            while (new_size > new_capacity)
+                new_capacity *= 2;
 
-        if (this->reserve(new_capacity))
-            return -1;
+            if (this->reserve(new_capacity))
+                return -1;
 
-        m_capacity = new_capacity;
+            m_capacity = new_capacity;
+        }
     }
-
     return 0;
 }
 
@@ -1900,21 +1902,22 @@ template <typename U>
 int buffer<T>::append(const U *src, size_t src_start, size_t n_vals)
 {
     // source is always on the cpu
+    if (n_vals)
+    {
+        // allocate space if needed
+        if (this->reserve_for_append(n_vals))
+            return -1;
 
-    // allocate space if needed
-    if (this->reserve_for_append(n_vals))
-        return -1;
+        // get the append location
+        size_t back = m_size;
 
-    // get the append location
-    size_t back = m_size;
+        // update state
+        m_size += n_vals;
 
-    // update state
-    m_size += n_vals;
-
-    // copy the value to the back
-    if (this->set(back, src, src_start, n_vals))
-        return -1;
-
+        // copy the value to the back
+        if (this->set(back, src, src_start, n_vals))
+            return -1;
+    }
     return 0;
 }
 
@@ -1923,20 +1926,22 @@ template <typename T>
 template <typename U>
 int buffer<T>::append(const buffer<U> &src, size_t src_start, size_t n_vals)
 {
-    // allocate space if needed
-    if (this->reserve_for_append(n_vals))
-        return -1;
+    if (n_vals)
+    {
+        // allocate space if needed
+        if (this->reserve_for_append(n_vals))
+            return -1;
 
-    // get the append location
-    size_t back = m_size;
+        // get the append location
+        size_t back = m_size;
 
-    // update state
-    m_size += n_vals;
+        // update state
+        m_size += n_vals;
 
-    // copy the value to the back.
-    if (this->set(back, src, src_start, n_vals))
-        return -1;
-
+        // copy the value to the back.
+        if (this->set(back, src, src_start, n_vals))
+            return -1;
+    }
     return 0;
 }
 
@@ -1957,61 +1962,64 @@ template <typename U>
 int buffer<T>::set(size_t dest_start, const U *src,
     size_t src_start, size_t n_vals)
 {
-    // bounds check
-    assert(m_size >= (dest_start + n_vals));
-
-    // copy the values (src is always on the CPU)
-    int ierr = 0;
-    if ((m_alloc == allocator::cpp) ||
-        (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
+    if (n_vals)
     {
-        ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
-            src + src_start, n_vals);
-    }
+        // bounds check
+        assert(m_size >= (dest_start + n_vals));
+
+        // copy the values (src is always on the CPU)
+        int ierr = 0;
+        if ((m_alloc == allocator::cpp) ||
+            (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
+        {
+            ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+                src + src_start, n_vals);
+        }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == allocator::cuda) ||
-        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
-    {
-        activate_cuda_device dev(m_owner);
+        else if ((m_alloc == allocator::cuda) ||
+            (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+        {
+            activate_cuda_device dev(m_owner);
 
-        ierr = copy_to_cuda_from_cpu(m_stream, m_data.get() + dest_start,
-            src + src_start, n_vals);
-    }
+            ierr = copy_to_cuda_from_cpu(m_stream, m_data.get() + dest_start,
+                src + src_start, n_vals);
+        }
 #endif
 #if defined(HAMR_ENABLE_HIP)
-    else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
-    {
+        else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
+        {
 
-        activate_hip_device dev(m_owner);
+            activate_hip_device dev(m_owner);
 
-        ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
-            src + src_start, n_vals);
-    }
+            ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
+                src + src_start, n_vals);
+        }
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-    else if (m_alloc == allocator::openmp)
-    {
+        else if (m_alloc == allocator::openmp)
+        {
 
-        activate_openmp_device dev(m_owner);
+            activate_openmp_device dev(m_owner);
 
-        ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
-            src + src_start, n_vals);
-    }
+            ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+                src + src_start, n_vals);
+        }
 #endif
-    else
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type " << get_allocator_name(m_alloc)
-            << std::endl;
+        else
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type " << get_allocator_name(m_alloc)
+                << std::endl;
+        }
+
+        // synchronize
+        if (m_sync == transfer::sync)
+            m_stream.synchronize();
+
+        // check for errors
+        if (ierr)
+            return -1;
     }
-
-    // synchronize
-    if (m_sync == transfer::sync)
-        m_stream.synchronize();
-
-    // check for errors
-    if (ierr)
-        return -1;
 
     return 0;
 }
@@ -2022,216 +2030,219 @@ template <typename U>
 int buffer<T>::set(size_t dest_start, const buffer<U> &src,
     size_t src_start, size_t n_vals)
 {
-    // bounds check
-    assert(m_size >= (dest_start + n_vals));
-    assert(src.size() >= (src_start + n_vals));
-
-    // copy the value to the back. buffers can either be on the CPU or GPU
-    // and use different technologies so all permutations must be realized.
-    int ierr = 0;
-    if ((m_alloc == allocator::cpp) ||
-        (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
+    if (n_vals)
     {
-        // destination is on the CPU
+        // bounds check
+        assert(m_size >= (dest_start + n_vals));
+        assert(src.size() >= (src_start + n_vals));
 
-        if ((src.m_alloc == allocator::cpp) ||
-            (src.m_alloc == allocator::malloc) ||
-            (src.m_alloc == allocator::cuda_host))
+        // copy the value to the back. buffers can either be on the CPU or GPU
+        // and use different technologies so all permutations must be realized.
+        int ierr = 0;
+        if ((m_alloc == allocator::cpp) ||
+            (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            // source is on the CPU
-            ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
-        }
-#if defined(HAMR_ENABLE_CUDA)
-        else if ((src.m_alloc == allocator::cuda) ||
-            (src.m_alloc == allocator::cuda_async) || (src.m_alloc == allocator::cuda_uva))
-        {
-            // source is on the GPU
-            activate_cuda_device dev(src.m_owner);
+            // destination is on the CPU
 
-            ierr = copy_to_cpu_from_cuda(m_stream,
-                m_data.get() + dest_start, src.m_data.get() + src_start,
-                n_vals);
-
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
-#endif
-#if defined(HAMR_ENABLE_HIP)
-        else if ((src.m_alloc == allocator::hip) ||
-            (src.m_alloc == allocator::hip_uva))
-        {
-            // source is on the GPU
-            activate_hip_device dev(src.m_owner);
-
-            ierr = copy_to_cpu_from_hip(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
-
-
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
-#endif
-#if defined(HAMR_ENABLE_OPENMP)
-        else if (src.m_alloc == allocator::openmp)
-        {
-            // source is on the GPU
-            activate_openmp_device dev(src.m_owner);
-
-            ierr = copy_to_cpu_from_openmp(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
-
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
-#endif
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(src.m_alloc) << std::endl;
-        }
-    }
-#if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == allocator::cuda) ||
-        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
-    {
-        // destination is on the GPU
-        activate_cuda_device dev(m_owner);
-
-        if ((src.m_alloc == allocator::cpp) ||
-            (src.m_alloc == allocator::malloc) ||
-            (src.m_alloc == allocator::cuda_host))
-        {
-            // source is on the CPU
-            ierr = copy_to_cuda_from_cpu(m_stream,
-                m_data.get() + dest_start, src.m_data.get() + src_start, n_vals);
-        }
-        else if (src.cuda_accessible())
-        {
-            if (m_owner == src.m_owner)
+            if ((src.m_alloc == allocator::cpp) ||
+                (src.m_alloc == allocator::malloc) ||
+                (src.m_alloc == allocator::cuda_host))
             {
-                // source is on this GPU
-                ierr = copy_to_cuda_from_cuda(m_stream,
+                // source is on the CPU
+                ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, n_vals);
+            }
+#if defined(HAMR_ENABLE_CUDA)
+            else if ((src.m_alloc == allocator::cuda) ||
+                (src.m_alloc == allocator::cuda_async) || (src.m_alloc == allocator::cuda_uva))
+            {
+                // source is on the GPU
+                activate_cuda_device dev(src.m_owner);
+
+                ierr = copy_to_cpu_from_cuda(m_stream,
                     m_data.get() + dest_start, src.m_data.get() + src_start,
                     n_vals);
-            }
-            else
-            {
-                // source is on another GPU
-                ierr = copy_to_cuda_from_cuda(m_stream,
-                    m_data.get() + dest_start, src.m_data.get() + src_start,
-                    src.m_owner, n_vals);
-            }
-        }
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(src.m_alloc) << std::endl;
-        }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
-    }
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
 #endif
 #if defined(HAMR_ENABLE_HIP)
-    else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
-    {
-        // destination is on the GPU
-        activate_hip_device dev(m_owner);
-
-        if ((src.m_alloc == allocator::cpp) ||
-            (src.m_alloc == allocator::malloc) ||
-            (src.m_alloc == allocator::cuda_host))
-
-        {
-            // source is on the CPU
-            ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
-        }
-        else if (src.hip_accessible())
-        {
-            if (m_owner == src.m_owner)
+            else if ((src.m_alloc == allocator::hip) ||
+                (src.m_alloc == allocator::hip_uva))
             {
-                // source is on this GPU
-                ierr = copy_to_hip_from_hip(m_data.get() + dest_start,
+                // source is on the GPU
+                activate_hip_device dev(src.m_owner);
+
+                ierr = copy_to_cpu_from_hip(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
-            }
-            else
-            {
-                // source is on another GPU
-                ierr = copy_to_hip_from_hip(m_data.get() + dest_start,
-                    src.m_data.get() + src_start, src.m_owner, n_vals);
-            }
-        }
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(src.m_alloc) << std::endl;
-        }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
-    }
+
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-    else if (m_alloc == allocator::openmp)
-    {
-        // destination is on the GPU
-        activate_openmp_device dev(m_owner);
-
-        if ((src.m_alloc == allocator::cpp) ||
-            (src.m_alloc == allocator::malloc) ||
-            (src.m_alloc == allocator::cuda_host))
-        {
-            // source is on the CPU
-            ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
-                src.m_data.get() + src_start, n_vals);
-        }
-        else if (src.openmp_accessible())
-        {
-            if (m_owner == src.m_owner)
+            else if (src.m_alloc == allocator::openmp)
             {
-                // source is on this GPU
-                ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
+                // source is on the GPU
+                activate_openmp_device dev(src.m_owner);
+
+                ierr = copy_to_cpu_from_openmp(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
+
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
+#endif
+            else
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Invalid allocator type in the source "
+                    << get_allocator_name(src.m_alloc) << std::endl;
+            }
+        }
+#if defined(HAMR_ENABLE_CUDA)
+        else if ((m_alloc == allocator::cuda) ||
+            (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+        {
+            // destination is on the GPU
+            activate_cuda_device dev(m_owner);
+
+            if ((src.m_alloc == allocator::cpp) ||
+                (src.m_alloc == allocator::malloc) ||
+                (src.m_alloc == allocator::cuda_host))
+            {
+                // source is on the CPU
+                ierr = copy_to_cuda_from_cpu(m_stream,
+                    m_data.get() + dest_start, src.m_data.get() + src_start, n_vals);
+            }
+            else if (src.cuda_accessible())
+            {
+                if (m_owner == src.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_cuda_from_cuda(m_stream,
+                        m_data.get() + dest_start, src.m_data.get() + src_start,
+                        n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_cuda_from_cuda(m_stream,
+                        m_data.get() + dest_start, src.m_data.get() + src_start,
+                        src.m_owner, n_vals);
+                }
             }
             else
             {
-                // source is on another GPU
-                ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
-                    src.m_data.get() + src_start, src.m_owner, n_vals);
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Invalid allocator type in the source "
+                    << get_allocator_name(src.m_alloc) << std::endl;
             }
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
         }
+#endif
+#if defined(HAMR_ENABLE_HIP)
+        else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
+        {
+            // destination is on the GPU
+            activate_hip_device dev(m_owner);
+
+            if ((src.m_alloc == allocator::cpp) ||
+                (src.m_alloc == allocator::malloc) ||
+                (src.m_alloc == allocator::cuda_host))
+
+            {
+                // source is on the CPU
+                ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, n_vals);
+            }
+            else if (src.hip_accessible())
+            {
+                if (m_owner == src.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_hip_from_hip(m_data.get() + dest_start,
+                        src.m_data.get() + src_start, n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_hip_from_hip(m_data.get() + dest_start,
+                        src.m_data.get() + src_start, src.m_owner, n_vals);
+                }
+            }
+            else
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Invalid allocator type in the source "
+                    << get_allocator_name(src.m_alloc) << std::endl;
+            }
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+        }
+#endif
+#if defined(HAMR_ENABLE_OPENMP)
+        else if (m_alloc == allocator::openmp)
+        {
+            // destination is on the GPU
+            activate_openmp_device dev(m_owner);
+
+            if ((src.m_alloc == allocator::cpp) ||
+                (src.m_alloc == allocator::malloc) ||
+                (src.m_alloc == allocator::cuda_host))
+            {
+                // source is on the CPU
+                ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+                    src.m_data.get() + src_start, n_vals);
+            }
+            else if (src.openmp_accessible())
+            {
+                if (m_owner == src.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
+                        src.m_data.get() + src_start, n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_openmp_from_openmp(m_data.get() + dest_start,
+                        src.m_data.get() + src_start, src.m_owner, n_vals);
+                }
+            }
+            else
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Invalid allocator type in the source "
+                    << get_allocator_name(src.m_alloc) << std::endl;
+            }
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+        }
+#endif
         else
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(src.m_alloc) << std::endl;
+                " Invalid allocator type "
+                << get_allocator_name(m_alloc) << std::endl;
         }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
+        // check for errors
+        if (ierr)
+            return -1;
     }
-#endif
-    else
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
-    }
-
-    // check for errors
-    if (ierr)
-        return -1;
 
     return 0;
 }
@@ -2242,67 +2253,70 @@ template <typename U>
 int buffer<T>::get(size_t src_start, U *dest,
     size_t dest_start, size_t n_vals) const
 {
-    // bounds check
-    assert(m_size >= (src_start + n_vals));
-
-    // copy the values (dest is always on the CPU)
-    int ierr = 0;
-    if ((m_alloc == allocator::cpp) ||
-        (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
+    if (n_vals)
     {
-        ierr = copy_to_cpu_from_cpu(dest + dest_start,
-            m_data.get() + src_start, n_vals);
-    }
+        // bounds check
+        assert(m_size >= (src_start + n_vals));
+
+        // copy the values (dest is always on the CPU)
+        int ierr = 0;
+        if ((m_alloc == allocator::cpp) ||
+            (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
+        {
+            ierr = copy_to_cpu_from_cpu(dest + dest_start,
+                m_data.get() + src_start, n_vals);
+        }
 #if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == allocator::cuda) ||
-        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
-    {
-        activate_cuda_device dev(m_owner);
+        else if ((m_alloc == allocator::cuda) ||
+            (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+        {
+            activate_cuda_device dev(m_owner);
 
-        ierr = copy_to_cpu_from_cuda(m_stream,
-            dest + dest_start, m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_cuda(m_stream,
+                dest + dest_start, m_data.get() + src_start, n_vals);
 
-        // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-            m_stream.synchronize();
-    }
+            // synchronize
+            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                m_stream.synchronize();
+        }
 #endif
 #if defined(HAMR_ENABLE_HIP)
-    else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
-    {
-        activate_hip_device dev(m_owner);
+        else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
+        {
+            activate_hip_device dev(m_owner);
 
-        ierr = copy_to_cpu_from_hip(dest + dest_start,
-            m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_hip(dest + dest_start,
+                m_data.get() + src_start, n_vals);
 
-        // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-            m_stream.synchronize();
-    }
+            // synchronize
+            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                m_stream.synchronize();
+        }
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-    else if (m_alloc == allocator::openmp)
-    {
-        activate_openmp_device dev(m_owner);
+        else if (m_alloc == allocator::openmp)
+        {
+            activate_openmp_device dev(m_owner);
 
-        ierr = copy_to_cpu_from_openmp(dest + dest_start,
-            m_data.get() + src_start, n_vals);
+            ierr = copy_to_cpu_from_openmp(dest + dest_start,
+                m_data.get() + src_start, n_vals);
 
-        // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-            m_stream.synchronize();
-    }
+            // synchronize
+            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                m_stream.synchronize();
+        }
 #endif
-    else
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
-    }
+        else
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Invalid allocator type "
+                << get_allocator_name(m_alloc) << std::endl;
+        }
 
-    // check for errors
-    if (ierr)
-        return -1;
+        // check for errors
+        if (ierr)
+            return -1;
+    }
 
     return 0;
 }
@@ -2313,221 +2327,224 @@ template <typename U>
 int buffer<T>::get(size_t src_start,
     buffer<U> &dest, size_t dest_start, size_t n_vals) const
 {
-    // bounds check
-    assert(m_size >= (src_start + n_vals));
-    assert(dest.size() >= (dest_start + n_vals));
-
-    // copy the value to the back. buffers can either be on the CPU or GPU
-    // and use different technologies so all permutations must be realized.
-    int ierr = 0;
-    if ((m_alloc == allocator::cpp) ||
-        (m_alloc == allocator::malloc) || (m_alloc == allocator::malloc))
+    if (n_vals)
     {
-        // destination is on the CPU
+        // bounds check
+        assert(m_size >= (src_start + n_vals));
+        assert(dest.size() >= (dest_start + n_vals));
 
-        if ((dest.m_alloc == allocator::cpp) ||
-            (dest.m_alloc == allocator::malloc) ||
-            (dest.m_alloc == allocator::cuda_host))
+        // copy the value to the back. buffers can either be on the CPU or GPU
+        // and use different technologies so all permutations must be realized.
+        int ierr = 0;
+        if ((m_alloc == allocator::cpp) ||
+            (m_alloc == allocator::malloc) || (m_alloc == allocator::malloc))
         {
-            // source is on the CPU
-            ierr = copy_to_cpu_from_cpu(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
-        }
+            // destination is on the CPU
+
+            if ((dest.m_alloc == allocator::cpp) ||
+                (dest.m_alloc == allocator::malloc) ||
+                (dest.m_alloc == allocator::cuda_host))
+            {
+                // source is on the CPU
+                ierr = copy_to_cpu_from_cpu(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, n_vals);
+            }
 #if defined(HAMR_ENABLE_CUDA)
-        else if ((dest.m_alloc == allocator::cuda) ||
-            (dest.m_alloc == allocator::cuda_async) || (dest.m_alloc == allocator::cuda_uva))
-        {
-            // source is on the GPU
-            activate_cuda_device dev(m_owner);
+            else if ((dest.m_alloc == allocator::cuda) ||
+                (dest.m_alloc == allocator::cuda_async) || (dest.m_alloc == allocator::cuda_uva))
+            {
+                // source is on the GPU
+                activate_cuda_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_cuda(m_stream,
-                dest.m_data.get() + dest_start, m_data.get() + src_start,
-                n_vals);
+                ierr = copy_to_cpu_from_cuda(m_stream,
+                    dest.m_data.get() + dest_start, m_data.get() + src_start,
+                    n_vals);
 
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
 #endif
 #if defined(HAMR_ENABLE_HIP)
-        else if ((dest.m_alloc == allocator::hip) ||
-            (dest.m_alloc == allocator::hip_uva))
-        {
-            // source is on the GPU
-            activate_hip_device dev(m_owner);
+            else if ((dest.m_alloc == allocator::hip) ||
+                (dest.m_alloc == allocator::hip_uva))
+            {
+                // source is on the GPU
+                activate_hip_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_hip(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
+                ierr = copy_to_cpu_from_hip(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, n_vals);
 
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-        else if (dest.m_alloc == allocator::openmp)
-        {
-            // source is on the GPU
-            activate_openmp_device dev(m_owner);
-
-            ierr = copy_to_cpu_from_openmp(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
-
-            // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
-                m_stream.synchronize();
-        }
-#endif
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Invalid allocator type in the source "
-                << get_allocator_name(dest.m_alloc) << std::endl;
-        }
-    }
-#if defined(HAMR_ENABLE_CUDA)
-    else if ((m_alloc == allocator::cuda) ||
-        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
-    {
-        // destination is on the GPU
-        activate_cuda_device dev(dest.m_owner);
-
-        if ((dest.m_alloc == allocator::cpp) ||
-            (dest.m_alloc == allocator::malloc) ||
-            (dest.m_alloc == allocator::cuda_host))
-        {
-            // source is on the CPU
-            ierr = copy_to_cuda_from_cpu(m_stream,
-                dest.m_data.get() + dest_start, m_data.get() + src_start,
-                n_vals);
-        }
-        else if ((dest.m_alloc == allocator::cuda) ||
-            (dest.m_alloc == allocator::cuda_async) || (dest.m_alloc == allocator::cuda_uva))
-        {
-            if (m_owner == dest.m_owner)
+            else if (dest.m_alloc == allocator::openmp)
             {
-                // source is on this GPU
-                ierr = copy_to_cuda_from_cuda(m_stream,
+                // source is on the GPU
+                activate_openmp_device dev(m_owner);
+
+                ierr = copy_to_cpu_from_openmp(dest.m_data.get() + dest_start,
+                    m_data.get() + src_start, n_vals);
+
+                // synchronize
+                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                    m_stream.synchronize();
+            }
+#endif
+            else
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Invalid allocator type in the source "
+                    << get_allocator_name(dest.m_alloc) << std::endl;
+            }
+        }
+#if defined(HAMR_ENABLE_CUDA)
+        else if ((m_alloc == allocator::cuda) ||
+            (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+        {
+            // destination is on the GPU
+            activate_cuda_device dev(dest.m_owner);
+
+            if ((dest.m_alloc == allocator::cpp) ||
+                (dest.m_alloc == allocator::malloc) ||
+                (dest.m_alloc == allocator::cuda_host))
+            {
+                // source is on the CPU
+                ierr = copy_to_cuda_from_cpu(m_stream,
                     dest.m_data.get() + dest_start, m_data.get() + src_start,
                     n_vals);
             }
+            else if ((dest.m_alloc == allocator::cuda) ||
+                (dest.m_alloc == allocator::cuda_async) || (dest.m_alloc == allocator::cuda_uva))
+            {
+                if (m_owner == dest.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_cuda_from_cuda(m_stream,
+                        dest.m_data.get() + dest_start, m_data.get() + src_start,
+                        n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_cuda_from_cuda(m_stream,
+                        dest.m_data.get() + dest_start,
+                        m_data.get() + src_start, m_owner, n_vals);
+                }
+            }
             else
             {
-                // source is on another GPU
-                ierr = copy_to_cuda_from_cuda(m_stream,
-                    dest.m_data.get() + dest_start,
-                    m_data.get() + src_start, m_owner, n_vals);
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Transfers from " << get_allocator_name(m_alloc) << " to "
+                    << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                    << std::endl;
             }
-        }
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Transfers from " << get_allocator_name(m_alloc) << " to "
-                << get_allocator_name(dest.m_alloc) << " not yet implemented."
-                << std::endl;
-        }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
-    }
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+        }
 #endif
 #if defined(HAMR_ENABLE_HIP)
-    else if ((m_alloc == allocator::hip) ||
-        (m_alloc == allocator::hip_uva))
-    {
-        // destination is on the GPU
-        activate_hip_device dev(dest.m_owner);
+        else if ((m_alloc == allocator::hip) ||
+            (m_alloc == allocator::hip_uva))
+        {
+            // destination is on the GPU
+            activate_hip_device dev(dest.m_owner);
 
-        if ((dest.m_alloc == allocator::cpp) ||
-            (dest.m_alloc == allocator::malloc) ||
-            (dest.m_alloc == allocator::cuda_host))
-        {
-            // source is on the CPU
-            ierr = copy_to_hip_from_cpu(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
-        }
-        else if ((dest.m_alloc == allocator::hip) ||
-            (dest.m_alloc == allocator::hip_uva))
-        {
-            if (m_owner == dest.m_owner)
+            if ((dest.m_alloc == allocator::cpp) ||
+                (dest.m_alloc == allocator::malloc) ||
+                (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on this GPU
-                ierr = copy_to_hip_from_hip(dest.m_data.get() + dest_start,
+                // source is on the CPU
+                ierr = copy_to_hip_from_cpu(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
+            }
+            else if ((dest.m_alloc == allocator::hip) ||
+                (dest.m_alloc == allocator::hip_uva))
+            {
+                if (m_owner == dest.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_hip_from_hip(dest.m_data.get() + dest_start,
+                        m_data.get() + src_start, n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_hip_from_hip(dest.m_data.get() + dest_start,
+                        m_data.get() + src_start, m_owner, n_vals);
+                }
             }
             else
             {
-                // source is on another GPU
-                ierr = copy_to_hip_from_hip(dest.m_data.get() + dest_start,
-                    m_data.get() + src_start, m_owner, n_vals);
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Transfers from " << get_allocator_name(m_alloc) << " to "
+                    << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                    << std::endl;
             }
-        }
-        else
-        {
-            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Transfers from " << get_allocator_name(m_alloc) << " to "
-                << get_allocator_name(dest.m_alloc) << " not yet implemented."
-                << std::endl;
-        }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
-    }
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+        }
 #endif
 #if defined(HAMR_ENABLE_OPENMP)
-    else if (m_alloc == allocator::openmp)
-    {
-        // destination is on the GPU
-        activate_openmp_device dev(dest.m_owner);
+        else if (m_alloc == allocator::openmp)
+        {
+            // destination is on the GPU
+            activate_openmp_device dev(dest.m_owner);
 
-        if ((dest.m_alloc == allocator::cpp) ||
-            (dest.m_alloc == allocator::malloc) ||
-            (dest.m_alloc == allocator::cuda_host))
-        {
-            // source is on the CPU
-            ierr = copy_to_openmp_from_cpu(dest.m_data.get() + dest_start,
-                m_data.get() + src_start, n_vals);
-        }
-        else if (dest.m_alloc == allocator::openmp)
-        {
-            if (m_owner == dest.m_owner)
+            if ((dest.m_alloc == allocator::cpp) ||
+                (dest.m_alloc == allocator::malloc) ||
+                (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on this GPU
-                ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
+                // source is on the CPU
+                ierr = copy_to_openmp_from_cpu(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
+            }
+            else if (dest.m_alloc == allocator::openmp)
+            {
+                if (m_owner == dest.m_owner)
+                {
+                    // source is on this GPU
+                    ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
+                        m_data.get() + src_start, n_vals);
+                }
+                else
+                {
+                    // source is on another GPU
+                    ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
+                        m_data.get() + src_start, m_owner, n_vals);
+                }
             }
             else
             {
-                // source is on another GPU
-                ierr = copy_to_openmp_from_openmp(dest.m_data.get() + dest_start,
-                    m_data.get() + src_start, m_owner, n_vals);
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Transfers from " << get_allocator_name(m_alloc) << " to "
+                    << get_allocator_name(dest.m_alloc) << " not yet implemented."
+                    << std::endl;
             }
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
         }
+#endif
         else
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Transfers from " << get_allocator_name(m_alloc) << " to "
-                << get_allocator_name(dest.m_alloc) << " not yet implemented."
-                << std::endl;
+                " Invalid allocator type "
+                << get_allocator_name(m_alloc) << std::endl;
         }
 
-        // synchronize
-        if (m_sync == transfer::sync)
-            m_stream.synchronize();
+        // check for errors
+        if (ierr)
+            return -1;
     }
-#endif
-    else
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Invalid allocator type "
-            << get_allocator_name(m_alloc) << std::endl;
-    }
-
-    // check for errors
-    if (ierr)
-        return -1;
 
     return 0;
 }
