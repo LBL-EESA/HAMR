@@ -42,7 +42,7 @@ jobs:
           cd build_cpu
           tmp_llp=$LD_LIBRARY_PATH
           tmp_pp=$PYTHONPATH
-          export LD_LIBRARY_PATH=`pwd`/lib:$LD_LIBRARY_PATH PYTHONPATH=`pwd`/lib:$PYTHONPATH
+          source ./bin/hamr_python_env.sh
           ctest --output-on-failure
           export LD_LIBRARY_PATH=$tmp_llp PYTHONPATH=$tmp_pp
           cd ..
