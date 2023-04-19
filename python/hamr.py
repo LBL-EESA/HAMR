@@ -1,1 +1,1 @@
-from hamr_py import *
+from hamr.hamr_py import *
