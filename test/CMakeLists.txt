@@ -97,3 +97,26 @@ if (HAMR_ENABLE_PYTHON)
 
 endif()
 
+add_executable(test_hamr_buffer_resize test_hamr_buffer_resize.cpp)
+target_link_libraries(test_hamr_buffer_resize hamr)
+
+add_test(NAME test_hamr_buffer_resize_malloc COMMAND test_hamr_buffer_resize malloc)
+set_tests_properties(test_hamr_buffer_resize_malloc PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+
+if (HAMR_ENABLE_CUDA)
+    set_source_files_properties(test_hamr_buffer_resize.cpp PROPERTIES LANGUAGE CUDA)
+    set_target_properties(test_hamr_buffer_resize PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
+    add_test(NAME test_hamr_buffer_resize_cuda COMMAND test_hamr_buffer_resize cuda)
+    set_tests_properties(test_hamr_buffer_resize_cuda PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+endif()
+
+if (HAMR_ENABLE_HIP)
+    add_test(NAME test_hamr_buffer_resize_hip COMMAND test_hamr_buffer_resize hip)
+    set_tests_properties(test_hamr_buffer_resize_hip PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+endif()
+
+if (HAMR_ENABLE_OPENMP)
+
+    add_test(NAME test_hamr_buffer_resize_openmp COMMAND test_hamr_buffer_resize openmp)
+    set_tests_properties(test_hamr_buffer_resize_hip PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+endif()
