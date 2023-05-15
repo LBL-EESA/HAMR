@@ -6,6 +6,7 @@
 
 #cmakedefine HAMR_ENABLE_CUDA
 #cmakedefine HAMR_CUDA_OBJECTS
+#cmakedefine HAMR_NVHPC_CUDA
 #cmakedefine HAMR_ENABLE_HIP
 #cmakedefine HAMR_HIP_OBJECTS
 #cmakedefine HAMR_ENABLE_OPENMP
