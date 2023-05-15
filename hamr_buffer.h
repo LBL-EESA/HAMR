@@ -2687,6 +2687,34 @@ std::shared_ptr<const T> buffer<T>::get_cuda_accessible() const
             return tmp;
         }
     }
+#if defined(HAMR_ENABLE_OPENMP)
+    else if (m_alloc == allocator::openmp)
+    {
+        int dest_device = 0;
+        if (hamr::get_active_cuda_device(dest_device))
+            return nullptr;
+
+        if (m_owner == dest_device)
+        {
+            // already on this GPU
+            return m_data;
+        }
+        else
+        {
+            // on another GPU, move to this one
+            std::shared_ptr<T> tmp = openmp_allocator<T>::allocate(m_size);
+
+            if (copy_to_openmp_from_openmp(tmp.get(), m_data.get(), m_owner, m_size))
+                return nullptr;
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+
+            return tmp;
+        }
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
@@ -2813,6 +2841,37 @@ std::shared_ptr<const T> buffer<T>::get_openmp_accessible() const
             return tmp;
         }
     }
+#if defined(HAMR_ENABLE_CUDA)
+    else if ((m_alloc == allocator::cuda) ||
+        (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+    {
+        int dest_device = 0;
+        if (hamr::get_active_openmp_device(dest_device))
+            return nullptr;
+
+        if (m_owner == dest_device)
+        {
+            // already on this GPU
+            return m_data;
+        }
+        else
+        {
+            // on another GPU, move to this one
+            std::shared_ptr<T> tmp = cuda_malloc_async_allocator<T>
+                ::allocate(m_stream, m_size);
+
+            if (copy_to_cuda_from_cuda(m_stream,
+                tmp.get(), m_data.get(), m_owner, m_size))
+                return nullptr;
+
+            // synchronize
+            if (m_sync == transfer::sync)
+                m_stream.synchronize();
+
+            return tmp;
+        }
+    }
+#endif
     else
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
