@@ -47,7 +47,7 @@ set_property(TARGET hamr_py
 set_target_properties(hamr_py PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${HAMR_PYTHON_DIR}")
 
-if (HAMR_ENABLE_CUDA)
+if (HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA)
     set_source_files_properties(
         "${CMAKE_CURRENT_BINARY_DIR}/hamr_pyPYTHON_wrap.cxx"
         PROPERTIES LANGUAGE CUDA)
