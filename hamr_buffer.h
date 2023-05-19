@@ -773,6 +773,7 @@ public:
     int get_owner() const { return m_owner; }
 
     /// @returns the active stream
+    const hamr::stream &get_stream() const { return m_stream; }
     hamr::stream &get_stream() { return m_stream; }
 
     /** Sets the active stream and data transfer synchrnonization mode. See
@@ -802,6 +803,9 @@ public:
      * should not be used except for debugging.
      */
     void set_transfer_sycnhronous() { m_sync = transfer::sync; }
+
+    /// @returns the current ::buffer_transfer mode
+    transfer get_transfer_mode() const { return m_sync; }
 
     /** synchronizes with the current stream. This ensures that asynchronous
      * data transfers have completed before you access the data.
