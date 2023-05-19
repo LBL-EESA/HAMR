@@ -116,7 +116,7 @@ set(HAMR_OPENMP_ARCH "" CACHE STRING "OpenMP architectures to compile for.")
 set(HAMR_OPENMP_FLAGS "" CACHE STRING "Additional flags for OpenMP offlaod.")
 
 if (HAMR_ENABLE_OPENMP)
-    message(STATUS "HAMR: OpenMP features -- enabled.")
+    message(STATUS "HAMR: OpenMP features -- enabled (target=${HAMR_OPENMP_TARGET} arch=${HAMR_OPENMP_ARCH})")
 else()
     message(STATUS "HAMR: OpenMP features -- disabled")
 endif()
