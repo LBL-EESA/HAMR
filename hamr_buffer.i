@@ -100,6 +100,7 @@
 %template(buffer_float) hamr::buffer<float>;
 %template(buffer_double) hamr::buffer<double>;
 %template(buffer_char) hamr::buffer<char>;
+%template(buffer_signed_char) hamr::buffer<signed char>;
 %template(buffer_short) hamr::buffer<short>;
 %template(buffer_int) hamr::buffer<int>;
 %template(buffer_long) hamr::buffer<long>;

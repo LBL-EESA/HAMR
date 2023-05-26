@@ -43,6 +43,7 @@ template <> struct printf_tt<cpp_t>                 \
 };
 
 declare_printf_tt(char, int, "%d", 2)
+declare_printf_tt(signed char, int, "%d", 2)
 declare_printf_tt(unsigned char, unsigned int, "%u", 2)
 declare_printf_tt(short, short, "%hd", 3)
 declare_printf_tt(unsigned short, unsigned short, "%hu", 3)

@@ -1,7 +1,6 @@
 #include "hamr_buffer.h"
 #include "hamr_buffer_util.h"
 #include "hamr_cuda_launch.h"
-#include "hamr_buffer_pointer.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
