@@ -7,8 +7,10 @@ include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_EXTENSIONS OFF)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
@@ -44,9 +46,8 @@ set(HAMR_VERBOSE OFF CACHE BOOL
 set(HAMR_ENABLE_CUDA OFF CACHE BOOL
     "Enable features supporting the CUDA memory model")
 
-set(HAMR_CUDA_OBJECTS ON CACHE BOOL
-    "Disable use of classes in CUDA allocators etc")
-
+set(tmp_nvcc FALSE)
+set(tmp_clang FALSE)
 set(tmp_nvhpc FALSE)
 set(tmp_cuda_arch "60;70;75")
 if (HAMR_ENABLE_CUDA)
@@ -61,11 +62,32 @@ if (HAMR_ENABLE_CUDA)
         if (CMAKE_CUDA_COMPILER)
             enable_language(CUDA)
             set(tmp_have_cuda TRUE)
+            if ("${CMAKE_CUDA_COMPILER_ID}" MATCHES "Clang")
+                set(tmp_cuda_arch "75")
+                set(tmp_clang TRUE)
+            elseif ("${CMAKE_CUDA_COMPILER_ID}" MATCHES "NVIDIA")
+                set(tmp_nvcc TRUE)
+            endif()
         endif()
-        find_package(CUDAToolkit REQUIRED)
     endif()
+    find_package(CUDAToolkit REQUIRED)
+endif()
+
+set(HAMR_NVCC_CUDA ${tmp_ncc} CACHE
+    STRING "Internal: set if the CUDA compiler is nvcc")
+
+set(HAMR_NVHPC_CUDA ${tmp_nvhpc} CACHE
+    STRING "Internal: set if the CUDA compiler is nvc++")
+
+set(HAMR_CLANG_CUDA ${tmp_clang} CACHE
+    STRING "Internal: set if the CUDA compiler is clang++")
+
+set(HAMR_CUDA_ARCHITECTURES ${tmp_cuda_arch} CACHE
+    STRING "Compile for these CUDA virtual and real architectures")
+
+if (HAMR_ENABLE_CUDA)
     if (tmp_have_cuda)
-        message(STATUS "HAMR: CUDA features -- enabled (${tmp_cuda_arch})")
+        message(STATUS "HAMR: CUDA features -- enabled (${CMAKE_CUDA_COMPILER_ID}:${HAMR_CUDA_ARCHITECTURES})")
     else()
         message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
@@ -73,19 +95,9 @@ else()
     message(STATUS "HAMR: CUDA features -- disabled")
 endif()
 
-set(HAMR_NVHPC_CUDA ${tmp_nvhpc} CACHE
-    STRING "Internal: set if the CUDA compiler is NVHPC")
-
-set(HAMR_CUDA_ARCHITECTURES ${tmp_cuda_arch} CACHE
-    STRING "Compile for these CUDA virtual and real architectures")
-
-
 # enable HIP
 set(HAMR_ENABLE_HIP OFF CACHE BOOL
     "Enable features supporting the HIP memory model")
-
-set(HAMR_HIP_OBJECTS ON CACHE BOOL
-    "Disable use of classes in HIP allocators etc")
 
 if (HAMR_ENABLE_HIP)
     # to get the GPU_TARGETS use: rocminfo | grep gfx
@@ -103,9 +115,6 @@ include(omp_offload)
 set(HAMR_ENABLE_OPENMP OFF CACHE BOOL
     "Enable features supporting the OpenMP memory model")
 
-set(HAMR_OPENMP_OBJECTS ON CACHE BOOL
-    "Disable use of classes in OpenMP allocators etc")
-
 # clang/AMD: target=amdgcn, arch=gfx1030.
 # Intel: target=spir64.
 # clang/NVIDIA: target=nvptx64 arch=sm_75.
@@ -120,6 +129,33 @@ if (HAMR_ENABLE_OPENMP)
 else()
     message(STATUS "HAMR: OpenMP features -- disabled")
 endif()
+
+# separate implementations
+set(tmp OFF)
+if (HAMR_ENABLE_OPENMP AND HAMR_ENABLE_CUDA AND NOT HAMR_CUDA_NVHPC)
+    set(tmp ON)
+endif()
+set(HAMR_SEPARATE_IMPL ${tmp} CACHE BOOL
+  "Compile to a library with explicit instantiatons for POD types")
+if (HAMR_SEPARATE_IMPL)
+    message(STATUS "HAMR: Separate implementations -- enabled")
+else()
+    message(STATUS "HAMR: Separate implementations -- disabled")
+endif()
+
+# objects
+set(tmp ON)
+if (HAMR_SEPRATE_IMPL)
+    set(tmp OFF)
+endif()
+set(HAMR_ENABLE_OBJECTS ${tmp} CACHE BOOL
+    "Disable use of user defined classes")
+if (HAMR_ENABLE_OBJECTS)
+    message(STATUS "HAMR: User defined objects -- enabled")
+else()
+    message(STATUS "HAMR: User defined objects -- disabled")
+endif()
+
 
 # add the requisite flags. CMake enthusiasts will say that this is "not the
 # CMake way". However, CMake has spotty coverage, is inconsistent in
@@ -171,7 +207,7 @@ if (NOT MSVC)
     endif()
 
     # CUDA
-    if (NOT CMAKE_CUDA_FLAGS)
+    if (NOT CMAKE_CUDA_FLAGS AND HAMR_NVCC_CUDA)
         set(tmp "--default-stream per-thread --expt-relaxed-constexpr -ccbin=${CMAKE_CXX_COMPILER}")
         if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
             set(tmp "${tmp} -Xcompiler -Wall,-Wextra,-O3,-march=native,-mtune=native,-fvisibility=hidden")
@@ -215,8 +251,8 @@ if (HAMR_ENABLE_CUDA)
         )
     if (HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA)
         set_source_files_properties(${hamr_cu_sources} PROPERTIES LANGUAGE CUDA)
-        list(APPEND hamr_libs CUDA::cudart)
     endif()
+    list(APPEND hamr_libs CUDA::cudart)
     list(APPEND hamr_sources ${hamr_cu_sources})
 endif()
 
@@ -236,6 +272,48 @@ if (HAMR_ENABLE_OPENMP)
         )
 endif()
 
+# explicit instantations
+if (HAMR_SEPARATE_IMPL)
+    list(APPEND hamr_sources
+        hamr_malloc_allocator.cxx
+        hamr_new_allocator.cxx
+        hamr_cpu_copy.cxx
+        hamr_buffer.cxx
+        )
+    if (HAMR_ENABLE_CUDA)
+        set(tmp_sources
+            hamr_cuda_malloc_allocator.cxx
+            hamr_cuda_malloc_uva_allocator.cxx
+            hamr_cuda_malloc_async_allocator.cxx
+            hamr_cuda_malloc_host_allocator.cxx
+            hamr_cuda_copy_async.cxx
+            hamr_cuda_print.cxx
+            )
+        if (NOT HAMR_NVHPC_CUDA)
+            set_source_files_properties(${tmp_sources} PROPERTIES LANGUAGE CUDA)
+        endif()
+        list(APPEND hamr_sources ${tmp_sources})
+    endif()
+    if (HAMR_ENABLE_HIP)
+        set(tmp_sources
+            hamr_hip_malloc_allocator.cxx
+            #hamr_hip_malloc_uva_allocator.cxx
+            #hamr_hip_malloc_async_allocator.cxx
+            #hamr_hip_malloc_host_allocator.cxx
+            hamr_hip_copy.cxx
+            hamr_hip_print.cxx
+            )
+        list(APPEND hamr_sources ${tmp_sources})
+    endif()
+    if (HAMR_ENABLE_OPENMP)
+        list(APPEND hamr_sources
+            hamr_openmp_allocator.cxx
+            hamr_openmp_copy.cxx
+            hamr_openmp_print.cxx
+            )
+    endif()
+endif()
+
 # hamr_config.h
 configure_file(hamr_config.h.in hamr_config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -248,11 +326,15 @@ configure_file(hamr_config.cmake.in
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/hamr/hamr-config.cmake
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hamr)
 
-# add the libaraary
-add_library(hamr ${hamr_sources})
+# add the libarary
+set(tmp STATIC)
+if (HAMR_SEPARATE_IMPL)
+    set(tmp SHARED)
+endif()
+add_library(hamr ${tmp} ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
 
-if (HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA)
+if (HAMR_ENABLE_CUDA AND HAMR_NVCC_CUDA)
     set_target_properties(hamr PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
 endif()
 

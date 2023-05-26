@@ -25,9 +25,16 @@ set_property(SOURCE hamr_py.i PROPERTY CPLUSPLUS ON)
 set_property(SOURCE hamr_py.i PROPERTY DEPENDS ${swig_deps})
 set_property(SOURCE hamr_py.i PROPERTY SWIG_MODULE_NAME hamr_py)
 
+list(APPEND hamr_py_sources hamr_py.i)
+if (HAMR_SEPARATE_IMPL)
+    list(APPEND hamr_py_sources
+        ../hamr_python_deleter.cxx
+        )
+endif()
+
 swig_add_library(hamr_py
     TYPE MODULE LANGUAGE python
-    SOURCES hamr_py.i
+    SOURCES ${hamr_py_sources}
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/${HAMR_PYTHON_DIR}"
     OUTFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 

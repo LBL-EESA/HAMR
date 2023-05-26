@@ -1,18 +1,29 @@
-#ifndef config_h
-#define config_h
+#ifndef hamr_config_h
+#define hamr_config_h
 
 #define HAMR_EXPORT __attribute__ ((visibility ("default")))
 #define HAMR_PRIVATE __attribute__ ((visibility ("hidden")))
 
+#cmakedefine HAMR_SEPARATE_IMPL
 #cmakedefine HAMR_ENABLE_CUDA
-#cmakedefine HAMR_CUDA_OBJECTS
 #cmakedefine HAMR_NVHPC_CUDA
+#cmakedefine HAMR_NVCC_CUDA
+#cmakedefine HAMR_CLANG_CUDA
 #cmakedefine HAMR_ENABLE_HIP
-#cmakedefine HAMR_HIP_OBJECTS
 #cmakedefine HAMR_ENABLE_OPENMP
-#cmakedefine HAMR_OPENMP_OBJECTS
 #define HAMR_OPENMP_LOOP @HAMR_OPENMP_LOOP@
+#cmakedefine HAMR_ENABLE_OBJECTS
 #cmakedefine HAMR_ENABLE_PYTHON
 #cmakedefine HAMR_VERBOSE
+
+// work around an issue with clang compiling CUDA (clang 17/CUDA 12 May 2023).
+// problematic includes can go here, leaving the individual source files
+// unmodified.
+#if defined(HAMR_CLANG_CUDA)
+#undef __noinline__
+#include <memory>
+#include <type_traits>
+#define __noinline__ __attribute__((noinline))
+#endif
 
 #endif

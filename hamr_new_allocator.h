@@ -1,12 +1,9 @@
 #ifndef hamr_new_allocator_h
 #define hamr_new_allocator_h
 
-#include <iostream>
+#include "hamr_config.h"
 #include <type_traits>
 #include <memory>
-#include <typeinfo>
-#include <cassert>
-#include <cstring>
 
 namespace hamr
 {
@@ -33,35 +30,6 @@ private:
     size_t m_elem;
 };
 
-// --------------------------------------------------------------------------
-template <typename T>
-new_deleter<T>::new_deleter(T *ptr, size_t n) : m_ptr(ptr), m_elem(n)
-{
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "created new_deleter for array of " << n
-            << " objects of type " << typeid(T).name() << std::endl;
-    }
-#endif
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-void new_deleter<T>::operator()(T *ptr)
-{
-    assert(ptr == m_ptr);
-
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "new_deleter deleting array of " << m_elem
-            << " objects of type " << typeid(T).name() << std::endl;
-    }
-#endif
-
-    delete [] ptr;
-}
 
 
 
@@ -75,14 +43,14 @@ struct HAMR_EXPORT new_allocator
      * @param[in] n the number of elements to allocate
      * @returns a shared pointer to the array that holds a deleter for the memory
      */
-    static std::shared_ptr<T> allocate(size_t n);
+    static std::shared_ptr<T> allocate(size_t n) HAMR_EXPORT;
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
      * @param[in] val a value to initialize the elements to
      * @returns a shared pointer to the array that holds a deleter for the memory
      */
-    static std::shared_ptr<T> allocate(size_t n, const T &val);
+    static std::shared_ptr<T> allocate(size_t n, const T &val) HAMR_EXPORT;
 
     /** allocate an array of n elements.
      * @param[in] n the number of elements to allocate
@@ -90,77 +58,13 @@ struct HAMR_EXPORT new_allocator
      * @returns a shared pointer to the array that holds a deleter for the memory
      */
     template <typename U>
-    static std::shared_ptr<T> allocate(size_t n, const U *vals);
+    static std::shared_ptr<T> allocate(size_t n, const U *vals) HAMR_EXPORT;
 };
 
-// --------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> new_allocator<T>::allocate(size_t n)
-{
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "new_allocator allocating array of " << n
-            << " objects of type " << typeid(T).name() << std::endl;
-    }
-#endif
-
-    // allocate
-    T *ptr = new T[n];
-
-    // package
-    return std::shared_ptr<T>(ptr, new_deleter<T>(ptr, n));
 }
 
-// --------------------------------------------------------------------------
-template <typename T>
-std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const T &val)
-{
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "new_allocator allocating array of " << n
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
+#if !defined(HAMR_SEPARATE_IMPL)
+#include "hamr_new_allocator_impl.h"
 #endif
-
-    // allocate
-    T *ptr = (T*)new unsigned char[n*sizeof(T)];
-
-    // construct
-    for (size_t i = 0; i < n; ++i)
-        new (&ptr[i]) T(val);
-
-    // package
-    return std::shared_ptr<T>(ptr, new_deleter<T>(ptr, n));
-}
-
-// --------------------------------------------------------------------------
-template <typename T>
-template <typename U>
-std::shared_ptr<T> new_allocator<T>::allocate(size_t n, const U *vals)
-{
-#if defined(HAMR_VERBOSE)
-    if (hamr::get_verbose())
-    {
-        std::cerr << "new_allocator allocating array of " << n
-            << " objects of type " << typeid(T).name() << " initialized"
-            << std::endl;
-    }
-#endif
-
-    // allocate
-    T *ptr = (T*)new unsigned char[n*sizeof(T)];
-
-    // construct
-    for (size_t i = 0; i < n; ++i)
-        new (&ptr[i]) T(vals[i]);
-
-    // package
-    return std::shared_ptr<T>(ptr, new_deleter<T>(ptr, n));
-}
-
-};
 
 #endif

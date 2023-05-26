@@ -1,5 +1,5 @@
-#ifndef hamr_cuda_launch_h
-#define hamr_cuda_launch_h
+#ifndef hamr_hip_launch_h
+#define hamr_hip_launch_h
 
 /// @file
 
