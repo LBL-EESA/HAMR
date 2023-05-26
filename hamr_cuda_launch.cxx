@@ -151,16 +151,26 @@ int partition_thread_blocks(int device_id, size_t array_size,
     int warps_per_block, dim3 &block_grid, int &n_blocks,
     dim3 &thread_grid)
 {
-    int block_grid_max[3] = {0};
-    int warp_size = 0;
-    int warps_per_block_max = 0;
-    if (get_launch_props(device_id, block_grid_max,
+    (void) device_id;
+
+    int block_grid_max[3] = {2147483647, 65535, 65535};
+    int warp_size = 32;
+    int warps_per_block_max = 32;
+
+    if (warps_per_block > warps_per_block_max)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " warps_per_block " << warps_per_block << " not to exceed "
+            << warps_per_block_max << std::endl;
+    }
+
+    /*if (get_launch_props(device_id, block_grid_max,
         warp_size, warps_per_block_max))
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to get launch properties" << std::endl;
         return -1;
-    }
+    }*/
 
     return partition_thread_blocks(array_size, warps_per_block,
         warp_size, block_grid_max, block_grid, n_blocks,
