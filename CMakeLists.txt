@@ -157,18 +157,30 @@ else()
 endif()
 
 
-# add the requisite flags. CMake enthusiasts will say that this is "not the
-# CMake way". However, CMake has spotty coverage, is inconsistent in
+# add the requisite flags. CMake enthusiasts will tell you that this is "not
+# the CMake way". However, CMake has spotty coverage, is inconsistent in
 # mechanisms, and often it does not work. Nonetheless, one may override our
 # settings here by specifying them on the command line.
+#
+# Current issues:
+# * CMake does not propagate -fvisibility=hidden during cuda
+#   linking and this leads to a nasty runtime crash when stataic and shared
+#   libraries containing cuda code are linked into a fat bin.
+#   Filed a bug report w/ NVIDIA and this has been reported to be fixed (Q4 2022)
+# * CMake does not handle nvc++ as the CUDA compiler. (Q1 2023)
+# * On some systems CMake will use O2 for release builds rather than O3 and does not
+#   enable processor specific optimizations.
+# * CMake currently does not detect OpenMP offload flags at all. There is a
+#   a CMake bug report about this. (Q1 2023)
 if (NOT MSVC)
     # C++
     if (NOT CMAKE_CXX_FLAGS)
         set(tmp "-fPIC -std=c++17 -Wall -Wextra -fvisibility=hidden")
 
-        if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-            set(tmp "${tmp} -stdlib=libc++")
-        endif()
+        # this was needed in the early days of C++11 support
+        #if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+        #    set(tmp "${tmp} -stdlib=libc++")
+        #endif()
 
         if (HAMR_NVHPC_CUDA)
             set(tmp "${tmp} -cuda -gpu=${HAMR_CUDA_ARCHITECTURES}")
