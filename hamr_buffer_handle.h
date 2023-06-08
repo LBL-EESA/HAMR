@@ -8,6 +8,7 @@
 
 #include <Python.h>
 #include <memory>
+#include <iostream>
 
 namespace hamr
 {
