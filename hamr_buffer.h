@@ -393,6 +393,10 @@ public:
         : buffer(alloc, stream(), transfer::sync_cpu, size, owner, data) {}
 
     /// copy construct from the passed buffer
+    template <typename U>
+    buffer(const buffer<U> &other);
+
+    /// copy construct from the passed buffer
     buffer(const buffer<T> &other);
 
     /** Copy construct from the passed buffer, while specifying a potentially
@@ -404,8 +408,9 @@ public:
      * @param[in] sync  a ::buffer_transfer specifies synchronous or
      *                  asynchronous behavior.
      */
+    template <typename U>
     buffer(allocator alloc, const hamr::stream &strm,
-        transfer sync, const buffer<T> &other);
+        transfer sync, const buffer<U> &other);
 
     /** Copy construct from the passed buffer, while specifying a potentially
      * different allocator, stream, and synchronization behavior. The buffer is
@@ -415,7 +420,8 @@ public:
      *                  manages the data internally
      * @param[in] strm  a ::stream object used to order operations
      */
-    buffer(allocator alloc, const hamr::stream &strm, const buffer<T> &other)
+    template <typename U>
+    buffer(allocator alloc, const hamr::stream &strm, const buffer<U> &other)
         : buffer(alloc, strm, transfer::async, other) {}
 
     /** Copy construct from the passed buffer, while specifying a potentially
@@ -430,7 +436,8 @@ public:
      * @param[in] sync  a ::buffer_transfer specifies synchronous or
      *                  asynchronous behavior.
      */
-    buffer(allocator alloc, const buffer<T> &other) :
+    template <typename U>
+    buffer(allocator alloc, const buffer<U> &other) :
         buffer(alloc, other.m_stream, other.m_sync, other) {}
 
 #if !defined(SWIG)
