@@ -342,8 +342,17 @@ buffer<T>::buffer(const buffer<T> &other) :
 
 // --------------------------------------------------------------------------
 template <typename T>
+template <typename U>
+buffer<T>::buffer(const buffer<U> &other) :
+    buffer<T>(other.m_alloc, other.m_stream, other.m_sync, other)
+{
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
+template <typename U>
 buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
-    const buffer<T> &other) : buffer<T>(alloc, strm, sync, other.m_size)
+    const buffer<U> &other) : buffer<T>(alloc, strm, sync, other.m_size)
 {
     if (this->set(0, other, 0, m_size))
     {
