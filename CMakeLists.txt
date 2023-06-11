@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
 project(hamr)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -88,6 +88,8 @@ set(HAMR_CUDA_ARCHITECTURES ${tmp_cuda_arch} CACHE
 if (HAMR_ENABLE_CUDA)
     if (tmp_have_cuda)
         message(STATUS "HAMR: CUDA features -- enabled (${CMAKE_CUDA_COMPILER_ID}:${HAMR_CUDA_ARCHITECTURES})")
+
+        set(CMAKE_CUDA_ARCHITECTURES ${HAMR_CUDA_ARCHITECTURES})
     else()
         message(FATAL_ERROR "CUDA is required for hamr but was not found")
     endif()
@@ -167,9 +169,8 @@ endif()
 #   linking and this leads to a nasty runtime crash when stataic and shared
 #   libraries containing cuda code are linked into a fat bin.
 #   Filed a bug report w/ NVIDIA and this has been reported to be fixed (Q4 2022)
-# * CMake does not handle nvc++ as the CUDA compiler. (Q1 2023)
-# * On some systems CMake will use O2 for release builds rather than O3 and does not
-#   enable processor specific optimizations.
+# * CMake does not handle CUDA w/ nvc++ as the host compiler. (Q1 2023)
+# * On some systems CMake will use O2 for release builds rather than O3
 # * CMake currently does not detect OpenMP offload flags at all. There is a
 #   a CMake bug report about this. (Q1 2023)
 if (NOT MSVC)
@@ -193,7 +194,7 @@ if (NOT MSVC)
         if (HAMR_ENABLE_OPENMP)
             set(tmp_flags)
 
-            get_offload_flags( TARGET ${HAMR_OPENMP_TARGET}
+            get_offload_compile_flags( TARGET ${HAMR_OPENMP_TARGET}
                 ARCH ${HAMR_OPENMP_ARCH} ADD_FLAGS ${HAMR_OPENMP_FLAGS}
                 RESULT tmp_flags)
 
@@ -217,6 +218,16 @@ if (NOT MSVC)
             CACHE STRING "HAMR CXX compiler defaults"
             FORCE)
     endif()
+
+    set(tmp)
+    if (HAMR_ENABLE_OPENMP)
+        get_offload_link_flags( TARGET ${HAMR_OPENMP_TARGET}
+            ARCH ${HAMR_OPENMP_ARCH} ADD_FLAGS ${HAMR_OPENMP_FLAGS}
+            RESULT tmp)
+    endif()
+
+    set(HAMR_OPENMP_LINK_FLAGS ${tmp}
+        CACHE STRING "HAMR linker flags for OpenMP")
 
     # CUDA
     if (NOT CMAKE_CUDA_FLAGS AND HAMR_NVCC_CUDA)
@@ -341,7 +352,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/hamr/ham
 # add the libarary
 set(tmp STATIC)
 if (HAMR_SEPARATE_IMPL)
-    set(tmp SHARED)
+    set(tmp SHARED) # because nvlink segv's during device link w/ clang
 endif()
 add_library(hamr ${tmp} ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
@@ -349,6 +360,10 @@ target_link_libraries(hamr PUBLIC ${hamr_libs})
 if (HAMR_ENABLE_CUDA AND HAMR_NVCC_CUDA)
     set_target_properties(hamr PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
 endif()
+
+if (HAMR_ENABLE_OPENMP AND HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA)
+    target_link_options(hamr PUBLIC ${HAMR_OPENMP_LINK_FLAGS})
+endif ()
 
 target_include_directories(hamr
     INTERFACE
