@@ -112,10 +112,10 @@ else()
 endif()
 
 # enable OpenMP
-include(omp_offload)
-
 set(HAMR_ENABLE_OPENMP OFF CACHE BOOL
     "Enable features supporting the OpenMP memory model")
+
+include(hamr_omp_offload)
 
 # clang/AMD: target=amdgcn, arch=gfx1030.
 # Intel: target=spir64.
