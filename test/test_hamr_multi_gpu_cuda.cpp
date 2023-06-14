@@ -9,7 +9,7 @@
 template <typename T>
 void print(const hamr::buffer<T> &buf)
 {
-    auto [spbuf, pbuf] = hamr::get_cpu_accessible(buf);
+    auto [spbuf, pbuf] = hamr::get_host_accessible(buf);
     std::cerr << pbuf[0];
     for (size_t i = 1; i < buf.size(); ++i)
         std::cerr << ", "<< pbuf[i];
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    // allocate some data on the CPU
+    // allocate some data on the host
     size_t n_elem = 1000;
 
     using T = int;
@@ -69,8 +69,8 @@ int main(int argc, char **argv)
         src = dest;
     }
 
-    // move back to the CPU
-    std::cerr << " ==== move to CPU ==== " << std::endl;
+    // move back to the host
+    std::cerr << " ==== move to host ==== " << std::endl;
 
     hamr::buffer<T> end(hamr::buffer_allocator::malloc, *src);
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     // check for 31415
     std::cerr << " ==== validate ==== " << std::endl;
 
-    auto [spsrc, psrc] = hamr::get_cpu_accessible(*src);
+    auto [spsrc, psrc] = hamr::get_host_accessible(*src);
 
     for (size_t i = 0; i < n_elem; ++i)
     {

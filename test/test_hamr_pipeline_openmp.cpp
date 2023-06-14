@@ -126,7 +126,7 @@ int compare_int(const hamr::buffer<T> &ain, int val)
         ai.print();
     }
 
-    auto [spai, pai] = hamr::get_cpu_accessible(ai);
+    auto [spai, pai] = hamr::get_host_accessible(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -161,12 +161,12 @@ int main(int, char **)
     hamr::buffer<double> ao4 = multiply_scalar(ao3, 1000.0);     // = 4000 (device)
     ao3.free();
 
-    hamr::buffer<float>  ao5(allocator::malloc, n_vals, 3.0f);   // = 1 (CPU)
+    hamr::buffer<float>  ao5(allocator::malloc, n_vals, 3.0f);   // = 1 (host)
     hamr::buffer<float>  ao6 = multiply_scalar(ao5, 100.0f);     // = 300 (device)
     ao5.free();
 
-    hamr::buffer<float> ao7(allocator::malloc, n_vals);          // = uninit (CPU)
-    ao7.set(ao6);                                                // = 300 (CPU)
+    hamr::buffer<float> ao7(allocator::malloc, n_vals);          // = uninit (host)
+    ao7.set(ao6);                                                // = 300 (host)
     ao6.free();
 
     hamr::buffer<double> ao8 = add(ao4, ao7);                    // = 4300 (device)

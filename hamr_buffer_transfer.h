@@ -13,7 +13,7 @@ namespace hamr
 enum class buffer_transfer
 {
     async = 0,   ///< all operations are asynchronous
-    sync_cpu = 1,///< operations moving data from GPU to CPU memory are synchronous
+    sync_host = 1,///< operations moving data from GPU to host memory are synchronous
     sync = 2     ///< all operations are synchronous
 };
 

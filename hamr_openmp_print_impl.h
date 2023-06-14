@@ -25,15 +25,15 @@ int openmp_print(T *vals, size_t n_elem)
     return -1;
 #else
 
-    // allocate a temporary on the CPU
+    // allocate a temporary on the host
     auto sptmp = hamr::malloc_allocator<T>::allocate(n_elem);
     T *ptmp = sptmp.get();
 
-    // move to the CPU
-    if (hamr::copy_to_cpu_from_openmp(ptmp, vals, n_elem))
+    // move to the host
+    if (hamr::copy_to_host_from_openmp(ptmp, vals, n_elem))
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " failed to move data to the CPU" << std::endl;
+            " failed to move data to the host" << std::endl;
         return -1;
     }
 

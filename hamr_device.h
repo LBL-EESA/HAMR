@@ -29,15 +29,15 @@ inline int HAMR_EXPORT get_device_identifier(int &dev_id)
 #endif
 }
 
-/// gets the device identifier for the CPU. @returns zero if successful.
-inline int HAMR_EXPORT get_cpu_identifier(int &dev_id)
+/// gets the device identifier for the host. @returns zero if successful.
+inline int HAMR_EXPORT get_host_identifier(int &dev_id)
 {
 #if defined(HAMR_ENABLE_CUDA)
-    return get_cuda_cpu_identifier(dev_id);
+    return get_cuda_host_identifier(dev_id);
 #elif defined(HAMR_ENABLE_HIP)
-    return get_hip_cpu_identifier(dev_id);
+    return get_hip_host_identifier(dev_id);
 #elif defined(HAMR_ENABLE_OPENMP)
-    return get_openmp_cpu_identifier(dev_id);
+    return get_openmp_host_identifier(dev_id);
 #else
     dev_id = -1;
     return 0;

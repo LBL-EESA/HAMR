@@ -439,7 +439,7 @@ hip_malloc_uva_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::valu
     {
         std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "CPU")
+            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "host")
             << " array of objects of type " << typeid(U).name() << sizeof(U)
             << " at " << vals << std::endl;
     }
@@ -657,7 +657,7 @@ hip_malloc_uva_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value
     {
         std::cerr << "hip_malloc_uva_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "CPU")
+            << " at " << ptr  << " initialized from " << (hipVals ? "CUDA" : "host")
             << " array " << vals << " objects of type " << typeid(U).name() << sizeof(T)
             << std::endl;
     }

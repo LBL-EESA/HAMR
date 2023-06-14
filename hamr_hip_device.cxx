@@ -23,7 +23,7 @@ int get_hip_device(const void *ptr, int &device_id)
         ((ierr == hipSuccess) && ((ptrAtts.type == hipMemoryTypeHost) ||
         (ptrAtts.type == hipMemoryTypeUnregistered))))
     {
-        // this is CPU backed memory not associate with a GPU
+        // this is host backed memory not associate with a GPU
         device_id = -1;
     }
     else*/ if (ierr != hipSuccess)

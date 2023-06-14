@@ -368,7 +368,7 @@ cuda_malloc_async_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::v
         std::cerr << "cuda_malloc_async_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized from the "
-            << (cudaVals ? "CUDA" : "CPU") << " array of objects of "
+            << (cudaVals ? "CUDA" : "host") << " array of objects of "
             << typeid(U).name() << sizeof(U) << " at " << vals
             << std::endl;
     }
@@ -564,7 +564,7 @@ cuda_malloc_async_allocator<T, typename std::enable_if<std::is_arithmetic<T>::va
     {
         std::cerr << "cuda_malloc_async_allocator allocating array of " << n_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr << " initialized from " << (cudaVals ? "CUDA" : "CPU")
+            << " at " << ptr << " initialized from " << (cudaVals ? "CUDA" : "host")
             <<  " array at " << vals << std::endl;
     }
 #endif

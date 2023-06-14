@@ -1,5 +1,5 @@
-#ifndef hamr_cpu_copy_impl_h
-#define hamr_cpu_copy_impl_h
+#ifndef hamr_host_copy_impl_h
+#define hamr_host_copy_impl_h
 
 #include "hamr_config.h"
 #include "hamr_env.h"
@@ -15,7 +15,7 @@ namespace hamr
 
 // --------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
+int copy_to_host_from_host(T *dest, const U *src, size_t n_elem)
 {
     for (size_t i = 0; i < n_elem; ++i)
     {
@@ -25,7 +25,7 @@ int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cpu " << n_elem
+        std::cerr << "hamr::copy_to_host_from_host " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
@@ -36,7 +36,7 @@ int copy_to_cpu_from_cpu(T *dest, const U *src, size_t n_elem)
 
 // --------------------------------------------------------------------------
 template <typename T>
-int copy_to_cpu_from_cpu(T *dest, const T *src, size_t n_elem,
+int copy_to_host_from_host(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
 {
     // copy src to gpu
@@ -46,7 +46,7 @@ int copy_to_cpu_from_cpu(T *dest, const T *src, size_t n_elem,
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cpu same " << n_elem
+        std::cerr << "hamr::copy_to_host_from_host same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif

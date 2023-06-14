@@ -6,24 +6,24 @@
 #if !defined(HAMR_ENABLE_OBJECTS)
 
 #define hamr_cuda_copy_instantiate_(T, U) \
-template int hamr::copy_to_cuda_from_cpu<T,U>(T *dest, const U *src, size_t n_elem, void *); \
+template int hamr::copy_to_cuda_from_host<T,U>(T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(T *dest, const U *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_cuda<T,U>(T *dest, const U *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_cuda<T,U>(T *dest, const U *src, size_t n_elem, void *);
 
 #else
 
 #define hamr_cuda_copy_instantiate_(T, U) \
-template int hamr::copy_to_cuda_from_cpu<T,U>(T *dest, const U *src, size_t n_elem); \
+template int hamr::copy_to_cuda_from_host<T,U>(T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(T *dest, const U *src, int src_device, size_t n_elem); \
-template int hamr::copy_to_cpu_from_cuda<T,U>(T *dest, const U *src, size_t n_elem);
+template int hamr::copy_to_host_from_cuda<T,U>(T *dest, const U *src, size_t n_elem);
 
 #define hamr_cuda_copy_instantiate__(T) \
-template int hamr::copy_to_cuda_from_cpu<T>(T *dest, const T *src, size_t n_elem, void *); \
+template int hamr::copy_to_cuda_from_host<T>(T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T>(T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T>(T *dest, const T *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_cuda<T>(T *dest, const T *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_cuda<T>(T *dest, const T *src, size_t n_elem, void *);
 
 hamr_cuda_copy_instantiate__(float)
 hamr_cuda_copy_instantiate__(double)

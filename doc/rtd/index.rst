@@ -2,7 +2,7 @@ The HAMR User’s Guide
 =====================
 HAMR is a library defining an accelerator technology agnostic memory model that
 bridges between accelerator technologies (CUDA, HIP, ROCm, OpenMP, Sycl,
-OpenCL, Kokos, etc) and traditional CPUs in heterogeneous computing
+OpenCL, Kokos, etc) and traditional hosts in heterogeneous computing
 environments.   HAMR is light weight and implemented in modern C++. HAMR can be
 used to manage memory with in a single code or as a data model for coupling
 codes in a technologically agnostic way. HAMR provides a Python module for
@@ -59,14 +59,14 @@ install via the `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` CMake options.
 Introduction
 ------------
 HAMR deals only with memory models and serves as a bridge for moving data
-between various low and high level accelerator technologies and the CPU at run
+between various low and high level accelerator technologies and the host at run
 time. HAMR is designed as a data model for coupling codes such that developers
 need not code to a specific technology in order to share data.  For this reason
 HAMR does not implement an execution environment. Developers write their codes
 for the technology of their choice. The technology's native execution
 environment is used for computation.  HAMR provides data structures that manage
 memory and can be used to share data and couple codes written in different
-accelerator technologies (including CPU based codes), by different developers,
+accelerator technologies (including host based codes), by different developers,
 such that the receiving code need not have knowledge of technology used to
 generate that data, and the sending code need not have knowledge of the
 technology that will be used to consume the data.  HAMR manages the necessary
@@ -126,17 +126,17 @@ buffer's contents, no data was moved. `pdata` is a device pointer that can be
 passed to a CUDA kernel.
 
 The contents of this buffer can then be passed to codes written for other
-technologies. For instance a code written for the CPU could access the data as
+technologies. For instance a code written for the host could access the data as
 follows:
 
 .. code-block:: c++
 
-    std::shared_ptr<float> spdata = data->get_cpu_accessible();
+    std::shared_ptr<float> spdata = data->get_host_accessible();
     float *pdata = spdata.get();
 
 Because the buffer `data` was allocated for use in CUDA, here `spdata` points
-to a temporary buffer that has been moved to the CPU. `pdata` is a pointer that
-can be used to access the buffers contents on the CPU. Modern C++
+to a temporary buffer that has been moved to the host. `pdata` is a pointer that
+can be used to access the buffers contents on the host. Modern C++
 `std::shared_ptr` is used to manage the temporary. `pdata` is valid as long as
 `spdata` is in scope. In this way the consumer of the data need not know if the
 data was moved or accessed in place.
@@ -170,14 +170,14 @@ CUDA array interface protocols enabling Numpy and Cupy to directly make use of
 the shared data.
 
 When sharing with Numpy the `hamr::buffer_handle` is obtained by
-calling `hamr::buffer::get_cpu_accessible`.
+calling `hamr::buffer::get_host_accessible`.
 
 .. code-block:: python
 
-   arr = numpy.array(buf.get_cpu_accessible())
+   arr = numpy.array(buf.get_host_accessible())
 
 As explained above, HAMR ensures that the returned data is accessible on the
-CPU by either moving it to a temporary if necessary, or returning a pointer to
+host by either moving it to a temporary if necessary, or returning a pointer to
 the buffer contents.
 
 Similarly, when sharing with Cupy the `hamr::buffer_handle` instance is
@@ -228,7 +228,7 @@ to a build.
 Hello World! w/ C++ and OpenMP
 ------------------------------
 This example illustrates coupling two codes, in this case functions, using HAMR
-so that they can process data produced either on the CPU or GPU without knowing
+so that they can process data produced either on the host or GPU without knowing
 specifically where the data passed to them resides. C++ smart pointers are used
 to manage temporary buffers if the passed data needed to be moved to the device
 where it was accessed.  See :ref:`buffer` for more information.  See
@@ -247,13 +247,13 @@ implementation of this example.
 .. literalinclude:: source/hello_openmp/write.h
     :language: c++
     :linenos:
-    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+    :caption: Code that uses HAMR to access array based data on the host. Calling `get_host_accessible` makes the array available on the host if they are not.
 
 
 .. literalinclude:: source/hello_openmp/hello_openmp.cpp
     :language: c++
     :linenos:
-    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in OpenMP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the host, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in OpenMP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the host and print the result.
 
 
 .. _hello_cuda:
@@ -261,7 +261,7 @@ implementation of this example.
 Hello World! w/ C++ and CUDA
 ------------------------------
 This example illustrates coupling two codes, in this case functions, using HAMR
-so that they can process data produced either on the CPU or GPU without knowing
+so that they can process data produced either on the host or GPU without knowing
 specifically where the data passed to them resides. C++ smart pointers are used
 to manage temporary buffers if the passed data needed to be moved to the device
 where it was accessed.  See :ref:`buffer` for more information.  See
@@ -285,13 +285,13 @@ where it was accessed.  See :ref:`buffer` for more information.  See
 .. literalinclude:: source/hello_cuda/write.h
     :language: c++
     :linenos:
-    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+    :caption: Code that uses HAMR to access array based data on the host. Calling `get_host_accessible` makes the array available on the host if they are not.
 
 
 .. literalinclude:: source/hello_cuda/hello_cuda.cu
     :language: c++
     :linenos:
-    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the host, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the host and print the result.
 
 
 .. _hello_hip:
@@ -299,7 +299,7 @@ where it was accessed.  See :ref:`buffer` for more information.  See
 Hello World! w/ C++ and HIP
 ------------------------------
 This example illustrates coupling two codes, in this case functions, using HAMR so that
-they can process data produced either on the CPU or GPU without knowing
+they can process data produced either on the host or GPU without knowing
 specifically where the data passed to them resides. C++ smart pointers are used
 to manage temporary buffers if the passed data needed to be moved to the device
 where it was accessed.  See :ref:`buffer` for more information. See
@@ -322,13 +322,13 @@ where it was accessed.  See :ref:`buffer` for more information. See
 .. literalinclude:: source/hello_hip/write.h
     :language: c++
     :linenos:
-    :caption: Code that uses HAMR to access array based data on the CPU. Calling `get_cpu_accessible` makes the array available on the CPU if they are not.
+    :caption: Code that uses HAMR to access array based data on the host. Calling `get_host_accessible` makes the array available on the host if they are not.
 
 
 .. literalinclude:: source/hello_hip/hello_hip.cpp
     :language: c++
     :linenos:
-    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in HIP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the host, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in HIP before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the host and print the result.
 
 
 .. _hello_cupy:
@@ -336,7 +336,7 @@ where it was accessed.  See :ref:`buffer` for more information. See
 Hello World! w/ Python and cupy
 -------------------------------
 This example illustrates the coupling of two codes using hamr so that they can
-process data produced either on the CPU or GPU without knowing specifically
+process data produced either on the host or GPU without knowing specifically
 where the data passed to them resides. HAMR's Python integration handle data
 sharing between C++ and Python objects. See :ref:`python_int` for more
 information. See :ref:`hello_cuda` for a C++ implementation of this example.
@@ -345,4 +345,4 @@ information. See :ref:`hello_cuda` for a C++ implementation of this example.
 .. literalinclude:: source/hello_cupy/hello_cupy.py
     :language: python
     :linenos:
-    :caption: This simple Hello world! program allocates an array on the GPU and an array on the CPU, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the CPU and print the result.
+    :caption: This simple Hello world! program allocates an array on the GPU and an array on the host, both are initialized to 1. Then dispatch code use HAMR API's to make sure that the data is accessible in CUDA before launching a simple kernel that adds the two arrays. HMAR is used to make the data accessible on the host and print the result.

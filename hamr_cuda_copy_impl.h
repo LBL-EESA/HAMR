@@ -21,7 +21,7 @@ namespace hamr
 #if !defined(HAMR_ENABLE_OBJECTS)
 // --------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
+int copy_to_cuda_from_host(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
@@ -29,14 +29,14 @@ int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_cuda_from_host CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
+        " copy_to_cuda_from_host HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -44,7 +44,7 @@ int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem,
 #else
 // --------------------------------------------------------------------------
 template <typename T>
-int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
+int copy_to_cuda_from_host(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
@@ -52,7 +52,7 @@ int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_cuda_from_host CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -69,7 +69,7 @@ int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu same " << n_elem
+        std::cerr << "hamr::copy_to_cuda_from_host same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif
@@ -81,7 +81,7 @@ int copy_to_cuda_from_cpu(T *dest, const T *src, size_t n_elem,
 
 // --------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
+int copy_to_cuda_from_host(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
 #endif
@@ -92,7 +92,7 @@ int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cuda_from_cpu CUDA is not enabled." << std::endl;
+        " copy_to_cuda_from_host CUDA is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -138,7 +138,7 @@ int copy_to_cuda_from_cpu(T *dest, const U *src, size_t n_elem
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cuda_from_cpu " << n_elem
+        std::cerr << "hamr::copy_to_cuda_from_host " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }
@@ -445,7 +445,7 @@ int copy_to_cuda_from_cuda(T *dest, const U *src, int src_device, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
 // --------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
+int copy_to_host_from_cuda(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
@@ -453,14 +453,14 @@ int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_host_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
+        " copy_to_host_from_cuda HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -468,7 +468,7 @@ int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem,
 #else
 // --------------------------------------------------------------------------
 template <typename T>
-int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
+int copy_to_host_from_cuda(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
@@ -476,10 +476,10 @@ int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_host_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
-    // copy src to cpu
+    // copy src to host
     size_t n_bytes = n_elem*sizeof(T);
     cudaError_t ierr = cudaSuccess;
     if ((ierr = cudaMemcpy(dest, src, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
@@ -493,7 +493,7 @@ int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda same " << n_elem
+        std::cerr << "hamr::copy_to_host_from_cuda same " << n_elem
             << " " << typeid(T).name() << sizeof(T) << std::endl;
     }
 #endif
@@ -505,7 +505,7 @@ int copy_to_cpu_from_cuda(T *dest, const T *src, size_t n_elem,
 
 // --------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
+int copy_to_host_from_cuda(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
 #endif
@@ -516,12 +516,12 @@ int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_cuda CUDA is not enabled." << std::endl;
+        " copy_to_host_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
 
     // apply the copy on the gpu in a temporary buffer
-    // copy the buffer to the cpu
+    // copy the buffer to the host
 
     // allocate a temporary buffer on the GPU
     auto sptmp = hamr::cuda_malloc_allocator<T>::allocate(n_elem);
@@ -551,7 +551,7 @@ int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
         return -1;
     }
 
-    // copy the data to the CPU
+    // copy the data to the host
     size_t n_bytes = n_elem*sizeof(T);
     if ((ierr = cudaMemcpy(dest, ptmp, n_bytes, cudaMemcpyDeviceToHost)) != cudaSuccess)
     {
@@ -564,7 +564,7 @@ int copy_to_cpu_from_cuda(T *dest, const U *src, size_t n_elem
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_cuda " << n_elem
+        std::cerr << "hamr::copy_to_host_from_cuda " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) << std::endl;
     }

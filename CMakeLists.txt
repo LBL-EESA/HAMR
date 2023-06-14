@@ -258,7 +258,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
 
 # C++ sources
 set(hamr_sources
-    #hamr_cpu_memory_resource.cxx
+    #hamr_host_memory_resource.cxx
     #hamr_cuda_uva_memory_resource.cxx
     hamr_buffer_allocator.cxx
     hamr_env.cxx
@@ -300,7 +300,7 @@ if (HAMR_SEPARATE_IMPL)
     list(APPEND hamr_sources
         hamr_malloc_allocator.cxx
         hamr_new_allocator.cxx
-        hamr_cpu_copy.cxx
+        hamr_host_copy.cxx
         hamr_buffer.cxx
         )
     if (HAMR_ENABLE_CUDA)

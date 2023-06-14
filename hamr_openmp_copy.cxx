@@ -6,26 +6,26 @@
 #if !defined(HAMR_ENABLE_OBJECTS)
 
 #define hamr_openmp_copy_instantiate_(T, U) \
-template int hamr::copy_to_openmp_from_cpu<T,U>(T *dest, const U *src, size_t n_elem, void *); \
+template int hamr::copy_to_openmp_from_host<T,U>(T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, void *);
 
 #else
 
 #define hamr_openmp_copy_instantiate_(T, U) \
-template int hamr::copy_to_openmp_from_cpu<T,U>(T *dest, const U *src, size_t n_elem); \
+template int hamr::copy_to_openmp_from_host<T,U>(T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, int src_device, size_t n_elem); \
-template int hamr::copy_to_cpu_from_openmp<T,U>(T *dest, const U *src, size_t n_elem);
+template int hamr::copy_to_host_from_openmp<T,U>(T *dest, const U *src, size_t n_elem);
 
 #endif
 
 #define hamr_openmp_copy_instantiate__(T) \
-template int hamr::copy_to_openmp_from_cpu<T>(T *dest, const T *src, size_t n_elem, void *); \
+template int hamr::copy_to_openmp_from_host<T>(T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_openmp_from_openmp<T>(T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_openmp_from_openmp<T>(T *dest, const T *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_openmp<T>(T *dest, const T *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_openmp<T>(T *dest, const T *src, size_t n_elem, void *);
 
 
 hamr_openmp_copy_instantiate__(float)

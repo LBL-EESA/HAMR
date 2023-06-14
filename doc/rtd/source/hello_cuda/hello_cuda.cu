@@ -15,7 +15,7 @@ int main(int, char **)
     // allocate and initialize to 1 on the GPU
     hamr::buffer<float> a0(hamr::buffer_allocator::cuda, n_vals, 1.0f);
 
-    // allocate and initialize to 1 on the CPU
+    // allocate and initialize to 1 on the host
     hamr::buffer<float> a1(hamr::buffer_allocator::malloc, n_vals, 1.0f);
 
     // add the two arrays

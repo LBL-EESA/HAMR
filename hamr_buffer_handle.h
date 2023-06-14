@@ -94,18 +94,18 @@ class HAMR_EXPORT buffer_handle
 public:
     /// construct an empty, and unusable object
     buffer_handle() : m_data(nullptr), m_size(0),
-        m_read_only(0), m_cpu_accessible(0), m_cuda_accessible(0),
+        m_read_only(0), m_host_accessible(0), m_cuda_accessible(0),
         m_stream(0)
         {}
 
     /// construct from existing data
     buffer_handle(const std::shared_ptr<T> &src, size_t size,
-        int read_only, int cpu_accessible, int cuda_accessible,
+        int read_only, int host_accessible, int cuda_accessible,
         size_t stream);
 
     /// construct from existing read only data
     buffer_handle(const std::shared_ptr<const T> &src, size_t size,
-        int cpu_accessible, int cuda_accessible, size_t stream);
+        int host_accessible, int cuda_accessible, size_t stream);
 
     /// destruct
     ~buffer_handle();
@@ -146,7 +146,7 @@ public:
     std::shared_ptr<T> m_data;
     size_t m_size;
     int m_read_only;
-    int m_cpu_accessible;
+    int m_host_accessible;
     int m_cuda_accessible;
     size_t m_stream;
 };
@@ -166,17 +166,17 @@ void buffer_handle<T>::to_stream(std::ostream &os) const
     os << "buffer_handle<" << typeid(T).name() << sizeof(T)
         << "> m_data = " << size_t(this->m_data.get())
         << " m_size = " << this->m_size << " m_read_only = "
-        << this->m_read_only << " m_cpu_accessible = "
-        << this->m_cpu_accessible << " m_cuda_accessible = "
+        << this->m_read_only << " m_host_accessible = "
+        << this->m_host_accessible << " m_cuda_accessible = "
         << this->m_cuda_accessible;
 }
 
 // --------------------------------------------------------------------------
 template <typename T>
 buffer_handle<T>::buffer_handle(const std::shared_ptr<T> &src,
-    size_t size, int read_only, int cpu_accessible, int cuda_accessible,
+    size_t size, int read_only, int host_accessible, int cuda_accessible,
     size_t stream) : m_data(src), m_size(size), m_read_only(read_only),
-    m_cpu_accessible(cpu_accessible), m_cuda_accessible(cuda_accessible),
+    m_host_accessible(host_accessible), m_cuda_accessible(cuda_accessible),
     m_stream(stream)
 {
     if (hamr::get_verbose())
@@ -188,9 +188,9 @@ buffer_handle<T>::buffer_handle(const std::shared_ptr<T> &src,
 // --------------------------------------------------------------------------
 template <typename T>
 buffer_handle<T>::buffer_handle(const std::shared_ptr<const T> &src,
-    size_t size, int cpu_accessible, int cuda_accessible,
+    size_t size, int host_accessible, int cuda_accessible,
     size_t stream) : buffer_handle(std::const_pointer_cast<T>(src), size,
-    1, cpu_accessible, cuda_accessible, stream)
+    1, host_accessible, cuda_accessible, stream)
 {
 }
 
@@ -208,7 +208,7 @@ buffer_handle<T>::~buffer_handle()
 template <typename T>
 buffer_handle<T>::buffer_handle(const buffer_handle<T> &other) :
     m_data(other.m_data), m_size(other.m_size),
-    m_read_only(other.m_read_only), m_cpu_accessible(other.m_cpu_accessible),
+    m_read_only(other.m_read_only), m_host_accessible(other.m_host_accessible),
     m_cuda_accessible(other.m_cuda_accessible), m_stream(other.m_stream)
 {
     if (hamr::get_verbose())
@@ -221,7 +221,7 @@ buffer_handle<T>::buffer_handle(const buffer_handle<T> &other) :
 template <typename T>
 buffer_handle<T>::buffer_handle(buffer_handle<T> &&other) :
     m_data(std::move(other.m_data)), m_size(other.m_size),
-    m_read_only(other.m_read_only), m_cpu_accessible(other.m_cpu_accessible),
+    m_read_only(other.m_read_only), m_host_accessible(other.m_host_accessible),
     m_cuda_accessible(other.m_cuda_accessible), m_stream(other.m_stream)
 {
     if (hamr::get_verbose())
@@ -258,10 +258,10 @@ PyObject *buffer_handle<T>::get_numpy_array_interface()
 {
     hamr::gil_state gil;
 
-    if (!m_cpu_accessible)
+    if (!m_host_accessible)
     {
         PyErr_SetString(PyExc_AttributeError,
-            "The data is not accessible from the CPU");
+            "The data is not accessible from the host");
         Py_RETURN_NONE;
     }
 

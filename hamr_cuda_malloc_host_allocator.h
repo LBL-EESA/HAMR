@@ -66,14 +66,14 @@ private:
 
 
 /** A class for allocating arrays with cudaMallocHost.  Use this allocator for
- * CPU accessible memory when you want to overlap data movement and computation
+ * host accessible memory when you want to overlap data movement and computation
  * with CUDA.
  */
 template <typename T, typename E = void>
 struct cuda_malloc_host_allocator {};
 
 /** a class for allocating arrays with cudaMallocHost, specialized for objects
- * Use this allocator for CPU accessible memory when you want to overlap data movement and computation
+ * Use this allocator for host accessible memory when you want to overlap data movement and computation
  * with CUDA
  */
 template <typename T>
@@ -106,7 +106,7 @@ struct HAMR_EXPORT cuda_malloc_host_allocator<T, typename std::enable_if<!std::i
 
 
 /** a class for allocating arrays with cudaMallocHost, specialized for numbers.
- * Use this allocator for CPU accessible memory when you want to overlap data
+ * Use this allocator for host accessible memory when you want to overlap data
  * movement and computation with CUDA
  */
 template <typename T>

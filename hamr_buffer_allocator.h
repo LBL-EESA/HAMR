@@ -29,10 +29,10 @@ enum class buffer_allocator
 HAMR_EXPORT
 const char *get_allocator_name(buffer_allocator alloc);
 
-/// @returns true if the allocator creates CPU accessible memory
+/// @returns true if the allocator creates host accessible memory
 inline
 HAMR_EXPORT
-int cpu_accessible(buffer_allocator alloc)
+int host_accessible(buffer_allocator alloc)
 {
     return (alloc == buffer_allocator::cpp) ||
         (alloc == buffer_allocator::malloc) ||
