@@ -9,13 +9,13 @@ namespace hamr
 
 /// @cond
 template <typename TT>
-auto get_cpu_accessible()
+auto get_host_accessible()
 {
     return std::make_tuple();
 }
 /// @endcond
 
-/** Calls hamr::buffer::get_cpu_accessible on a number of hamr::buffer
+/** Calls hamr::buffer::get_host_accessible on a number of hamr::buffer
  * instances.
  *
  * @tparam TT hamr::buffer<NT>
@@ -26,11 +26,11 @@ auto get_cpu_accessible()
  *          hamr::buffer<NT> passed in.
  */
 template <typename TT, typename... PP>
-auto get_cpu_accessible(const TT &b, PP &&... args)
+auto get_host_accessible(const TT &b, PP &&... args)
 {
-    auto spb = b.get_cpu_accessible();
+    auto spb = b.get_host_accessible();
     return std::tuple_cat(std::make_tuple
-        (spb, spb.get()), get_cpu_accessible<TT>(args...));
+        (spb, spb.get()), get_host_accessible<TT>(args...));
 }
 
 /// @cond

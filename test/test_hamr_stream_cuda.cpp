@@ -69,7 +69,7 @@ int msm(const T *A, const T b, T *C,
 // *************************************************************************
 void print(const char *nm, const hamr::buffer<double> &M, int n)
 {
-    auto spM = M.get_cpu_accessible();
+    auto spM = M.get_host_accessible();
     const double *pM = spM.get();
 
     std::cerr << nm << "(" << n << " x " << n << ") = " << std::endl;
@@ -193,9 +193,9 @@ int main(int argc, char **argv)
         cudaStreamCreate(&cs1);
         cudaStreamCreate(&cs2);
     }
-    else if (strcmp(argv[2], "sync_cpu") == 0)
+    else if (strcmp(argv[2], "sync_host") == 0)
     {
-        sync = transfer::sync_cpu;
+        sync = transfer::sync_host;
         cs1 = cudaStreamPerThread;
         cs2 = cudaStreamPerThread;
     }

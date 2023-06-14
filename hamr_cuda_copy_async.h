@@ -13,13 +13,13 @@ namespace hamr
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible on the host
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
 #else
 /** Copies an array to the active CUDA device (fast path for arrays of
@@ -27,13 +27,13 @@ int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const U *src, size_t n_elem
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible on the host
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
  */
 template <typename T>
-int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const T *src, size_t n_elem,
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
 #endif
 
@@ -41,13 +41,13 @@ int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const T *src, size_t n_elem
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible on the host
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_cpu(cudaStream_t str, T *dest, const U *src, size_t n_elem
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif
@@ -72,7 +72,7 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible on the host
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
@@ -153,14 +153,14 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
 /** Copies an array from the active CUDA device.
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
- * @param[in] dest an array of n elements accessible on the CPU
+ * @param[in] dest an array of n elements accessible on the host
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cpu_from_cuda(cudaStream_t str, T *dest,
+int copy_to_host_from_cuda(cudaStream_t str, T *dest,
     const U *src, size_t n_elem,
     typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
 #else
@@ -169,26 +169,26 @@ int copy_to_cpu_from_cuda(cudaStream_t str, T *dest,
  *
  * @param[in] str a CUDA stream or nullptr to use the default stream
  * @param[in] dest an array of n elements accessible in CUDA
- * @param[in] src an array of n elements accessible on the CPU
+ * @param[in] src an array of n elements accessible on the host
  * @param[in] n_elem the number of elements in the array
  *
  * @returns 0 if there were no errors
  */
 template <typename T>
-int copy_to_cpu_from_cuda(cudaStream_t str, T *dest,
+int copy_to_host_from_cuda(cudaStream_t str, T *dest,
     const T *src, size_t n_elem,
     typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
 #endif
 
 /** Copies an array from the active CUDA device.
  *
- * @param[in] dest an array of n elements accessible on the CPU
+ * @param[in] dest an array of n elements accessible on the host
  * @param[in] src an array of n elements accessible in CUDA
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cpu_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
 #endif

@@ -363,7 +363,7 @@ hip_malloc_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::value>::
         std::cerr << "hip_malloc_allocator allocating array of " << n_elem
             << " objects of type " << typeid(T).name() << sizeof(T)
             << " at " << ptr << " initialized from the "
-            << (hipVals ? "HIP" : "CPU") << " array of objects of "
+            << (hipVals ? "HIP" : "host") << " array of objects of "
             << typeid(U).name() << sizeof(U) << " at " << vals
             << std::endl;
     }
@@ -558,7 +558,7 @@ hip_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::t
     {
         std::cerr << "hip_malloc_allocator allocating array of " << n_elem
             << " numbers of type " << typeid(T).name() << sizeof(T)
-            << " at " << ptr << " initialized from " << (hipVals ? "HIP" : "CPU")
+            << " at " << ptr << " initialized from " << (hipVals ? "HIP" : "host")
             <<  " array at " << vals << std::endl;
     }
 #endif

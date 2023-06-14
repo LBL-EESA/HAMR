@@ -5,7 +5,7 @@
 #include "hamr_env.h"
 #include "hamr_malloc_allocator.h"
 #include "hamr_new_allocator.h"
-#include "hamr_cpu_copy.h"
+#include "hamr_host_copy.h"
 #if defined(HAMR_ENABLE_CUDA)
 #include "hamr_cuda_device.h"
 #include "hamr_cuda_malloc_allocator.h"
@@ -44,7 +44,7 @@ namespace hamr
 template <typename T>
 int buffer<T>::set_owner()
 {
-    // CPU backed memory
+    // host backed memory
     m_owner = -1;
 
 #if defined(HAMR_ENABLE_CUDA)
@@ -85,7 +85,7 @@ int buffer<T>::set_owner(const T *ptr)
 {
     (void) ptr;
 
-    // CPU backed memory
+    // host backed memory
     m_owner = -1;
 
 #if defined(HAMR_ENABLE_CUDA)
@@ -498,9 +498,9 @@ int buffer<T>::move(allocator alloc)
 
 // --------------------------------------------------------------------------
 template <typename T>
-int buffer<T>::cpu_accessible() const
+int buffer<T>::host_accessible() const
 {
-    return hamr::cpu_accessible(m_alloc);
+    return hamr::host_accessible(m_alloc);
 }
 
 // --------------------------------------------------------------------------
@@ -669,20 +669,20 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
 
     if (m_alloc == allocator::cpp)
     {
-        std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
+        std::shared_ptr<const U> pvals = vals.get_host_accessible();
 
         // a deep copy was made, return the pointer to the copy
-        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+        if (std::is_same<T,U>::value && !vals.host_accessible())
             return std::const_pointer_cast<T>(pvals);
 
         return new_allocator<T>::allocate(n_elem, pvals.get());
     }
     else if (m_alloc == allocator::malloc)
     {
-        std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
+        std::shared_ptr<const U> pvals = vals.get_host_accessible();
 
         // a deep copy was made, return the pointer to the copy
-        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+        if (std::is_same<T,U>::value && !vals.host_accessible())
             return std::const_pointer_cast<T>(pvals);
 
         return malloc_allocator<T>::allocate(n_elem, pvals.get());
@@ -729,10 +729,10 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
     }
     else if (m_alloc == allocator::cuda_host)
     {
-        std::shared_ptr<const U> pvals = vals.get_cpu_accessible();
+        std::shared_ptr<const U> pvals = vals.get_host_accessible();
 
         // a deep copy was made, return the pointer to the copy
-        if (std::is_same<T,U>::value && !vals.cpu_accessible())
+        if (std::is_same<T,U>::value && !vals.host_accessible())
             return std::const_pointer_cast<T>(pvals);
 
         return cuda_malloc_host_allocator<T>::allocate(n_elem, pvals.get());
@@ -867,7 +867,7 @@ int buffer<T>::reserve(size_t n_elem)
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            ierr = copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
+            ierr = copy_to_host_from_host(tmp.get(), m_data.get(), m_size);
         }
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == allocator::cuda) ||
@@ -931,7 +931,7 @@ int buffer<T>::reserve(size_t n_elem, const T &val)
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            ierr = copy_to_cpu_from_cpu(tmp.get(), m_data.get(), m_size);
+            ierr = copy_to_host_from_host(tmp.get(), m_data.get(), m_size);
         }
 #if defined(HAMR_ENABLE_CUDA)
         else if ((m_alloc == allocator::cuda) ||
@@ -1095,7 +1095,7 @@ template <typename T>
 template <typename U>
 int buffer<T>::append(const U *src, size_t src_start, size_t n_vals)
 {
-    // source is always on the cpu
+    // source is always on the host
     if (n_vals)
     {
         // allocate space if needed
@@ -1161,12 +1161,12 @@ int buffer<T>::set(size_t dest_start, const U *src,
         // bounds check
         assert(m_size >= (dest_start + n_vals));
 
-        // copy the values (src is always on the CPU)
+        // copy the values (src is always on the host)
         int ierr = 0;
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+            ierr = copy_to_host_from_host(m_data.get() + dest_start,
                 src + src_start, n_vals);
         }
 #if defined(HAMR_ENABLE_CUDA)
@@ -1175,7 +1175,7 @@ int buffer<T>::set(size_t dest_start, const U *src,
         {
             activate_cuda_device dev(m_owner);
 
-            ierr = copy_to_cuda_from_cpu(m_stream, m_data.get() + dest_start,
+            ierr = copy_to_cuda_from_host(m_stream, m_data.get() + dest_start,
                 src + src_start, n_vals);
         }
 #endif
@@ -1185,7 +1185,7 @@ int buffer<T>::set(size_t dest_start, const U *src,
 
             activate_hip_device dev(m_owner);
 
-            ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
+            ierr = copy_to_hip_from_host(m_data.get() + dest_start,
                 src + src_start, n_vals);
         }
 #endif
@@ -1195,7 +1195,7 @@ int buffer<T>::set(size_t dest_start, const U *src,
 
             activate_openmp_device dev(m_owner);
 
-            ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+            ierr = copy_to_openmp_from_host(m_data.get() + dest_start,
                 src + src_start, n_vals);
         }
 #endif
@@ -1230,20 +1230,20 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
         assert(m_size >= (dest_start + n_vals));
         assert(src.size() >= (src_start + n_vals));
 
-        // copy the value to the back. buffers can either be on the CPU or GPU
+        // copy the value to the back. buffers can either be on the host or GPU
         // and use different technologies so all permutations must be realized.
         int ierr = 0;
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            // destination is on the CPU
+            // destination is on the host
 
             if ((src.m_alloc == allocator::cpp) ||
                 (src.m_alloc == allocator::malloc) ||
                 (src.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_cpu_from_cpu(m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_host_from_host(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
             }
 #if defined(HAMR_ENABLE_CUDA)
@@ -1253,12 +1253,12 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 // source is on the GPU
                 activate_cuda_device dev(src.m_owner);
 
-                ierr = copy_to_cpu_from_cuda(m_stream,
+                ierr = copy_to_host_from_cuda(m_stream,
                     m_data.get() + dest_start, src.m_data.get() + src_start,
                     n_vals);
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1269,12 +1269,12 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 // source is on the GPU
                 activate_hip_device dev(src.m_owner);
 
-                ierr = copy_to_cpu_from_hip(m_data.get() + dest_start,
+                ierr = copy_to_host_from_hip(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
 
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1284,11 +1284,11 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 // source is on the GPU
                 activate_openmp_device dev(src.m_owner);
 
-                ierr = copy_to_cpu_from_openmp(m_data.get() + dest_start,
+                ierr = copy_to_host_from_openmp(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1310,8 +1310,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 (src.m_alloc == allocator::malloc) ||
                 (src.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_cuda_from_cpu(m_stream,
+                // source is on the host
+                ierr = copy_to_cuda_from_host(m_stream,
                     m_data.get() + dest_start, src.m_data.get() + src_start, n_vals);
             }
             else if (src.cuda_accessible())
@@ -1354,8 +1354,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 (src.m_alloc == allocator::cuda_host))
 
             {
-                // source is on the CPU
-                ierr = copy_to_hip_from_cpu(m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_hip_from_host(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
             }
             else if (src.hip_accessible())
@@ -1395,8 +1395,8 @@ int buffer<T>::set(size_t dest_start, const buffer<U> &src,
                 (src.m_alloc == allocator::malloc) ||
                 (src.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_openmp_from_cpu(m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_openmp_from_host(m_data.get() + dest_start,
                     src.m_data.get() + src_start, n_vals);
             }
             else if (src.openmp_accessible())
@@ -1452,12 +1452,12 @@ int buffer<T>::get(size_t src_start, U *dest,
         // bounds check
         assert(m_size >= (src_start + n_vals));
 
-        // copy the values (dest is always on the CPU)
+        // copy the values (dest is always on the host)
         int ierr = 0;
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
         {
-            ierr = copy_to_cpu_from_cpu(dest + dest_start,
+            ierr = copy_to_host_from_host(dest + dest_start,
                 m_data.get() + src_start, n_vals);
         }
 #if defined(HAMR_ENABLE_CUDA)
@@ -1466,11 +1466,11 @@ int buffer<T>::get(size_t src_start, U *dest,
         {
             activate_cuda_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_cuda(m_stream,
+            ierr = copy_to_host_from_cuda(m_stream,
                 dest + dest_start, m_data.get() + src_start, n_vals);
 
             // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+            if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                 m_stream.synchronize();
         }
 #endif
@@ -1479,11 +1479,11 @@ int buffer<T>::get(size_t src_start, U *dest,
         {
             activate_hip_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_hip(dest + dest_start,
+            ierr = copy_to_host_from_hip(dest + dest_start,
                 m_data.get() + src_start, n_vals);
 
             // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+            if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                 m_stream.synchronize();
         }
 #endif
@@ -1492,11 +1492,11 @@ int buffer<T>::get(size_t src_start, U *dest,
         {
             activate_openmp_device dev(m_owner);
 
-            ierr = copy_to_cpu_from_openmp(dest + dest_start,
+            ierr = copy_to_host_from_openmp(dest + dest_start,
                 m_data.get() + src_start, n_vals);
 
             // synchronize
-            if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+            if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                 m_stream.synchronize();
         }
 #endif
@@ -1527,20 +1527,20 @@ int buffer<T>::get(size_t src_start,
         assert(m_size >= (src_start + n_vals));
         assert(dest.size() >= (dest_start + n_vals));
 
-        // copy the value to the back. buffers can either be on the CPU or GPU
+        // copy the value to the back. buffers can either be on the host or GPU
         // and use different technologies so all permutations must be realized.
         int ierr = 0;
         if ((m_alloc == allocator::cpp) ||
             (m_alloc == allocator::malloc) || (m_alloc == allocator::malloc))
         {
-            // destination is on the CPU
+            // destination is on the host
 
             if ((dest.m_alloc == allocator::cpp) ||
                 (dest.m_alloc == allocator::malloc) ||
                 (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_cpu_from_cpu(dest.m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_host_from_host(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
             }
 #if defined(HAMR_ENABLE_CUDA)
@@ -1550,12 +1550,12 @@ int buffer<T>::get(size_t src_start,
                 // source is on the GPU
                 activate_cuda_device dev(m_owner);
 
-                ierr = copy_to_cpu_from_cuda(m_stream,
+                ierr = copy_to_host_from_cuda(m_stream,
                     dest.m_data.get() + dest_start, m_data.get() + src_start,
                     n_vals);
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1566,11 +1566,11 @@ int buffer<T>::get(size_t src_start,
                 // source is on the GPU
                 activate_hip_device dev(m_owner);
 
-                ierr = copy_to_cpu_from_hip(dest.m_data.get() + dest_start,
+                ierr = copy_to_host_from_hip(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1580,11 +1580,11 @@ int buffer<T>::get(size_t src_start,
                 // source is on the GPU
                 activate_openmp_device dev(m_owner);
 
-                ierr = copy_to_cpu_from_openmp(dest.m_data.get() + dest_start,
+                ierr = copy_to_host_from_openmp(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
 
                 // synchronize
-                if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+                if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
                     m_stream.synchronize();
             }
 #endif
@@ -1606,8 +1606,8 @@ int buffer<T>::get(size_t src_start,
                 (dest.m_alloc == allocator::malloc) ||
                 (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_cuda_from_cpu(m_stream,
+                // source is on the host
+                ierr = copy_to_cuda_from_host(m_stream,
                     dest.m_data.get() + dest_start, m_data.get() + src_start,
                     n_vals);
             }
@@ -1653,8 +1653,8 @@ int buffer<T>::get(size_t src_start,
                 (dest.m_alloc == allocator::malloc) ||
                 (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_hip_from_cpu(dest.m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_hip_from_host(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
             }
             else if ((dest.m_alloc == allocator::hip) ||
@@ -1696,8 +1696,8 @@ int buffer<T>::get(size_t src_start,
                 (dest.m_alloc == allocator::malloc) ||
                 (dest.m_alloc == allocator::cuda_host))
             {
-                // source is on the CPU
-                ierr = copy_to_openmp_from_cpu(dest.m_data.get() + dest_start,
+                // source is on the host
+                ierr = copy_to_openmp_from_host(dest.m_data.get() + dest_start,
                     m_data.get() + src_start, n_vals);
             }
             else if (dest.m_alloc == allocator::openmp)
@@ -1745,19 +1745,19 @@ int buffer<T>::get(size_t src_start,
 
 // ---------------------------------------------------------------------------
 template <typename T>
-std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
+std::shared_ptr<const T> buffer<T>::get_host_accessible() const
 {
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc) ||
         (m_alloc == allocator::cuda_uva) || (m_alloc == allocator::cuda_host) ||
         (m_alloc == allocator::hip_uva))
     {
-        // already on the CPU
+        // already on the host
         return m_data;
     }
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_async))
     {
-        // make a copy on the CPU
+        // make a copy on the host
         std::shared_ptr<T> tmp = cuda_malloc_host_allocator<T>::allocate(m_size);
         if (!tmp)
         {
@@ -1769,11 +1769,11 @@ std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
 
         activate_cuda_device dev(m_owner);
 
-        if (copy_to_cpu_from_cuda(m_stream, tmp.get(), m_data.get(), m_size))
+        if (copy_to_host_from_cuda(m_stream, tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+        if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
             m_stream.synchronize();
 
         return tmp;
@@ -1782,16 +1782,16 @@ std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
 #if defined(HAMR_ENABLE_HIP)
     else if (m_alloc == allocator::hip)
     {
-        // make a copy on the CPU
+        // make a copy on the host
         std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
 
         activate_hip_device dev(m_owner);
 
-        if (copy_to_cpu_from_hip(tmp.get(), m_data.get(), m_size))
+        if (copy_to_host_from_hip(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+        if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
             m_stream.synchronize();
 
         return tmp;
@@ -1800,16 +1800,16 @@ std::shared_ptr<const T> buffer<T>::get_cpu_accessible() const
 #if defined(HAMR_ENABLE_OPENMP)
     else if (m_alloc == allocator::openmp)
     {
-        // make a copy on the CPU
+        // make a copy on the host
         std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
 
         activate_openmp_device dev(m_owner);
 
-        if (copy_to_cpu_from_openmp(tmp.get(), m_data.get(), m_size))
+        if (copy_to_host_from_openmp(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         // synchronize
-        if ((m_sync == transfer::sync_cpu) || (m_sync == transfer::sync))
+        if ((m_sync == transfer::sync_host) || (m_sync == transfer::sync))
             m_stream.synchronize();
 
         return tmp;
@@ -1842,7 +1842,7 @@ std::shared_ptr<const T> buffer<T>::get_cuda_accessible() const
         std::shared_ptr<T> tmp = cuda_malloc_async_allocator<T>::
             allocate(m_stream, m_size);
 
-        if (copy_to_cuda_from_cpu(m_stream,
+        if (copy_to_cuda_from_host(m_stream,
             tmp.get(), m_data.get(), m_size))
             return nullptr;
 
@@ -1937,7 +1937,7 @@ std::shared_ptr<const T> buffer<T>::get_hip_accessible() const
         // make a copy on the GPU
         std::shared_ptr<T> tmp = hip_malloc_allocator<T>::allocate(m_size);
 
-        if (copy_to_hip_from_cpu(tmp.get(), m_data.get(), m_size))
+        if (copy_to_hip_from_host(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         // synchronize
@@ -2000,7 +2000,7 @@ std::shared_ptr<const T> buffer<T>::get_openmp_accessible() const
         // make a copy on the GPU
         std::shared_ptr<T> tmp = openmp_allocator<T>::allocate(m_size);
 
-        if (copy_to_openmp_from_cpu(tmp.get(), m_data.get(), m_size))
+        if (copy_to_openmp_from_host(tmp.get(), m_data.get(), m_size))
             return nullptr;
 
         // synchronize

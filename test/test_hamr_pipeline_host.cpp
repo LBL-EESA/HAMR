@@ -8,7 +8,7 @@ using allocator = hamr::buffer_allocator;
 
 // **************************************************************************
 template<typename T>
-void initialize_cpu(T *data, double val, size_t n_vals)
+void initialize_host(T *data, double val, size_t n_vals)
 {
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -18,14 +18,14 @@ void initialize_cpu(T *data, double val, size_t n_vals)
 
 // **************************************************************************
 template <typename T>
-buffer<T> initialize_cpu(size_t n_vals, const T &val)
+buffer<T> initialize_host(size_t n_vals, const T &val)
 {
     // allocate the memory
     buffer<T> ao(allocator::malloc, n_vals);
     T *pao = ao.data();
 
     // initialize the data
-    initialize_cpu(pao, val, n_vals);
+    initialize_host(pao, val, n_vals);
 
     std::cerr << "initialized to an array of " << n_vals << " to " << val << std::endl;
     if (n_vals < 33)
@@ -45,7 +45,7 @@ buffer<T> initialize_cpu(size_t n_vals, const T &val)
 
 // **************************************************************************
 template<typename T, typename U>
-void add_cpu(T *result, const T *array_1, const U *array_2, size_t n_vals)
+void add_host(T *result, const T *array_1, const U *array_2, size_t n_vals)
 {
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -55,11 +55,11 @@ void add_cpu(T *result, const T *array_1, const U *array_2, size_t n_vals)
 
 // **************************************************************************
 template <typename T, typename U>
-buffer<T> add_cpu(const buffer<T> &a1, const buffer<U> &a2)
+buffer<T> add_host(const buffer<T> &a1, const buffer<U> &a2)
 {
     // get the inputs
-    auto [spa1, pa1] = hamr::get_cpu_accessible(a1);
-    auto [spa2, pa2] = hamr::get_cpu_accessible(a2);
+    auto [spa1, pa1] = hamr::get_host_accessible(a1);
+    auto [spa2, pa2] = hamr::get_host_accessible(a2);
 
     // allocate the memory
     size_t n_vals = a1.size();
@@ -67,7 +67,7 @@ buffer<T> add_cpu(const buffer<T> &a1, const buffer<U> &a2)
     T *pao = ao.data();
 
     // initialize the data
-    add_cpu(pao, pa1, pa2, n_vals);
+    add_host(pao, pa1, pa2, n_vals);
 
     std::cerr << "added " << n_vals << " array " << typeid(T).name()
         << sizeof(T) << " to array  " << typeid(U).name() << sizeof(U) << std::endl;
@@ -87,7 +87,7 @@ buffer<T> add_cpu(const buffer<T> &a1, const buffer<U> &a2)
 
 // **************************************************************************
 template<typename T, typename U>
-void multiply_scalar_cpu(T *result, const T *array_in, U scalar, size_t n_vals)
+void multiply_scalar_host(T *result, const T *array_in, U scalar, size_t n_vals)
 {
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -97,10 +97,10 @@ void multiply_scalar_cpu(T *result, const T *array_in, U scalar, size_t n_vals)
 
 // **************************************************************************
 template <typename T, typename U>
-buffer<T> multiply_scalar_cpu(const buffer<T> &ai, const U &val)
+buffer<T> multiply_scalar_host(const buffer<T> &ai, const U &val)
 {
     // get the inputs
-    auto [spai, pai] = hamr::get_cpu_accessible(ai);
+    auto [spai, pai] = hamr::get_host_accessible(ai);
 
     // allocate the memory
     size_t n_vals = ai.size();
@@ -108,7 +108,7 @@ buffer<T> multiply_scalar_cpu(const buffer<T> &ai, const U &val)
     T *pao = ao.data();
 
     // initialize the data
-    multiply_scalar_cpu(pao, pai, val, n_vals);
+    multiply_scalar_host(pao, pai, val, n_vals);
 
     std::cerr << "multiply_scalar " << val << " " << typeid(U).name() << sizeof(U)
        << " by " << n_vals << " array " << typeid(T).name() << sizeof(T) << std::endl;
@@ -138,7 +138,7 @@ int compare_int(const buffer<T> &ain, int val)
         ai.print();
     }
 
-    auto [spai, pai] = hamr::get_cpu_accessible(ai);
+    auto [spai, pai] = hamr::get_host_accessible(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -161,26 +161,26 @@ int main(int, char **)
 {
     size_t n_vals = 100000;
 
-    buffer<float>  ao0(allocator::malloc, n_vals, 1.0f);    // = 1 (CPU)
-    buffer<float>  ao1 = multiply_scalar_cpu(ao0, 2.0f);    // = 2 (CPU)
+    buffer<float>  ao0(allocator::malloc, n_vals, 1.0f);    // = 1 (host)
+    buffer<float>  ao1 = multiply_scalar_host(ao0, 2.0f);    // = 2 (host)
     ao0.free();
 
-    buffer<double> ao2 = initialize_cpu(n_vals, 2.0);       // = 2 (CPU)
-    buffer<double> ao3 = add_cpu(ao2, ao1);                 // = 4 (CPU)
+    buffer<double> ao2 = initialize_host(n_vals, 2.0);       // = 2 (host)
+    buffer<double> ao3 = add_host(ao2, ao1);                 // = 4 (host)
     ao1.free();
     ao2.free();
 
-    buffer<double> ao4 = multiply_scalar_cpu(ao3, 1000.0);  // = 4000 (CPU)
+    buffer<double> ao4 = multiply_scalar_host(ao3, 1000.0);  // = 4000 (host)
     ao3.free();
 
-    buffer<float>  ao5(allocator::malloc, n_vals, 3.0f);    // = 1 (CPU)
-    buffer<float>  ao6 = multiply_scalar_cpu(ao5, 100.0f);  // = 300 (CPU)
+    buffer<float>  ao5(allocator::malloc, n_vals, 3.0f);    // = 1 (host)
+    buffer<float>  ao6 = multiply_scalar_host(ao5, 100.0f);  // = 300 (host)
     ao5.free();
 
-    buffer<float> ao7(allocator::malloc, n_vals);           // = uninit (CPU)
-    ao7.set(ao6);                                           // = 300 (CPU)
+    buffer<float> ao7(allocator::malloc, n_vals);           // = uninit (host)
+    ao7.set(ao6);                                           // = 300 (host)
 
-    buffer<double> ao8 = add_cpu(ao4, ao7);                 // = 4300 (CPU)
+    buffer<double> ao8 = add_host(ao4, ao7);                 // = 4300 (host)
     ao4.free();
     ao7.free();
 

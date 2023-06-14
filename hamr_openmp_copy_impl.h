@@ -20,7 +20,7 @@ namespace hamr
 #if !defined(HAMR_ENABLE_OBJECTS)
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem,
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
 {
 #if !defined(HAMR_ENABLE_OPENMP)
@@ -28,14 +28,14 @@ int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_openmp_from_cpu OpenMP is not enabled." << std::endl;
+        " copy_to_openmp_from_host OpenMP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_openmp_from_cpu HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
+        " copy_to_openmp_from_host HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -43,7 +43,7 @@ int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem,
 #else
 // ---------------------------------------------------------------------------
 template <typename T>
-int copy_to_openmp_from_cpu(T *dest, const T *src, size_t n_elem,
+int copy_to_openmp_from_host(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type * )
 {
 #if !defined(HAMR_ENABLE_OPENMP)
@@ -51,7 +51,7 @@ int copy_to_openmp_from_cpu(T *dest, const T *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_openmp_from_cpu OpenMP is not enabled." << std::endl;
+        " copy_to_openmp_from_host OpenMP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -71,7 +71,7 @@ int copy_to_openmp_from_cpu(T *dest, const T *src, size_t n_elem,
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_openmp_from_cpu same " << n_elem
+        std::cerr << "hamr::copy_to_openmp_from_host same " << n_elem
             << " " << typeid(T).name() << sizeof(T) <<  " from host "
             << src_device << " to device " << dest_device << std::endl;
     }
@@ -84,7 +84,7 @@ int copy_to_openmp_from_cpu(T *dest, const T *src, size_t n_elem,
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
 #endif
@@ -95,7 +95,7 @@ int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_openmp_from_cpu OpenMP is not enabled." << std::endl;
+        " copy_to_openmp_from_host OpenMP is not enabled." << std::endl;
     return -1;
 #else
     // copy src to gpu
@@ -129,7 +129,7 @@ int copy_to_openmp_from_cpu(T *dest, const U *src, size_t n_elem
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_openmp_from_cpu " << n_elem
+        std::cerr << "hamr::copy_to_openmp_from_host " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T) <<  " from host "
             << src_device << " to device " << dest_device << std::endl;
@@ -362,7 +362,7 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_e
 #if !defined(HAMR_ENABLE_OBJECTS)
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem,
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
    typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
 {
 #if !defined(HAMR_ENABLE_OPENMP)
@@ -370,14 +370,14 @@ int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_openmp OpenMP is not enabled." << std::endl;
+        " copy_to_host_from_openmp OpenMP is not enabled." << std::endl;
     return -1;
 #else
     (void) dest;
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_openmp HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
+        " copy_to_host_from_openmp HAMR_ENABLE_OBJECTS is not enabled." << std::endl;
     abort();
     return -1;
 #endif
@@ -385,7 +385,7 @@ int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem,
 #else
 // ---------------------------------------------------------------------------
 template <typename T>
-int copy_to_cpu_from_openmp(T *dest, const T *src, size_t n_elem,
+int copy_to_host_from_openmp(T *dest, const T *src, size_t n_elem,
    typename std::enable_if<std::is_arithmetic<T>::value>::type * )
 {
 #if !defined(HAMR_ENABLE_OPENMP)
@@ -393,10 +393,10 @@ int copy_to_cpu_from_openmp(T *dest, const T *src, size_t n_elem,
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_openmp OpenMP is not enabled." << std::endl;
+        " copy_to_host_from_openmp OpenMP is not enabled." << std::endl;
     return -1;
 #else
-    // copy src to cpu
+    // copy src to host
     size_t n_bytes = n_elem*sizeof(T);
 
     int dest_device = omp_get_initial_device();
@@ -413,7 +413,7 @@ int copy_to_cpu_from_openmp(T *dest, const T *src, size_t n_elem,
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_openmp same " << n_elem
+        std::cerr << "hamr::copy_to_host_from_openmp same " << n_elem
             << " " << typeid(T).name() << sizeof(T) <<  " from device "
             << src_device << " to host " << dest_device << std::endl;
     }
@@ -426,7 +426,7 @@ int copy_to_cpu_from_openmp(T *dest, const T *src, size_t n_elem,
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
     ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
 #endif
@@ -437,18 +437,18 @@ int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem
     (void) src;
     (void) n_elem;
     std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-        " copy_to_cpu_from_openmp OpenMP is not enabled." << std::endl;
+        " copy_to_host_from_openmp OpenMP is not enabled." << std::endl;
     return -1;
 #else
 
-    // allocate a buffer on the cpu, copy the data into the temporary
-    // apply copy constructor on the cpu
+    // allocate a buffer on the host, copy the data into the temporary
+    // apply copy constructor on the host
 
-    // allocate a temporary buffer on the CPU
+    // allocate a temporary buffer on the host
     auto sptmp = hamr::malloc_allocator<T>::allocate(n_elem);
     T *ptmp = sptmp.get();
 
-    // copy src to cpu
+    // copy src to host
     size_t n_bytes = n_elem*sizeof(T);
 
     int dest_device = omp_get_initial_device();
@@ -462,7 +462,7 @@ int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem
         return -1;
     }
 
-    // invoke the casting copy kernel on the CPU
+    // invoke the casting copy kernel on the host
     for (size_t i = 0; i < n_elem; ++i)
     {
         dest[i] = static_cast<T>(ptmp[i]);
@@ -471,7 +471,7 @@ int copy_to_cpu_from_openmp(T *dest, const U *src, size_t n_elem
 #if defined(HAMR_VERBOSE)
     if (hamr::get_verbose())
     {
-        std::cerr << "hamr::copy_to_cpu_from_openmp " << n_elem
+        std::cerr << "hamr::copy_to_host_from_openmp " << n_elem
             << " from " << typeid(U).name() << sizeof(U) << " to "
             << typeid(T).name() << sizeof(T)  << " from device "
             << src_device << " to host " << dest_device << std::endl;

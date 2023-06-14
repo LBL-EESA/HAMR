@@ -62,15 +62,15 @@ endif()
 
 
 if (HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA AND NOT HAMR_SEPARATE_IMPL)
-    set_source_files_properties(test_hamr_pipeline_cpu.cpp PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(test_hamr_pipeline_host.cpp PROPERTIES LANGUAGE CUDA)
 endif()
-add_executable(test_hamr_pipeline_cpu test_hamr_pipeline_cpu.cpp)
+add_executable(test_hamr_pipeline_host test_hamr_pipeline_host.cpp)
 if (HAMR_ENABLE_CUDA AND NOT HAMR_NVHPC_CUDA)
-    set_target_properties(test_hamr_pipeline_cpu PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
+    set_target_properties(test_hamr_pipeline_host PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
 endif()
-target_link_libraries(test_hamr_pipeline_cpu hamr)
-add_test(NAME test_hamr_pipeline_cpu COMMAND test_hamr_pipeline_cpu)
-set_tests_properties(test_hamr_pipeline_cpu PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+target_link_libraries(test_hamr_pipeline_host hamr)
+add_test(NAME test_hamr_pipeline_host COMMAND test_hamr_pipeline_host)
+set_tests_properties(test_hamr_pipeline_host PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
 
 if (HAMR_ENABLE_CUDA)
     if (NOT HAMR_NVHPC_CUDA AND NOT HAMR_SEPARATE_IMPL)
@@ -104,9 +104,9 @@ endif()
 
 if (HAMR_ENABLE_PYTHON)
 
-    add_test(NAME test_hamr_buffer_numpy_cpu
+    add_test(NAME test_hamr_buffer_numpy_host
         COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_numpy_cpu.py)
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_numpy_host.py)
 
     if (HAMR_ENABLE_CUDA)
 
@@ -114,9 +114,9 @@ if (HAMR_ENABLE_PYTHON)
             COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_numpy_cuda.py)
 
-        add_test(NAME test_hamr_buffer_cupy_cpu
+        add_test(NAME test_hamr_buffer_cupy_host
             COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_cupy_cpu.py)
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hamr_buffer_cupy_host.py)
 
         add_test(NAME test_hamr_buffer_cupy_cuda
             COMMAND ${Python3_EXECUTABLE}

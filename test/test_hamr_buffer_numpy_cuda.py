@@ -19,7 +19,7 @@ stderr.write('buf = %s\n'%(str(buf)))
 stderr.write('TEST: creating a hamr::buffer w. CUDA ... OK!\n\n')
 
 stderr.write('TEST: get a handle to the data ... \n')
-h = buf.get_cpu_accessible()
+h = buf.get_host_accessible()
 stderr.write('TEST: get a handle to the data ... OK!\n\n')
 
 stderr.write('TEST: share the data with Numpy ... \n')

@@ -24,7 +24,7 @@ container that has capabilities similar to std::vector and can provide access
 to data in different accelerator execution environments.
 
 ### Regression Testing and CI
-![CPU-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cpu.yml/badge.svg)
+![CPU-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_host.yml/badge.svg)
 ![CUDA-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_cuda.yml/badge.svg)
 ![HIP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_hip.yml/badge.svg)
 ![AMD-OpenMP-HAMR build and test](https://github.com/LBL-EESA/hamr/actions/workflows/build_and_test_amd_openmp.yml/badge.svg)

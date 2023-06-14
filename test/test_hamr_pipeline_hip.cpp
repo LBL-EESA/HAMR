@@ -215,7 +215,7 @@ int compare_int(const buffer<T> &ain, int val)
         ai.print();
     }
 
-    auto [spai, pai] = hamr::get_cpu_accessible(ai);
+    auto [spai, pai] = hamr::get_host_accessible(ai);
 
     for (size_t i = 0; i < n_vals; ++i)
     {
@@ -238,27 +238,27 @@ int main(int, char **)
 {
     size_t n_vals = 100000;
 
-    buffer<float>  ao0(allocator::hip, n_vals, 1.0f);    // = 1 (HIP)
-    buffer<float>  ao1 = multiply_scalar_hip(ao0, 2.0f);                              // = 2 (HIP)
+    buffer<float>  ao0(allocator::hip, n_vals, 1.0f);      // = 1 (HIP)
+    buffer<float>  ao1 = multiply_scalar_hip(ao0, 2.0f);   // = 2 (HIP)
     ao0.free();
 
-    buffer<double> ao2 = initialize_hip(n_vals, 2.0);                                 // = 2 (HIP)
-    buffer<double> ao3 = add_hip(ao2, ao1);                                           // = 4 (HIP)
+    buffer<double> ao2 = initialize_hip(n_vals, 2.0);      // = 2 (HIP)
+    buffer<double> ao3 = add_hip(ao2, ao1);                // = 4 (HIP)
     ao1.free();
     ao2.free();
 
-    buffer<double> ao4 = multiply_scalar_hip(ao3, 1000.0);                            // = 4000 (HIP)
+    buffer<double> ao4 = multiply_scalar_hip(ao3, 1000.0); // = 4000 (HIP)
     ao3.free();
 
-    buffer<float>  ao5(allocator::malloc, n_vals, 3.0f); // = 1 (CPU)
-    buffer<float>  ao6 = multiply_scalar_hip(ao5, 100.0f);                            // = 300 (HIP)
+    buffer<float>  ao5(allocator::malloc, n_vals, 3.0f);   // = 1 (host)
+    buffer<float>  ao6 = multiply_scalar_hip(ao5, 100.0f); // = 300 (HIP)
     ao5.free();
 
-    buffer<float> ao7(allocator::malloc, n_vals);        // = uninit (CPU)
-    ao7.set(ao6);                                                              // = 300 (CPU)
+    buffer<float> ao7(allocator::malloc, n_vals);          // = uninit (host)
+    ao7.set(ao6);                                          // = 300 (host)
     ao6.free();
 
-    buffer<double> ao8 = add_hip(ao4, ao7);                                           // = 4300 (HIP)
+    buffer<double> ao8 = add_hip(ao4, ao7);                // = 4300 (HIP)
     ao4.free();
     ao7.free();
 

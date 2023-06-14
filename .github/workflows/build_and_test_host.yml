@@ -1,4 +1,4 @@
-name: CPU-HAMR
+name: host-HAMR
 
 on:
   push:
@@ -25,21 +25,21 @@ jobs:
           source py3k_testing/bin/activate
           python3 -mpip install numpy
 
-      # build for CPU only
-      - name: build_cpu
+      # build for host only
+      - name: build_host
         run: |
           source py3k_testing/bin/activate
-          mkdir build_cpu
-          cd build_cpu
+          mkdir build_host
+          cd build_host
           cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
           make -j2 install
           cd ..
 
-      # test the CPU build
-      - name: test_cpu
+      # test the host build
+      - name: test_host
         run: |
           source py3k_testing/bin/activate
-          cd build_cpu
+          cd build_host
           tmp_llp=$LD_LIBRARY_PATH
           tmp_pp=$PYTHONPATH
           source ./bin/hamr_python_env.sh

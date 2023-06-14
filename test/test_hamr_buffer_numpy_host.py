@@ -13,13 +13,13 @@ res_val = init_val*mod_val
 stderr.write('TEST 1 : C++ --> Python\n' \
              '=======================\n')
 
-stderr.write('TEST 1: creating a hamr::buffer CPU ... \n')
+stderr.write('TEST 1: creating a hamr::buffer host ... \n')
 buf = buffer_float(buffer_allocator_malloc, n_elem, init_val)
 stderr.write('buf = %s\n'%(str(buf)))
-stderr.write('TEST 1: creating a hamr::buffer CPU ... OK!\n\n')
+stderr.write('TEST 1: creating a hamr::buffer host ... OK!\n\n')
 
 stderr.write('TEST 1: get a handle to the data ... \n')
-h = buf.get_cpu_accessible()
+h = buf.get_host_accessible()
 stderr.write('TEST 1: get a handle to the data ... OK!\n\n')
 
 stderr.write('TEST 1: share the data with Numpy ... \n')

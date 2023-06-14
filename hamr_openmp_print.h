@@ -7,7 +7,7 @@
 namespace hamr
 {
 
-/** prints an array on the CPU (note: OpenMP provides no way to print directly
+/** prints an array on the host (note: OpenMP provides no way to print directly
  * from the device)
  * @param[in] vals an array of n elements accessible in OpenMP
  * @param[in] n_elem the length of the array

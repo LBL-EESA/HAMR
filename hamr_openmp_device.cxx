@@ -6,7 +6,7 @@
 namespace hamr
 {
 // **************************************************************************
-int get_openmp_cpu_identifier(int &dev_id)
+int get_openmp_host_identifier(int &dev_id)
 {
     dev_id = omp_get_initial_device();
     return 0;

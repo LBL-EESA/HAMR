@@ -6,26 +6,26 @@
 #if !defined(HAMR_ENABLE_OBJECTS)
 
 #define hamr_cuda_copy_async_instantiate_(T, U) \
-template int hamr::copy_to_cuda_from_cpu<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem, void *); \
+template int hamr::copy_to_cuda_from_host<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem, void *);
 
 #else
 
 #define hamr_cuda_copy_async_instantiate_(T, U) \
-template int hamr::copy_to_cuda_from_cpu<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem); \
+template int hamr::copy_to_cuda_from_host<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem); \
 template int hamr::copy_to_cuda_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, int src_device, size_t n_elem); \
-template int hamr::copy_to_cpu_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem);
+template int hamr::copy_to_host_from_cuda<T,U>(cudaStream_t strm, T *dest, const U *src, size_t n_elem);
 
 #endif
 
 #define hamr_cuda_copy_async_instantiate__(T) \
-template int hamr::copy_to_cuda_from_cpu<T>(cudaStream_t strm, T *dest, const T *src, size_t n_elem, void *); \
+template int hamr::copy_to_cuda_from_host<T>(cudaStream_t strm, T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T>(cudaStream_t strm, T *dest, const T *src, size_t n_elem, void *); \
 template int hamr::copy_to_cuda_from_cuda<T>(cudaStream_t strm, T *dest, const T *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_cpu_from_cuda<T>(cudaStream_t strm, T *dest, const T *src, size_t n_elem, void *);
+template int hamr::copy_to_host_from_cuda<T>(cudaStream_t strm, T *dest, const T *src, size_t n_elem, void *);
 
 hamr_cuda_copy_async_instantiate__(float)
 hamr_cuda_copy_async_instantiate__(double)

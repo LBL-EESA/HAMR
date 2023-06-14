@@ -4,10 +4,10 @@ import sys
 
 stderr = sys.__stderr__
 
-stderr.write('TEST: creating a hamr::buffer CPU ... \n')
+stderr.write('TEST: creating a hamr::buffer host ... \n')
 buf = buffer_float(buffer_allocator_malloc, 16, 3.1415)
 stderr.write('buf = %s\n'%(str(buf)))
-stderr.write('TEST: creating a hamr::buffer CPU ... OK!\n\n')
+stderr.write('TEST: creating a hamr::buffer host ... OK!\n\n')
 
 stderr.write('TEST: get a handle to the data ... \n')
 h = buf.get_cuda_accessible()
