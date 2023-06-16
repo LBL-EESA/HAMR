@@ -25,9 +25,14 @@ author = "Burlen Loring"
 
 # -- General configuration ---------------------------------------------------
 
+try:
+    odir = os.environ['READTHEDOCS_OUTPUT']
+except:
+    os.environ['READTHEDOCS_OUTPUT'] = '_build'
+    odir = os.environ['READTHEDOCS_OUTPUT']
 
-if not os.path.exists('_build/html'):
-    os.makedirs('_build/html')
+if not os.path.exists(odir + '/html'):
+    os.makedirs(odir + '/html')
 
 subprocess.call('doxygen --version', shell=True)
 subprocess.call('doxygen', shell=True)
