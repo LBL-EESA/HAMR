@@ -31,6 +31,16 @@ jobs:
           source py3k_testing/bin/activate
           mkdir build_cuda
           cd build_cuda
-          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DHAMR_ENABLE_CUDA=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DHAMR_ENABLE_CUDA=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-cuda ..
+          make -j2 install
+          cd ..
+
+      # build for CUDA
+      - name: build_cuda_separate_impl
+        run: |
+          source py3k_testing/bin/activate
+          mkdir build_cuda_sep
+          cd build_cuda_sep
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DHAMR_ENABLE_CUDA=ON -DHAMR_SEPARATE_IMPL=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-cuda-sep ..
           make -j2 install
           cd ..

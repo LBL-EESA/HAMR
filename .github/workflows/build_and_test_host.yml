@@ -31,7 +31,7 @@ jobs:
           source py3k_testing/bin/activate
           mkdir build_host
           cd build_host
-          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-host ..
           make -j2 install
           cd ..
 
@@ -40,6 +40,28 @@ jobs:
         run: |
           source py3k_testing/bin/activate
           cd build_host
+          tmp_llp=$LD_LIBRARY_PATH
+          tmp_pp=$PYTHONPATH
+          source ./bin/hamr_python_env.sh
+          ctest --output-on-failure
+          export LD_LIBRARY_PATH=$tmp_llp PYTHONPATH=$tmp_pp
+          cd ..
+
+      # build for host only
+      - name: build_host_separate_impl
+        run: |
+          source py3k_testing/bin/activate
+          mkdir build_host_sep
+          cd build_host_sep
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_PYTHON=ON -DHAMR_SEPARATE_IMPL=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-host-sep ..
+          make -j2 install
+          cd ..
+
+      # test the host build
+      - name: test_host_separate_impl
+        run: |
+          source py3k_testing/bin/activate
+          cd build_host_sep
           tmp_llp=$LD_LIBRARY_PATH
           tmp_pp=$PYTHONPATH
           source ./bin/hamr_python_env.sh

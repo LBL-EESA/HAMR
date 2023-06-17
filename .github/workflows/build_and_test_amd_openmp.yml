@@ -32,9 +32,19 @@ jobs:
       - name: build_openmp
         run: |
           source py3k_testing/bin/activate
-          mkdir build_openmp
-          cd build_openmp
-          cmake -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DHAMR_OPENMP_ARCH=gfx1030 -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_OPENMP=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
+          mkdir build_amd_openmp
+          cd build_amd_openmp
+          cmake -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DHAMR_OPENMP_ARCH=gfx1030 -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_OPENMP=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-amd-omp ..
+          make -j2 install
+          cd ..
+
+      # build for OpenMP
+      - name: build_openmp_separate_impl
+        run: |
+          source py3k_testing/bin/activate
+          mkdir build_amd_openmp_sep
+          cd build_amd_openmp_sep
+          cmake -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DHAMR_OPENMP_ARCH=gfx1030 -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_OPENMP=ON -DHAMR_EMABLE_SEPARATE_IMPL=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-amd-omp-sep ..
           make -j2 install
           cd ..
 

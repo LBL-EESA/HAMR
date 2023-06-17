@@ -34,7 +34,17 @@ jobs:
           source py3k_testing/bin/activate
           mkdir build_hip
           cd build_hip
-          cmake -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_HIP=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install ..
+          cmake -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_HIP=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-hip ..
+          make -j2 install
+          cd ..
+
+      # build for HIP
+      - name: build_hip_separate_impl
+        run: |
+          source py3k_testing/bin/activate
+          mkdir build_hip_sep
+          cd build_hip_sep
+          cmake -DCMAKE_C_COMPILER=/opt/rocm/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DHAMR_ENABLE_HIP=ON -DHAMR_SEPARATE_IMPL=ON -DCMAKE_INSTALL_PREFIX=`pwd`/../../hamr-install-hip-sep ..
           make -j2 install
           cd ..
 
