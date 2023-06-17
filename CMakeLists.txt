@@ -73,7 +73,7 @@ if (HAMR_ENABLE_CUDA)
     find_package(CUDAToolkit REQUIRED)
 endif()
 
-set(HAMR_NVCC_CUDA ${tmp_ncc} CACHE
+set(HAMR_NVCC_CUDA ${tmp_nvcc} CACHE
     STRING "Internal: set if the CUDA compiler is nvcc")
 
 set(HAMR_NVHPC_CUDA ${tmp_nvhpc} CACHE
