@@ -30,9 +30,17 @@ template class hamr::buffer<T>; \
 template hamr::buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync, const buffer<T> &other); \
 template hamr::buffer<T>::buffer(allocator alloc, const hamr::stream &strm, const buffer<T> &other); \
 template int hamr::buffer<T>::set(size_t dest_start, const T *src, size_t src_start, size_t n_vals); \
+template int hamr::buffer<T>::set(size_t dest_start, const buffer<T> &src, size_t src_start, size_t n_vals); \
+template int hamr::buffer<T>::set(const buffer<T> &src); \
 template int hamr::buffer<T>::get(size_t src_start, T *dest, size_t dest_start, size_t n_vals) const; \
+template int hamr::buffer<T>::get(size_t src_start, buffer<T> &dest, size_t dest_start, size_t n_vals) const; \
+template int hamr::buffer<T>::get(buffer<T> &dest) const; \
 template int hamr::buffer<T>::append(const T *src, size_t src_start, size_t n_vals); \
-template int hamr::buffer<T>::assign(const T *src, size_t src_start, size_t n_vals);
+template int hamr::buffer<T>::append(const buffer<T> &src, size_t src_start, size_t n_vals); \
+template int hamr::buffer<T>::append(const buffer<T> &src); \
+template int hamr::buffer<T>::assign(const T *src, size_t src_start, size_t n_vals); \
+template int hamr::buffer<T>::assign(const buffer<T> &src, size_t src_start, size_t n_vals); \
+template int hamr::buffer<T>::assign(const buffer<T> &src);
 
 hamr_buffer_instantiate(float)
 //hamr_buffer_instantiate_members(float, float)
