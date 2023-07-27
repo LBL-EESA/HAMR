@@ -2098,6 +2098,37 @@ std::shared_ptr<const T> buffer<T>::get_device_accessible() const
 
 // --------------------------------------------------------------------------
 template <typename T>
+int buffer<T>::synchronize() const
+{
+    int iret = 0;
+    if (m_owner >= 0)
+    {
+        if ((m_alloc == allocator::cuda) ||
+            (m_alloc == allocator::cuda_async) || (m_alloc == allocator::cuda_uva))
+        {
+#if defined(HAMR_ENABLE_CUDA)
+            hamr::activate_cuda_device dev(m_owner);
+#endif
+        }
+        else if ((m_alloc == allocator::hip) || (m_alloc == allocator::hip_uva))
+        {
+#if defined(HAMR_ENABLE_HIP)
+            hamr::activate_hip_device dev(m_owner);
+#endif
+        }
+        else if (m_alloc == allocator::openmp)
+        {
+#if defined(HAMR_ENABLE_OPENMP)
+            hamr::activate_openmp_device dev(m_owner);
+#endif
+        }
+        iret = m_stream.synchronize();
+    }
+    return iret;
+}
+
+// --------------------------------------------------------------------------
+template <typename T>
 int buffer<T>::print() const
 {
     std::cerr << "m_alloc = " << get_allocator_name(m_alloc)
