@@ -40,8 +40,4 @@ private:
 };
 
 }
-
-
-
-
 #endif
