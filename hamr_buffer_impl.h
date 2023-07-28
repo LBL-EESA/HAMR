@@ -667,6 +667,9 @@ std::shared_ptr<T> buffer<T>::allocate(const buffer<U> &vals)
 
     size_t n_elem = vals.size();
 
+    if (n_elem == 0)
+        return nullptr;
+
     if (m_alloc == allocator::cpp)
     {
         std::shared_ptr<const U> pvals = vals.get_host_accessible();
@@ -1747,6 +1750,9 @@ int buffer<T>::get(size_t src_start,
 template <typename T>
 std::shared_ptr<const T> buffer<T>::get_host_accessible() const
 {
+    if (m_size == 0)
+        return nullptr;
+
     if ((m_alloc == allocator::cpp) || (m_alloc == allocator::malloc) ||
         (m_alloc == allocator::cuda_uva) || (m_alloc == allocator::cuda_host) ||
         (m_alloc == allocator::hip_uva))
@@ -1835,6 +1841,9 @@ std::shared_ptr<const T> buffer<T>::get_cuda_accessible() const
         << std::endl;
     return nullptr;
 #else
+    if (m_size == 0)
+        return nullptr;
+
     if ((m_alloc == allocator::cpp) ||
         (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
     {
@@ -1931,6 +1940,9 @@ std::shared_ptr<const T> buffer<T>::get_hip_accessible() const
         << std::endl;
     return nullptr;
 #else
+    if (m_size == 0)
+        return nullptr;
+
     if ((m_alloc == allocator::cpp) ||
         (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
     {
@@ -1994,6 +2006,9 @@ std::shared_ptr<const T> buffer<T>::get_openmp_accessible() const
         << std::endl;
     return nullptr;
 #else
+    if (m_size == 0)
+        return nullptr;
+
     if ((m_alloc == allocator::cpp) ||
         (m_alloc == allocator::malloc) || (m_alloc == allocator::cuda_host))
     {
