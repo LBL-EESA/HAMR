@@ -7,6 +7,7 @@
 #include "hamr_cuda_kernels.h"
 #include "hamr_cuda_launch.h"
 #include "hamr_cuda_malloc_allocator.h"
+#include "hamr_cuda_malloc_async_allocator.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
 #else
@@ -378,23 +379,9 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
         " copy_to_cuda_from_cuda CUDA is not enabled." << std::endl;
     return -1;
 #else
-    // copy on the gpu
-    // get launch parameters
-    int device_id = -1;
-    dim3 block_grid;
-    int n_blocks = 0;
-    dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
-        n_blocks, thread_grid))
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to determine launch properties." << std::endl;
-        return -1;
-    }
-
     cudaError_t ierr = cudaSuccess;
 
-    // enable peer to peer access
+    // get the destination. by convention the active device is the destination
     int dest_device = -1;
     if ((ierr = cudaGetDevice(&dest_device)) != cudaSuccess)
     {
@@ -404,52 +391,62 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
         return -1;
     }
 
-    int access = 0;
-    if ((ierr = cudaDeviceCanAccessPeer(&access, dest_device, src_device)) != cudaSuccess)
+    // TODO : the above overload should hanlde this case but it is not
+    if (std::is_same<T,U>::value)
     {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to determine peer accessibility between "
-            << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
-        return -1;
+        size_t n_bytes = n_elem*sizeof(T);
+        if ((ierr = cudaMemcpyPeerAsync(dest, dest_device, src,
+            src_device, n_bytes, str)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to copy " << n_elem << typeid(U).name() << sizeof(U)
+                << " "  << n_bytes << " bytes from CUDA device " << src_device
+                << " to CUDA device " << dest_device << ". "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
     }
-
-    if (!access)
+    else
     {
-        // NOTE: could fall back to cduaMemcpyPeer here
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Can't access device " << src_device
-            << " from " << dest_device << std::endl;
-        return -1;
-    }
+        // allocate a temporary, since the type and size of the buffer might be different
+        auto ptmp_src = hamr::cuda_malloc_async_allocator<U>::allocate(str, n_elem);
+        auto tmp_src = ptmp_src.get();
 
-    if ((ierr = cudaDeviceEnablePeerAccess(src_device, 0)) != cudaSuccess)
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to enable peer accessibility between "
-            << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
-        return -1;
-    }
+        // copy to the temporary
+        size_t n_bytes = n_elem*sizeof(U);
+        if ((ierr = cudaMemcpyPeerAsync(tmp_src, dest_device, src,
+            src_device, n_bytes, str)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to copy " << n_elem << typeid(U).name() << sizeof(U)
+                << " "  << n_bytes << " bytes from CUDA device " << src_device
+                << " to CUDA device " << dest_device << ". "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
 
-    // invoke the casting copy kernel
-    hamr::cuda_kernels::copy<<<block_grid, thread_grid, 0, str>>>(dest, src, n_elem);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to launch the copy kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
-        return -1;
-    }
+        // get launch parameters
+        int device_id = -1;
+        dim3 block_grid;
+        int n_blocks = 0;
+        dim3 thread_grid = 0;
+        if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+            n_blocks, thread_grid))
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to determine launch properties." << std::endl;
+            return -1;
+        }
 
-    // disable peer to peer memory map
-    if ((ierr = cudaDeviceDisablePeerAccess(src_device)) != cudaSuccess)
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to disable peer accessibility between "
-            << dest_device << " and " << src_device << ". "
-            << cudaGetErrorString(ierr) << std::endl;
-        return -1;
+        // invoke the casting copy kernel
+        hamr::cuda_kernels::copy<<<block_grid, thread_grid, 0, str>>>(dest, tmp_src, n_elem);
+        if ((ierr = cudaGetLastError()) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to launch the copy kernel. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
     }
 
 #if defined(HAMR_VERBOSE)
