@@ -87,4 +87,124 @@ activate_cuda_device::~activate_cuda_device()
     }
 }
 
+// **************************************************************************
+int access_cuda_peer::enable(int dest_device, int src_device, bool symetric)
+{
+    int access = 0;
+    cudaError_t ierr = cudaSuccess;
+
+    // ensure that the current device is restored if we return due to an error
+    // hamr::cuda_device activate_dest(dest_device);
+
+    // enable dest to access the source memory
+    if ((ierr = cudaDeviceCanAccessPeer(&access, dest_device, src_device)) != cudaSuccess)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to determine peer accessibility between "
+            << dest_device << " and " << src_device << ". "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    if (!access)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Can't access device " << src_device
+            << " from " << dest_device << std::endl;
+        return -1;
+    }
+
+    if ((ierr = cudaDeviceEnablePeerAccess(src_device, 0)) != cudaSuccess)
+    {
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to enable peer accessibility between "
+            << dest_device << " and " << src_device << ". "
+            << cudaGetErrorString(ierr) << std::endl;
+        return -1;
+    }
+
+    // record that p2p was enabled
+    m_src_device = src_device;
+    m_dest_device = dest_device;
+    m_symetric = false;
+
+    // enable the source to access the dest memory
+    if (symetric)
+    {
+        if ((ierr = cudaDeviceCanAccessPeer(&access, src_device, dest_device)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to determine peer accessibility between "
+                << dest_device << " and " << src_device << ". "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
+
+        if (!access)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Can't access device " << dest_device
+                << " from " << src_device << std::endl;
+            return -1;
+        }
+
+        // ensure that the current device is restored if we return due to an error
+        hamr::activate_cuda_device activate_src(src_device);
+
+        if ((ierr = cudaDeviceEnablePeerAccess(dest_device, 0)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to enable peer accessibility between "
+                << src_device << " and " << dest_device << ". "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
+
+        // record taht p2p was enabled
+        m_symetric = true;
+    }
+    return 0;
+}
+
+// **************************************************************************
+int access_cuda_peer::disable()
+{
+    if (m_src_device >= 0)
+    {
+        // ensure that the current device is restored if we return due to an error
+        hamr::activate_cuda_device activate_dest(m_dest_device);
+
+        // disable peer to peer memory map between dest and src
+        cudaError_t ierr = cudaSuccess;
+        if ((ierr = cudaDeviceDisablePeerAccess(m_src_device)) != cudaSuccess)
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to disable peer accessibility between "
+                << m_dest_device << " and " << m_src_device << ". "
+                << cudaGetErrorString(ierr) << std::endl;
+            return -1;
+        }
+
+        if (m_symetric)
+        {
+            // ensure that the current device is restored if we return due to an error
+            hamr::activate_cuda_device activate_src(m_src_device);
+
+            // disable peer to peer memory map between dest and src
+            if ((ierr = cudaDeviceDisablePeerAccess(m_dest_device)) != cudaSuccess)
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Failed to disable peer accessibility between "
+                    << m_src_device << " and " << m_dest_device << ". "
+                    << cudaGetErrorString(ierr) << std::endl;
+                return -1;
+            }
+        }
+
+        // record that p2p was disabled
+        m_src_device = -1;
+    }
+    return 0;
+}
+
 }

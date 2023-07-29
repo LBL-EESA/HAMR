@@ -39,5 +39,28 @@ private:
     int m_device;
 };
 
+
+/** Activate peer to peer memory access between two devices, and deactivate when
+ * the object goes out of scope.
+ */
+class access_cuda_peer
+{
+public:
+    access_cuda_peer() : m_dest_device(-1), m_src_device(-1), m_symetric(false) {}
+    ~access_cuda_peer() { disable(); }
+
+    /// enable peer to peer access. the dest device must active.
+    int enable(int dest_device, int src_device, bool symetric);
+
+    /// disable peer to peer access.
+    int disable();
+
+private:
+    int m_dest_device;
+    int m_src_device;
+    int m_symetric;
+};
+
+
 }
 #endif
