@@ -2147,8 +2147,8 @@ template <typename T>
 int buffer<T>::print() const
 {
     std::cerr << "m_alloc = " << get_allocator_name(m_alloc)
-        << ", m_size = " << m_size << ", m_capacity = " << m_capacity
-        << ", m_data = ";
+        << ", m_owner = " << m_owner << ", m_size = " << m_size
+        << ", m_capacity = " << m_capacity << ", m_data = ";
 
     if (m_size)
     {
