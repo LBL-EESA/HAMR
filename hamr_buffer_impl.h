@@ -242,14 +242,18 @@ buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
 // --------------------------------------------------------------------------
 template <typename T>
 buffer<T>::buffer(allocator alloc, const hamr::stream &strm, transfer sync,
-    size_t size, int owner, T *ptr) : m_alloc(alloc), m_data(nullptr),
+    size_t size, int owner, T *ptr, int take) : m_alloc(alloc), m_data(nullptr),
     m_size(size), m_capacity(size), m_owner(owner), m_stream(strm),
     m_sync(sync)
 {
     assert_valid_allocator(alloc);
 
     // create the deleter for the passed allocator
-    if (alloc == allocator::cpp)
+    if (!take)
+    {
+        m_data = std::shared_ptr<T>(ptr, [](T*){});
+    }
+    else if (alloc == allocator::cpp)
     {
         m_data = std::shared_ptr<T>(ptr, new_deleter<T>(ptr, m_size));
     }
@@ -2147,8 +2151,8 @@ template <typename T>
 int buffer<T>::print() const
 {
     std::cerr << "m_alloc = " << get_allocator_name(m_alloc)
-        << ", m_size = " << m_size << ", m_capacity = " << m_capacity
-        << ", m_data = ";
+        << ", m_owner = " << m_owner << ", m_size = " << m_size
+        << ", m_capacity = " << m_capacity << ", m_data = ";
 
     if (m_size)
     {
