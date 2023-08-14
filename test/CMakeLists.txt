@@ -102,6 +102,21 @@ if (HAMR_ENABLE_OPENMP)
     set_tests_properties(test_hamr_openmp_allocator PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
 endif()
 
+if (HAMR_ENABLE_OPENMP AND HAMR_ENABLE_CUDA AND HAMR_NVHPC_CUDA)
+    #NOTE: nvhpc is the only compiler that can do cuda and openmp in the same translation unit
+    # this test will have to be refactored for clang into multiple source files
+    if (NOT HAMR_NVHPC_CUDA)
+       set_source_files_properties(test_hamr_openmp_cuda_interop.cpp PROPERTIES LANGUAGE CUDA)
+    endif()
+    add_executable(test_hamr_openmp_cuda_interop test_hamr_openmp_cuda_interop.cpp)
+    if (NOT HAMR_NVHPC_CUDA)
+        set_target_properties(test_hamr_openmp_cuda_interop PROPERTIES CUDA_ARCHITECTURES "${HAMR_CUDA_ARCHITECTURES}")
+    endif()
+    target_link_libraries(test_hamr_openmp_cuda_interop hamr)
+    add_test(NAME test_hamr_openmp_cuda_interop COMMAND test_hamr_openmp_cuda_interop 0 0)
+    set_tests_properties(test_hamr_openmp_cuda_interop PROPERTIES ENVIRONMENT HAMR_VERBOSE=1)
+endif()
+
 if (HAMR_ENABLE_PYTHON)
 
     add_test(NAME test_hamr_buffer_numpy_host
