@@ -279,9 +279,11 @@ public:
      *                  driver API is used to determine the device that
      *                  allocated the memory.
      * @param[in] ptr   a pointer to the array
+     * @param[in] take  set non-zero if the buffer should delete the passed
+     *                  memory using the named allocator
      */
     buffer(allocator alloc, const hamr::stream &strm,
-        transfer sync, size_t size, int owner, T *ptr);
+        transfer sync, size_t size, int owner, T *ptr, int take = 1);
 
     /** Construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
