@@ -4,13 +4,32 @@
 #include <cstring>
 
 #include <cuda_runtime.h>
-#include <cublas_v2.h>
 
 #include "hamr_buffer.h"
 #include "hamr_cuda_launch.h"
+#include "hamr_buffer_util.h"
 
 using allocator = hamr::buffer_allocator;
 using transfer = hamr::buffer_transfer;
+
+template <typename T>
+__global__
+void gemm(int M, int N, int K, T alpha, const T *A,
+           const T *B, T beta, T *C)
+{
+    int c = blockIdx.x * blockDim.x + threadIdx.x;
+    int r = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (( r >= N ) || ( c >= M ))
+        return;
+
+    T tmp = T();
+
+    for (int q = 0; q < K; ++q)
+        tmp += A[M*q + r] * B[K*c + q];
+
+    C[M*c + r] = tmp;
+}
 
 // matrix scalar multiply
 template <typename T>
@@ -119,32 +138,35 @@ hamr::buffer<double> gen_B(int n)
 }
 
 // --------------------------------------------------------------------------
-int gemm(cublasHandle_t h, cudaStream_t strm, transfer sync, int n,
+int gemm(cudaStream_t strm, transfer sync, int n,
     const hamr::buffer<double> &A, const hamr::buffer<double> &B,
     hamr::buffer<double> &C)
 {
-    // get A on the GPU (if it's not already there)
-    auto spa = A.get_cuda_accessible();
+    cudaError_t ierr = cudaSuccess;
 
-    // get B on the GPU (if it's not already there)
-    auto spb = B.get_cuda_accessible();
+    // get A and B on the GPU (if not already there)
+    auto [spa, pa] = hamr::get_cuda_accessible(A);
+    auto [spb, pb] = hamr::get_cuda_accessible(B);
 
     // allocate space for the result on the GPU (will use memory allocated in C
     // if it was allocated on the GPU)
     hamr::buffer<double> tmp(allocator::cuda_async, strm, sync, std::move(C));
+    double *ptmp = tmp.data();
 
     double one = 1.0;
     double zero = 0.0;
 
     // do the matrix multiply
-    cublasSetStream(h, strm);
-
-    cublasStatus_t ierr = cublasDgemm(h, CUBLAS_OP_N, CUBLAS_OP_N,
-        n, n, n, &one, spa.get(), n, spb.get(), n, &zero, tmp.data(), n);
-
-    if (ierr != CUBLAS_STATUS_SUCCESS)
+    int nthr = 16;
+    int nblk = n / nthr + ( n % nthr ? 1 : 0 );
+    dim3 gridDim( nblk, nblk );
+    dim3 blockDim( nthr, nthr );
+    gemm<<<gridDim, blockDim, 0, strm>>>(n, n, n, one, pa, pb, zero, ptmp);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        std::cerr << "ERROR: gemm failed" << std::endl;
+        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+            " Failed to launch the gemm kernel. "
+            << cudaGetErrorString(ierr) << std::endl;
         return -1;
     }
 
@@ -205,20 +227,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    // create the streams
-    if (!default_stream)
-    {
-    }
-
-    // initialize cublas
-    cublasHandle_t cbh;
-    cublasStatus_t ierr = cublasCreate(&cbh);
-    if (ierr != CUBLAS_STATUS_SUCCESS)
-    {
-        std::cerr << "ERROR: failed to initialize cuBLAS" << std::endl;
-        return -1;
-    }
-
     // allocate buffers
     hamr::buffer<double> A1(allocator::cuda_host, cs1, sync);
     hamr::buffer<double> B1(allocator::cuda_host, cs1, sync);
@@ -232,7 +240,7 @@ int main(int argc, char **argv)
     A1 = gen_A(n);
     B1 = gen_B(n);
 
-    if (gemm(cbh, cs1, sync, n, A1, B1, C1))
+    if (gemm(cs1, sync, n, A1, B1, C1))
         return -1;
 
     double scale = 1./n;
@@ -245,7 +253,7 @@ int main(int argc, char **argv)
     A2 = gen_A(n);
     B2 = gen_B(n);
 
-    if (gemm(cbh, cs2, sync, n, A2, B2, C2))
+    if (gemm(cs2, sync, n, A2, B2, C2))
         return -1;
 
     if (msm(C2.data(), scale, C2.data(), n, n, n, cs2))
@@ -275,9 +283,6 @@ int main(int argc, char **argv)
     // release the memory before the streams!
     C1.free();
     C2.free();
-
-    // finalize cuBLAS
-    cublasDestroy(cbh);
 
     // release the streams
     if (!default_stream)
