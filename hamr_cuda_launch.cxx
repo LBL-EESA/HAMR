@@ -76,6 +76,12 @@ int partition_thread_blocks(size_t array_size,
 {
     unsigned long threads_per_block = warps_per_block * warp_size;
 
+    while ((threads_per_block > array_size) && (warps_per_block > 1))
+    {
+        --warps_per_block;
+        threads_per_block = warps_per_block * warp_size;
+    }
+
     thread_grid.x = threads_per_block;
     thread_grid.y = 1;
     thread_grid.z = 1;
