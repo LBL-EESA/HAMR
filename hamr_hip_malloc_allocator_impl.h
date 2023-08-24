@@ -494,63 +494,81 @@ hip_malloc_allocator<T, typename std::enable_if<std::is_arithmetic<T>::value>::t
         return nullptr;
     }
 
-    // move the existing array to the GPU
-    U *tmp = nullptr;
-    if (!hipVals)
+    if (std::is_same<T,U>::value)
     {
-        size_t n_bytes_vals = n_elem*sizeof(U);
-
-        if ((ierr = hipMalloc(&tmp, n_bytes_vals)) != hipSuccess)
+        // if the source and dest are the same type, and both are POD, we can
+        // short circuit the copy constructor and directly copy the data
+        hipMemcpyKind dir = hipVals ? hipMemcpyDeviceToDevice : hipMemcpyHostToDevice;
+        if ((ierr = hipMemcpy(ptr, vals, n_bytes, dir)) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to hipMalloc " << n_elem << " of "
-                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                " Failed to hipMemcpy a " << (hipVals ? "device" : "host")
+                << " array of " << n_elem << " of " << typeid(T).name()
+                << " total " << n_bytes  << "bytes. "
+                << hipGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+    }
+    else
+    {
+        // move the existing array to the GPU
+        U *tmp = nullptr;
+        if (!hipVals)
+        {
+            size_t n_bytes_vals = n_elem*sizeof(U);
+
+            if ((ierr = hipMalloc(&tmp, n_bytes_vals)) != hipSuccess)
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Failed to hipMalloc " << n_elem << " of "
+                    << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                    << hipGetErrorString(ierr) << std::endl;
+                return nullptr;
+            }
+
+            if ((ierr = hipMemcpy(tmp, vals, n_bytes_vals,
+                hipMemcpyHostToDevice)) != hipSuccess)
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Failed to hipMemcpy array of " << n_elem
+                    << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                    << hipGetErrorString(ierr) << std::endl;
+                return nullptr;
+            }
+
+            vals = tmp;
+        }
+
+        // get launch parameters
+        int device_id = -1;
+        dim3 block_grid;
+        int n_blocks = 0;
+        dim3 thread_grid = 0;
+        if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+            n_blocks, thread_grid))
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to determine launch properties. "
                 << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        if ((ierr = hipMemcpy(tmp, vals, n_bytes_vals,
-            hipMemcpyHostToDevice)) != hipSuccess)
+        // construct
+        hip_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
+        if ((ierr = hipGetLastError()) != hipSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to hipMemcpy array of " << n_elem
-                << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                " Failed to launch the construct kernel. "
                 << hipGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        vals = tmp;
-    }
-
-    // get launch parameters
-    int device_id = -1;
-    dim3 block_grid;
-    int n_blocks = 0;
-    dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
-        n_blocks, thread_grid))
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to determine launch properties. "
-            << hipGetErrorString(ierr) << std::endl;
-        return nullptr;
-    }
-
-    // construct
-    hip_kernels::fill<T><<<block_grid, thread_grid>>>(ptr, n_elem, vals);
-    if ((ierr = hipGetLastError()) != hipSuccess)
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to launch the construct kernel. "
-            << hipGetErrorString(ierr) << std::endl;
-        return nullptr;
-    }
-
-    // free up temporary buffers
-    if (!hipVals)
-    {
-        ierr = hipFree(tmp);
-        (void) ierr;
+        // free up temporary buffers
+        if (!hipVals)
+        {
+            ierr = hipFree(tmp);
+            (void) ierr;
+        }
     }
 
 #if defined(HAMR_VERBOSE)
