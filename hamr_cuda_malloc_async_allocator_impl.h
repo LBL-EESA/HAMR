@@ -501,62 +501,80 @@ cuda_malloc_async_allocator<T, typename std::enable_if<std::is_arithmetic<T>::va
         return nullptr;
     }
 
-    // move the existing array to the GPU
-    U *tmp = nullptr;
-    if (!cudaVals)
+    if (std::is_same<T,U>::value)
     {
-        size_t n_bytes_vals = n_elem*sizeof(U);
-
-        if ((ierr = cudaMallocAsync(&tmp, n_bytes_vals, str)) != cudaSuccess)
+        // if the source and dest are the same type, and both are POD, we can
+        // short circuit the copy constructor and directly copy the data
+        cudaMemcpyKind dir = cudaVals ? cudaMemcpyDeviceToDevice : cudaMemcpyHostToDevice;
+        if ((ierr = cudaMemcpyAsync(ptr, vals, n_bytes, dir, str)) != cudaSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMalloc " << n_elem << " of "
-                << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                " Failed to cudaMemcpy a " << (cudaVals ? "device" : "host")
+                << " array of " << n_elem << " of " << typeid(T).name()
+                << " total " << n_bytes  << "bytes. "
+                << cudaGetErrorString(ierr) << std::endl;
+            return nullptr;
+        }
+    }
+    else
+    {
+        // move the existing array to the GPU
+        U *tmp = nullptr;
+        if (!cudaVals)
+        {
+            size_t n_bytes_vals = n_elem*sizeof(U);
+
+            if ((ierr = cudaMallocAsync(&tmp, n_bytes_vals, str)) != cudaSuccess)
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Failed to cudaMalloc " << n_elem << " of "
+                    << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                    << cudaGetErrorString(ierr) << std::endl;
+                return nullptr;
+            }
+
+            if ((ierr = cudaMemcpyAsync(tmp, vals, n_bytes_vals,
+                cudaMemcpyHostToDevice, str)) != cudaSuccess)
+            {
+                std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                    " Failed to cudaMemcpy array of " << n_elem
+                    << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                    << cudaGetErrorString(ierr) << std::endl;
+                return nullptr;
+            }
+
+            vals = tmp;
+        }
+
+        // get launch parameters
+        int device_id = -1;
+        dim3 block_grid;
+        int n_blocks = 0;
+        dim3 thread_grid = 0;
+        if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
+            n_blocks, thread_grid))
+        {
+            std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
+                " Failed to determine launch properties. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        if ((ierr = cudaMemcpyAsync(tmp, vals, n_bytes_vals,
-            cudaMemcpyHostToDevice, str)) != cudaSuccess)
+        // construct
+        cuda_kernels::fill<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, vals);
+        if ((ierr = cudaGetLastError()) != cudaSuccess)
         {
             std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-                " Failed to cudaMemcpy array of " << n_elem
-                << " of " << typeid(T).name() << " total " << n_bytes_vals  << "bytes. "
+                " Failed to launch the construct kernel. "
                 << cudaGetErrorString(ierr) << std::endl;
             return nullptr;
         }
 
-        vals = tmp;
-    }
-
-    // get launch parameters
-    int device_id = -1;
-    dim3 block_grid;
-    int n_blocks = 0;
-    dim3 thread_grid = 0;
-    if (hamr::partition_thread_blocks(device_id, n_elem, 8, block_grid,
-        n_blocks, thread_grid))
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to determine launch properties. "
-            << cudaGetErrorString(ierr) << std::endl;
-        return nullptr;
-    }
-
-    // construct
-    cuda_kernels::fill<T><<<block_grid, thread_grid, 0, str>>>(ptr, n_elem, vals);
-    if ((ierr = cudaGetLastError()) != cudaSuccess)
-    {
-        std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
-            " Failed to launch the construct kernel. "
-            << cudaGetErrorString(ierr) << std::endl;
-        return nullptr;
-    }
-
-    // free up temporary buffers
-    if (!cudaVals)
-    {
-        cudaFreeAsync(tmp, str);
+        // free up temporary buffers
+        if (!cudaVals)
+        {
+            cudaFreeAsync(tmp, str);
+        }
     }
 
 #if defined(HAMR_VERBOSE)
