@@ -354,7 +354,11 @@ set(tmp STATIC)
 if (HAMR_SEPARATE_IMPL)
     set(tmp SHARED) # because nvlink segv's during device link w/ clang
 endif()
-add_library(hamr ${tmp} ${hamr_sources})
+
+set(HAMR_LIBRARY_TYPE ${tmp}
+    CACHE STRING "HAMR library type STATIC or SHARED")
+
+add_library(hamr ${HAMR_LIBRARY_TYPE} ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
 
 if (HAMR_ENABLE_CUDA AND HAMR_NVCC_CUDA)
