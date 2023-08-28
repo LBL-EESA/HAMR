@@ -351,9 +351,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/hamr/ham
 
 # add the libarary
 set(tmp STATIC)
-if (HAMR_SEPARATE_IMPL)
-    set(tmp SHARED) # because nvlink segv's during device link w/ clang
-endif()
+#if (HAMR_SEPARATE_IMPL)
+#    set(tmp SHARED) # because nvlink segv's during device link w/ clang
+#endif()
 add_library(hamr ${tmp} ${hamr_sources})
 target_link_libraries(hamr PUBLIC ${hamr_libs})
 
