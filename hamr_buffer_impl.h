@@ -1767,7 +1767,9 @@ std::shared_ptr<const T> buffer<T>::get_host_accessible() const
 #if defined(HAMR_ENABLE_CUDA)
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_async))
     {
-        // make a copy on the host
+        // make a copy on the host.
+        std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
+        /*TODO:Using cudaMallocHost caused performance issues on Perlmutter
         std::shared_ptr<T> tmp = cuda_malloc_host_allocator<T>::allocate(m_size);
         if (!tmp)
         {
@@ -1775,7 +1777,7 @@ std::shared_ptr<const T> buffer<T>::get_host_accessible() const
                 " CUDA failed to allocate host pinned memory, falling back"
                 " to the default system allocator." << std::endl;
             tmp = malloc_allocator<T>::allocate(m_size);
-        }
+        }*/
 
         activate_cuda_device dev(m_owner);
 
