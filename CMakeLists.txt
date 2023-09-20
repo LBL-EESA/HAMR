@@ -158,6 +158,14 @@ else()
     message(STATUS "HAMR: User defined objects -- disabled")
 endif()
 
+# page locked memory for host transfers
+set(HAMR_ENABLE_PAGE_LOCKED_MEMORY OFF CACHE BOOL
+    "Enables the use of page locked memory for host transfers.")
+if (HAMR_ENABLE_PAGE_LOCKED_MEMORY)
+    message(STATUS "HAMR: Page locked memory for host transfers -- enabled")
+else()
+    message(STATUS "HAMR: Page locked memory for host transfers -- disabled")
+endif()
 
 # add the requisite flags. CMake enthusiasts will tell you that this is "not
 # the CMake way". However, CMake has spotty coverage, is inconsistent in
