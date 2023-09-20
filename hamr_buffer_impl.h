@@ -1768,8 +1768,9 @@ std::shared_ptr<const T> buffer<T>::get_host_accessible() const
     else if ((m_alloc == allocator::cuda) || (m_alloc == allocator::cuda_async))
     {
         // make a copy on the host.
-        std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
-        /*TODO:Using cudaMallocHost caused performance issues on Perlmutter
+#if defined(HAMR_ENABLE_PAGE_LOCKED_MEMORY)
+        // Using cudaMallocHost caused performance issues on Perlmutter w. CUDA 11.7
+        // however, page locked memory is required for asynchronous transfers.
         std::shared_ptr<T> tmp = cuda_malloc_host_allocator<T>::allocate(m_size);
         if (!tmp)
         {
@@ -1777,8 +1778,10 @@ std::shared_ptr<const T> buffer<T>::get_host_accessible() const
                 " CUDA failed to allocate host pinned memory, falling back"
                 " to the default system allocator." << std::endl;
             tmp = malloc_allocator<T>::allocate(m_size);
-        }*/
-
+        }
+#else
+        std::shared_ptr<T> tmp = malloc_allocator<T>::allocate(m_size);
+#endif
         activate_cuda_device dev(m_owner);
 
         if (copy_to_host_from_cuda(m_stream, tmp.get(), m_data.get(), m_size))
