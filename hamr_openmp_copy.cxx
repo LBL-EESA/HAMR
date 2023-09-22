@@ -1,32 +1,18 @@
 #include "hamr_config.h"
-
 #include "hamr_openmp_copy.h"
 #include "hamr_openmp_copy_impl.h"
 
-#if !defined(HAMR_ENABLE_OBJECTS)
-
 #define hamr_openmp_copy_instantiate_(T, U) \
-template int hamr::copy_to_openmp_from_host<T,U>(T *dest, const U *src, size_t n_elem, void *); \
-template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, void *); \
-template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_host_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, void *);
-
-#else
-
-#define hamr_openmp_copy_instantiate_(T, U) \
-template int hamr::copy_to_openmp_from_host<T,U>(T *dest, const U *src, size_t n_elem); \
-template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, size_t n_elem); \
-template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, int src_device, size_t n_elem); \
-template int hamr::copy_to_host_from_openmp<T,U>(T *dest, const U *src, size_t n_elem);
-
-#endif
+template int hamr::copy_to_openmp_from_host<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_openmp_from_openmp<T,U>(T *dest, const U *src, int src_device, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_host_from_openmp<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *);
 
 #define hamr_openmp_copy_instantiate__(T) \
-template int hamr::copy_to_openmp_from_host<T>(T *dest, const T *src, size_t n_elem, void *); \
-template int hamr::copy_to_openmp_from_openmp<T>(T *dest, const T *src, size_t n_elem, void *); \
-template int hamr::copy_to_openmp_from_openmp<T>(T *dest, const T *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_host_from_openmp<T>(T *dest, const T *src, size_t n_elem, void *);
-
+template int hamr::copy_to_openmp_from_host<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_openmp_from_openmp<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_openmp_from_openmp<T,T>(T *dest, const T *src, int src_device, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_host_from_openmp<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
 
 hamr_openmp_copy_instantiate__(float)
 hamr_openmp_copy_instantiate__(double)

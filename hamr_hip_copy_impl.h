@@ -9,6 +9,7 @@
 #include "hamr_hip_malloc_allocator.h"
 #endif
 #include "hamr_malloc_allocator.h"
+#include "hamr_copier_traits.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -21,7 +22,7 @@ namespace hamr
 #if !defined(HAMR_ENABLE_OBJECTS)
 template <typename T, typename U>
 int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -40,10 +41,11 @@ int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
-template <typename T>
-int copy_to_hip_from_host(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+#endif
+
+template <typename T, typename U>
+int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -75,14 +77,10 @@ int copy_to_hip_from_host(T *dest, const T *src, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 template <typename T, typename U>
-int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -148,7 +146,7 @@ int copy_to_hip_from_host(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
 template <typename T, typename U>
 int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -166,10 +164,11 @@ int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
-template <typename T>
-int copy_to_hip_from_hip(T *dest, const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+#endif
+
+template <typename T, typename U>
+int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -201,14 +200,10 @@ int copy_to_hip_from_hip(T *dest, const T *src, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 template <typename T, typename U>
-int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -259,7 +254,7 @@ int copy_to_hip_from_hip(T *dest, const U *src, size_t n_elem
 #if !defined(HAMR_ENABLE_OBJECTS)
 template <typename T, typename U>
 int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -279,10 +274,11 @@ int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem,
     return -1;
 #endif
 }
-#else
-template <typename T>
-int copy_to_hip_from_hip(T *dest, const T *src, int src_device, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+#endif
+
+template <typename T, typename U>
+int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -327,14 +323,10 @@ int copy_to_hip_from_hip(T *dest, const T *src, int src_device, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 template <typename T, typename U>
-int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -433,10 +425,12 @@ int copy_to_hip_from_hip(T *dest, const U *src, int src_device, size_t n_elem
 #endif
 }
 
+
+
 #if !defined(HAMR_ENABLE_OBJECTS)
 template <typename T, typename U>
 int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -455,10 +449,11 @@ int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
-template <typename T>
-int copy_to_host_from_hip(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+#endif
+
+template <typename T, typename U>
+int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -493,11 +488,8 @@ int copy_to_host_from_hip(T *dest, const T *src, size_t n_elem,
 #endif
 
 template <typename T, typename U>
-int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_HIP)
     (void) dest;
@@ -563,6 +555,3 @@ int copy_to_host_from_hip(T *dest, const U *src, size_t n_elem
 }
 
 }
-
-#endif
-

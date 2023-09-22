@@ -1,31 +1,18 @@
 #include "hamr_config.h"
-
 #include "hamr_hip_copy.h"
 #include "hamr_hip_copy_impl.h"
 
-#if !defined(HAMR_ENABLE_OBJECTS)
-
 #define hamr_hip_copy_instantiate_(T, U) \
-template int hamr::copy_to_hip_from_host<T,U>(T *dest, const U *src, size_t n_elem, void *); \
-template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, size_t n_elem, void *); \
-template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_host_from_hip<T,U>(T *dest, const U *src, size_t n_elem, void *);
-
-#else
-
-#define hamr_hip_copy_instantiate_(T, U) \
-template int hamr::copy_to_hip_from_host<T,U>(T *dest, const U *src, size_t n_elem); \
-template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, size_t n_elem); \
-template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, int src_device, size_t n_elem); \
-template int hamr::copy_to_host_from_hip<T,U>(T *dest, const U *src, size_t n_elem);
-
-#endif
+template int hamr::copy_to_hip_from_host<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_hip_from_hip<T,U>(T *dest, const U *src, int src_device, size_t n_elem, hamr::use_cons_copier_t<T,U> *); \
+template int hamr::copy_to_host_from_hip<T,U>(T *dest, const U *src, size_t n_elem, hamr::use_cons_copier_t<T,U> *);
 
 #define hamr_hip_copy_instantiate__(T) \
-template int hamr::copy_to_hip_from_host<T>(T *dest, const T *src, size_t n_elem, void *); \
-template int hamr::copy_to_hip_from_hip<T>(T *dest, const T *src, size_t n_elem, void *); \
-template int hamr::copy_to_hip_from_hip<T>(T *dest, const T *src, int src_device, size_t n_elem, void *); \
-template int hamr::copy_to_host_from_hip<T>(T *dest, const T *src, size_t n_elem, void *);
+template int hamr::copy_to_hip_from_host<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_hip_from_hip<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_hip_from_hip<T,T>(T *dest, const T *src, int src_device, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
+template int hamr::copy_to_host_from_hip<T,T>(T *dest, const T *src, size_t n_elem, hamr::use_bytes_copier_t<T,T> *); \
 
 hamr_hip_copy_instantiate__(float)
 hamr_hip_copy_instantiate__(double)

@@ -2,6 +2,7 @@
 #define hamr_openmp_print_impl_h
 
 #include "hamr_config.h"
+#include <stddef.h>
 
 /// heterogeneous accelerator memory resource
 namespace hamr

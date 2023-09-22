@@ -2,6 +2,8 @@
 #define hamr_cuda_copy_async_h
 
 #include "hamr_config.h"
+#include "hamr_copier_traits.h"
+
 #include <memory>
 #include <type_traits>
 
@@ -20,8 +22,9 @@ namespace hamr
  */
 template <typename T, typename U>
 int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array to the active CUDA device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -32,10 +35,9 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_ele
  *
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_cuda_from_host(cudaStream_t str, T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array to the active CUDA device.
  *
@@ -47,11 +49,9 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const T *src, size_t n_ele
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
+
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array on the active CUDA device.
@@ -65,8 +65,9 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_ele
  */
 template <typename T, typename U>
 int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Ccopies an array on the active CUAD device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -77,10 +78,10 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
  *
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
+
 
 /** Copies an array on the active CUDA device.
  *
@@ -92,11 +93,8 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const T *src, size_t n_ele
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array to the active CUDA device from the named CUDA device,
@@ -110,10 +108,10 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const U *src, int src_device, size_t n_elem,
-    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem, hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array to the active CUDA device from the named CUDA device, (fast
  * path for arrays of arithmetic types of the same type).
  *
@@ -125,11 +123,9 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
  *
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const T *src, int src_device, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem, hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array on the active CUDA device.
  *
@@ -142,12 +138,8 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem, hamr::use_cons_copier_t<T,U> * = nullptr);
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array from the active CUDA device.
@@ -160,10 +152,10 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest,
-    const U *src, size_t n_elem,
-    typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array from the active CUDA device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -174,11 +166,9 @@ int copy_to_host_from_cuda(cudaStream_t str, T *dest,
  *
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest,
-    const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array from the active CUDA device.
  *
@@ -188,11 +178,8 @@ int copy_to_host_from_cuda(cudaStream_t str, T *dest,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 }
 

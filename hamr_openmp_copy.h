@@ -2,7 +2,8 @@
 #define hamr_openmp_copy_h
 
 #include "hamr_config.h"
-#include <type_traits>
+#include "hamr_copier_traits.h"
+#include <stddef.h>
 
 /// heterogeneous accelerator memory resource
 namespace hamr
@@ -17,8 +18,9 @@ namespace hamr
  */
 template <typename T, typename U>
 int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array to the active OpenMP device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -27,10 +29,9 @@ int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_openmp_from_host(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array to the active OpenMP device.
  *
@@ -40,11 +41,8 @@ int copy_to_openmp_from_host(T *dest, const T *src, size_t n_elem,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array on the active OpenMP device.
@@ -56,8 +54,9 @@ int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem
  */
 template <typename T, typename U>
 int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array on the active OpenMP device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -66,10 +65,9 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_openmp_from_openmp(T *dest, const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array on the active OpenMP device.
  *
@@ -79,11 +77,8 @@ int copy_to_openmp_from_openmp(T *dest, const T *src, size_t n_elem,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array to the active OpenMP device from the named OpenMP device,
@@ -96,8 +91,9 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem
  */
 template <typename T, typename U>
 int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array to the active OpenMP device from the named OpenMP device,
  * (fast path for arrays of arithmetic types of the same type).
  *
@@ -107,10 +103,9 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_e
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_openmp_from_openmp(T *dest, const T *src, int src_device, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array on the active OpenMP device.
  *
@@ -121,11 +116,8 @@ int copy_to_openmp_from_openmp(T *dest, const T *src, int src_device, size_t n_e
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 #if !defined(HAMR_ENABLE_OBJECTS)
 /** Copies an array from the active OpenMP device.
@@ -137,8 +129,9 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_e
  */
 template <typename T, typename U>
 int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * = nullptr);
-#else
+    hamr::use_object_copier_t<T,U> * = nullptr);
+#endif
+
 /** Copies an array from the active OpenMP device (fast path for arrays of
  * arithmetic types of the same type).
  *
@@ -147,10 +140,9 @@ int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
  * @param[in] n_elem the number of elements in the array
  * @returns 0 if there were no errors
  */
-template <typename T>
-int copy_to_host_from_openmp(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr);
-#endif
+template <typename T, typename U>
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> * = nullptr);
 
 /** Copies an array from the active OpenMP device.
  *
@@ -160,11 +152,8 @@ int copy_to_host_from_openmp(T *dest, const T *src, size_t n_elem,
  * @returns 0 if there were no errors
  */
 template <typename T, typename U>
-int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * = nullptr
-#endif
-    );
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> * = nullptr);
 
 }
 

@@ -14,6 +14,7 @@
 using cudaStream_t = void;
 #endif
 #include "hamr_malloc_allocator.h"
+#include "hamr_copier_traits.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -27,7 +28,7 @@ namespace hamr
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -48,11 +49,12 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_ele
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_cuda_from_host(cudaStream_t str, T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+template <typename T, typename U>
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -87,15 +89,12 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const T *src, size_t n_ele
     return 0;
 #endif
 }
-#endif
+
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -163,7 +162,7 @@ int copy_to_cuda_from_host(cudaStream_t str, T *dest, const U *src, size_t n_ele
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -183,11 +182,12 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+template <typename T, typename U>
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -221,15 +221,11 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const T *src, size_t n_ele
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -281,9 +277,8 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
 #if !defined(HAMR_ENABLE_OBJECTS)
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const U *src, int src_device, size_t n_elem,
-    typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem, hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -305,12 +300,12 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const T *src, int src_device, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+template <typename T, typename U>
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem, hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -362,12 +357,8 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
-    const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_cuda_from_cuda(cudaStream_t str, T *dest, const U *src,
+    int src_device, size_t n_elem ,hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -466,9 +457,8 @@ int copy_to_cuda_from_cuda(cudaStream_t str, T *dest,
 #if !defined(HAMR_ENABLE_OBJECTS)
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest,
-    const U *src, size_t n_elem,
-    typename std::enable_if<!std::is_arithmetic<T>::value>::type *)
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -489,12 +479,12 @@ int copy_to_host_from_cuda(cudaStream_t str, T *dest,
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest,
-    const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type *)
+template <typename T, typename U>
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -528,15 +518,11 @@ int copy_to_host_from_cuda(cudaStream_t str, T *dest,
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type *
-#endif
-    )
+int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_CUDA)
     (void) str;
@@ -602,5 +588,3 @@ int copy_to_host_from_cuda(cudaStream_t str, T *dest, const U *src, size_t n_ele
 }
 
 }
-
-#endif

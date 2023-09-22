@@ -8,6 +8,7 @@
 #include <omp.h>
 #endif
 #include "hamr_malloc_allocator.h"
+#include "hamr_copier_traits.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -21,7 +22,7 @@ namespace hamr
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -40,11 +41,12 @@ int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_openmp_from_host(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * )
+template <typename T, typename U>
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -80,15 +82,11 @@ int copy_to_openmp_from_host(T *dest, const T *src, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
-#endif
-    )
+int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -144,7 +142,7 @@ int copy_to_openmp_from_host(T *dest, const U *src, size_t n_elem
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -162,11 +160,12 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_openmp_from_openmp(T *dest, const T *src, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * )
+template <typename T, typename U>
+int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -201,15 +200,11 @@ int copy_to_openmp_from_openmp(T *dest, const T *src, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
-#endif
-    )
+int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -245,7 +240,7 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, size_t n_elem
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -265,11 +260,12 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_e
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_openmp_from_openmp(T *dest, const T *src, int src_device, size_t n_elem,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type * )
+template <typename T, typename U>
+int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -303,15 +299,11 @@ int copy_to_openmp_from_openmp(T *dest, const T *src, int src_device, size_t n_e
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
-#endif
-    )
+int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -363,7 +355,7 @@ int copy_to_openmp_from_openmp(T *dest, const U *src, int src_device, size_t n_e
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
 int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
-   typename std::enable_if<!std::is_arithmetic<T>::value>::type * )
+    hamr::use_object_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -382,11 +374,12 @@ int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
     return -1;
 #endif
 }
-#else
+#endif
+
 // ---------------------------------------------------------------------------
-template <typename T>
-int copy_to_host_from_openmp(T *dest, const T *src, size_t n_elem,
-   typename std::enable_if<std::is_arithmetic<T>::value>::type * )
+template <typename T, typename U>
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_bytes_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
@@ -422,15 +415,11 @@ int copy_to_host_from_openmp(T *dest, const T *src, size_t n_elem,
     return 0;
 #endif
 }
-#endif
 
 // ---------------------------------------------------------------------------
 template <typename T, typename U>
-int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem
-#if !defined(HAMR_ENABLE_OBJECTS)
-    ,typename std::enable_if<std::is_arithmetic<T>::value>::type * 
-#endif
-    )
+int copy_to_host_from_openmp(T *dest, const U *src, size_t n_elem,
+    hamr::use_cons_copier_t<T,U> *)
 {
 #if !defined(HAMR_ENABLE_OPENMP)
     (void) dest;
