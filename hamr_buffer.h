@@ -655,14 +655,26 @@ public:
     int host_accessible() const;
 
 #if !defined(SWIG)
-    /** @returns a read only pointer to the contents of the buffer accessible
-     * from the active CUDA device.  If the buffer is currently accessible on
-     * the active CUDA device then this call is a NOOP.  If the buffer is not
-     * currently accessible on the active CUDA device then a temporary buffer
-     * is allocated and the data is moved.  The returned shared_ptr deals with
+    /** Returns a read only pointer to the contents of the buffer accessible
+     * from the specified CUDA device. If the buffer is currently accessible on
+     * the device, direct access to the device pointer is granted.
+     * this call is a NOOP in that case. If the buffer is not currently
+     * accessible on the active CUDA device then a temporary buffer is
+     * allocated and the data is moved.  The returned shared_ptr deals with
      * deallocation of the temporary if needed.
+     *
+     * @param[in] dev  The CUDA device where access is desired. Pass -1 to use
+     *                 the active device.
+     * @param[in] strm The stream used to order data movement, should it be
+     *                 needed. If not specified the instance's stream will be used.
+     * @param[in] sync specifies synchronization behavior of the call. If not
+     *                 specified the instance's transfer mode will be used.
+     * @returns a read only view of the data accessible in the CUDA programming
+     *          model.
      */
-    std::shared_ptr<const T> get_cuda_accessible() const;
+    std::shared_ptr<const T> get_cuda_accessible(int dev = -1,
+                                                 const hamr::stream &strm = get_stream(),
+                                                 transfer sync = transfer::async) const;
 #endif
 
     /// returns true if the data is accessible from CUDA codes
