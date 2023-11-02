@@ -51,13 +51,12 @@ public:
     buffer(allocator alloc, const hamr::stream &strm, transfer sync = transfer::async);
 
     /** Construct an empty buffer. This constructor will result in the default
-     * stream for the chosen technology with transfer::sync_host mode which
-     * synchronizes after data movement from a device to the host.
+     * stream for the chosen technology with transfer::async.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
      */
-    buffer(allocator alloc) : buffer(alloc, stream(), transfer::sync_host) {}
+    buffer(allocator alloc) : buffer(alloc, stream(), transfer::async) {}
 
     /** Construct a buffer with storage allocated but unitialized.
      *
@@ -83,15 +82,14 @@ public:
 
     /** Construct a buffer with storage allocated but unitialized. This
      * constructor will result in the default stream for the chosen technology
-     * with transfer::sync_host mode which synchronizes after data movement from
-     * a device to the host.
+     * with transfer::async mode.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
      * @param[in] n_elem  the initial size of the new buffer
      */
     buffer(allocator alloc, size_t n_elem) :
-        buffer(alloc, stream(), transfer::sync_host, n_elem) {}
+        buffer(alloc, stream(), transfer::async, n_elem) {}
 
     /** Construct a buffer with storage allocated and initialized to a single
      * value.
@@ -123,9 +121,7 @@ public:
 
     /** Construct a buffer with storage allocated and initialized to a single
      * value. This constructor will result in the default stream for the chosen
-     * technology with transfer::sync_host mode which synchronizes after data
-     * movement from a device to the host. For fully asynchronous data transfers
-     * one must explicitly prtovide a stream and specify the asynchronous mode.
+     * technology with transfer::async mode.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
@@ -134,7 +130,7 @@ public:
      *                    contents
      */
     buffer(allocator alloc, size_t n_elem, const T &val) :
-        buffer(alloc, stream(), transfer::sync_host, n_elem, val) {}
+        buffer(alloc, stream(), transfer::async, n_elem, val) {}
 
     /** Construct a buffer with storage allocated and initialized to the array
      * of values. This array is always assumed to be accessible on the host. Use
@@ -174,8 +170,7 @@ public:
      * of values. This array is always assumed to be accessible on the host. Use
      * one of the zero-copy constructors if the data is already accessible on
      * the device. This constructor will result in the default stream for the
-     * chosen technology with transfer::sync_host mode which synchronizes after
-     * data movement from a device to the host.
+     * chosen technology with transfer::async mode.
      *
      * @param[in] alloc   a ::buffer_allocator indicates what technology
      *                    manages the data internally
@@ -185,7 +180,7 @@ public:
      *                    initialize the buffer contents
      */
     buffer(allocator alloc, size_t n_elem, const T *vals) :
-        buffer(alloc, stream(), transfer::sync_host, n_elem, vals) {}
+        buffer(alloc, stream(), transfer::async, n_elem, vals) {}
 
     /** Construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -241,8 +236,7 @@ public:
      * allocator type and owner are used internally to know how to
      * automatically move data during inter technology transfers. This
      * constructor will result in the default stream for the chosen technology
-     * with transfer::sync_host mode which synchronizes after data movement from
-     * a device to the host.
+     * with transfer::async mode.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -257,7 +251,7 @@ public:
      */
     template <typename delete_func_t>
     buffer(allocator alloc, size_t size, int owner, T *ptr, delete_func_t df)
-        : buffer(alloc, stream(), transfer::sync_host, size, owner, ptr, df) {}
+        : buffer(alloc, stream(), transfer::async, size, owner, ptr, df) {}
 
     /** Construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -316,8 +310,7 @@ public:
      * ::buffer_allocator is used to create the deleter that will be called
      * when this instance is finished with the memeory. Use this constructor to
      * transfer ownership of the array.  This constructor will result in the
-     * default stream for the chosen technology with transfer::sync_host mode
-     * which synchronizes after data movement from a device to the host.
+     * default stream for the chosen technology with transfer::async mode.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -329,7 +322,7 @@ public:
      * @param[in] ptr   a pointer to the array
      */
     buffer(allocator alloc, size_t size, int owner, T *ptr) :
-        buffer(alloc, stream(), transfer::sync_host, size, owner, ptr) {}
+        buffer(alloc, stream(), transfer::async, size, owner, ptr) {}
 
     /** Construct by directly providing the buffer contents. This can be used
      * for zero-copy transfer of data.  One must also name the allocator type
@@ -379,8 +372,7 @@ public:
      * allocator type and owner are used internally to know how to
      * automatically move data during inter technology transfers.  This
      * constructor will result in the default stream for the chosen technology
-     * with transfer::sync_host mode which synchronizes after data movement from
-     * a device to the host.
+     * with transfer::async mode.
      *
      * @param[in] alloc a ::buffer_allocator indicating the technology
      *                  backing the pointer
@@ -392,7 +384,7 @@ public:
      * @param[in] data  a shared pointer managing the data
      */
     buffer(allocator alloc, size_t size, int owner, const std::shared_ptr<T> &data)
-        : buffer(alloc, stream(), transfer::sync_host, size, owner, data) {}
+        : buffer(alloc, stream(), transfer::async, size, owner, data) {}
 
     /// copy construct from the passed buffer
     template <typename U>
@@ -426,11 +418,8 @@ public:
     buffer(allocator alloc, const hamr::stream &strm, const buffer<U> &other)
         : buffer(alloc, strm, transfer::async, other) {}
 
-    /** Copy construct from the passed buffer, while specifying a potentially
-     * different allocator, stream, and synchronization behavior. This
-     * constructor will result in the default stream for the chosen technology
-     * with transfer::sync_host mode which synchronizes after data movement from
-     * a device to the host.
+    /** Copy construct from the passed buffer using the specified allocator.
+     * The stream and sync mode are obtained from the copied instance.
      *
      * @param[in] alloc a ::buffer_allocator indicates what technology
      *                  manages the data internally
