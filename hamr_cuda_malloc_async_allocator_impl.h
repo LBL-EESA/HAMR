@@ -162,8 +162,8 @@ cuda_malloc_async_allocator<T, typename std::enable_if<!std::is_arithmetic<T>::v
     {
         std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] ERROR:"
             " Failed to cudaMalloc " << n_elem << " of "
-            << typeid(T).name() << " total " << n_bytes  << " bytes. "
-            << cudaGetErrorString(ierr) << std::endl;
+            << typeid(T).name() << sizeof(T) << " total " << n_bytes
+            << " bytes. " << cudaGetErrorString(ierr) << std::endl;
         return nullptr;
     }
 
